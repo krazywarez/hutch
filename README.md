@@ -19,7 +19,7 @@ Sourcehut on iOS
 To get started with Hutch, follow these steps:
 
 1. Clone the repository: `git clone
-   https://github.com/ccleberg/Hutch.git`
+   https://git.sr.ht/~ccleberg/Hutch`
 2. Open the project in Xcode.
 3. Run the app on your device or simulator.
 
