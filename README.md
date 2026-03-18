@@ -1,13 +1,5 @@
-# Hutch
-
-<div style="display: flex; align-items: center; border: 1px solid #ccc; border-radius: 10px; padding: 10px; width: 300px; background-color: #f9f9f9;">
-    <img src="https://img.cleberg.net/apps/hutch/logo/hutch_light.png" alt="Hutch App Logo" style="border-radius: 50%; width: 60px; height: 60px; margin-right: 10px;">
-    <div>
-        <h2 style="margin: 0; font-size: 20px; color: #333;">Hutch</h2>
-        <h3 style="margin: 0; font-size: 14px; color: #777;">An iOS client for Sourcehut</h3>
-    </div>
-</div>
-
+# Hutch for Sourcehut
+Sourcehut on iOS
 
 ![Hutch App Logo]()
 
