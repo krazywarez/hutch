@@ -433,6 +433,64 @@ final class TicketDetailViewModel {
         isPerformingAction = false
     }
 
+    func assignToCurrentUser(_ user: User) async {
+        guard !isPerformingAction, let currentTicket = ticket else { return }
+
+        let currentAssignees = currentTicket.assignees
+        let currentEntity = Entity(canonicalName: user.canonicalName)
+        guard !currentAssignees.contains(where: { Self.matchesAssignee($0, user: user) }) else {
+            return
+        }
+
+        isPerformingAction = true
+        error = nil
+
+        ticket = TicketDetail(
+            id: currentTicket.id,
+            created: currentTicket.created,
+            updated: currentTicket.updated,
+            title: currentTicket.title,
+            description: currentTicket.description,
+            status: currentTicket.status,
+            resolution: currentTicket.resolution,
+            authenticity: currentTicket.authenticity,
+            submitter: currentTicket.submitter,
+            assignees: currentAssignees + [currentEntity],
+            labels: currentTicket.labels
+        )
+
+        do {
+            _ = try await client.execute(
+                service: .todo,
+                query: Self.assignUserMutation,
+                variables: [
+                    "trackerId": trackerId,
+                    "ticketId": ticketId,
+                    "userId": user.id
+                ],
+                responseType: AssignUserResponse.self
+            )
+            await loadTicket()
+        } catch {
+            ticket = TicketDetail(
+                id: currentTicket.id,
+                created: currentTicket.created,
+                updated: currentTicket.updated,
+                title: currentTicket.title,
+                description: currentTicket.description,
+                status: currentTicket.status,
+                resolution: currentTicket.resolution,
+                authenticity: currentTicket.authenticity,
+                submitter: currentTicket.submitter,
+                assignees: currentAssignees,
+                labels: currentTicket.labels
+            )
+            self.error = error.localizedDescription
+        }
+
+        isPerformingAction = false
+    }
+
     func unassignUser(username: String) async {
         guard !isPerformingAction else { return }
         isPerformingAction = true
@@ -556,6 +614,28 @@ final class TicketDetailViewModel {
         }
 
         isPerformingAction = false
+    }
+
+    static func matchesAssignee(_ entity: Entity, user: User) -> Bool {
+        let assigneeCanonical = normalizedCanonicalName(entity.canonicalName)
+        let userCanonical = normalizedCanonicalName(user.canonicalName)
+        if assigneeCanonical == userCanonical {
+            return true
+        }
+        return normalizedUsername(entity.canonicalName) == normalizedUsername(user.username)
+    }
+
+    private static func normalizedCanonicalName(_ value: String) -> String {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.hasPrefix("~") {
+            return trimmed
+        }
+        return "~\(trimmed)"
+    }
+
+    private static func normalizedUsername(_ value: String) -> String {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.hasPrefix("~") ? String(trimmed.dropFirst()) : trimmed
     }
 
 }

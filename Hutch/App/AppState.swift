@@ -7,6 +7,20 @@ import WebKit
 @MainActor
 final class AppState {
 
+    enum Tab: Hashable {
+        case home
+        case repositories
+        case tickets
+        case builds
+        case more
+    }
+
+    enum TabNavigationTarget: Hashable {
+        case repository(RepositorySummary)
+        case tracker(TrackerSummary)
+        case mailingList(InboxMailingListReference)
+    }
+
     enum AuthPhase {
         /// App just launched, checking for an existing token.
         case launching
@@ -25,6 +39,8 @@ final class AppState {
         authPhase == .authenticated && currentUser != nil
     }
 
+    var selectedTab: Tab = .home
+
     // MARK: - Current user (populated after successful validation)
 
     private(set) var currentUser: User?
@@ -37,6 +53,7 @@ final class AppState {
 
     /// Set by the deep link handler; consumed by RootView to drive navigation.
     var pendingDeepLink: DeepLink?
+    var pendingTabNavigation: TabNavigationTarget?
 
     // MARK: - Init
 
@@ -94,6 +111,7 @@ final class AppState {
         await clearWebData()
         clearWebContentRenderCaches()
         authPhase = .unauthenticated
+        selectedTab = .home
     }
 
     func resetAppData() async {
@@ -108,14 +126,15 @@ final class AppState {
         clearWebContentRenderCaches()
 
         authPhase = .unauthenticated
+        selectedTab = .home
     }
 
     // MARK: - Deep link resolution
 
     /// Resolve a repository by owner and name for deep linking.
-    func resolveRepository(owner: String, name: String) async throws -> RepositorySummary {
+    func resolveRepository(owner: String, name: String, service: SRHTService = .git) async throws -> RepositorySummary {
         let result = try await client.execute(
-            service: .git,
+            service: service,
             query: Self.repoLookupQuery,
             variables: ["owner": owner, "name": name],
             responseType: RepoLookupResponse.self
@@ -132,6 +151,35 @@ final class AppState {
             responseType: TrackerLookupResponse.self
         )
         return result.user.tracker
+    }
+
+    func resolveProjectSource(_ source: Project.SourceRepo) async throws -> RepositorySummary {
+        try await resolveRepository(
+            owner: source.ownerUsername,
+            name: source.name,
+            service: source.repoType.service
+        )
+    }
+
+    func resolveProjectTracker(_ tracker: Project.Tracker) async throws -> TrackerSummary {
+        try await resolveTracker(owner: tracker.ownerUsername, name: tracker.name)
+    }
+
+    func openProjectSource(_ source: Project.SourceRepo) async throws {
+        let repository = try await resolveProjectSource(source)
+        pendingTabNavigation = .repository(repository)
+        selectedTab = .repositories
+    }
+
+    func openProjectTracker(_ tracker: Project.Tracker) async throws {
+        let resolvedTracker = try await resolveProjectTracker(tracker)
+        pendingTabNavigation = .tracker(resolvedTracker)
+        selectedTab = .tickets
+    }
+
+    func openMailingList(_ mailingList: InboxMailingListReference) {
+        pendingTabNavigation = .mailingList(mailingList)
+        selectedTab = .more
     }
 
     // MARK: - Private
@@ -208,6 +256,8 @@ final class AppState {
         client.responseCache.clear()
         currentUser = nil
         pendingDeepLink = nil
+        pendingTabNavigation = nil
+        selectedTab = .home
     }
 
     private func clearWebData() async {

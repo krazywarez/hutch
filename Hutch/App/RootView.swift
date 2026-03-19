@@ -4,15 +4,8 @@ import SwiftUI
 /// full-screen sheet for token entry on first launch.
 struct RootView: View {
     @Environment(AppState.self) private var appState
-
-    enum Tab: Hashable {
-        case repositories
-        case builds
-        case tickets
-        case settings
-    }
-
-    @State private var selectedTab: Tab = .repositories
+    @State private var homePath = NavigationPath()
+    @State private var morePath = NavigationPath()
     @State private var repoPath = NavigationPath()
     @State private var buildsPath = NavigationPath()
     @State private var ticketsPath = NavigationPath()
@@ -41,18 +34,43 @@ struct RootView: View {
         .onChange(of: appState.authPhase) { _, newPhase in
             handleAuthPhaseChange(newPhase)
         }
+        .onChange(of: appState.pendingTabNavigation) { _, newValue in
+            consumePendingTabNavigationIfPossible(newValue)
+        }
     }
 
     // MARK: - Tab View
 
     private var tabContent: some View {
-        TabView(selection: $selectedTab) {
+        @Bindable var appState = appState
+
+        return TabView(selection: $appState.selectedTab) {
+            NavigationStack(path: $homePath) {
+                HomeView()
+            }
+            .tag(AppState.Tab.home)
+            .tabItem {
+                Label("Home", systemImage: "house")
+            }
+
             NavigationStack(path: $repoPath) {
                 RepositoryListView()
             }
-            .tag(Tab.repositories)
+            .tag(AppState.Tab.repositories)
             .tabItem {
                 Label("Repositories", systemImage: "book.closed")
+            }
+
+            NavigationStack(path: $ticketsPath) {
+                TrackerListView()
+                    // Deep link destination for jumping straight to a ticket.
+                    .navigationDestination(for: TicketDeepLinkTarget.self) { target in
+                        TicketDetailView(ownerUsername: target.ownerUsername, trackerName: target.trackerName, trackerId: target.trackerId, trackerRid: target.trackerRid, ticketId: target.ticketId)
+                    }
+            }
+            .tag(AppState.Tab.tickets)
+            .tabItem {
+                Label("Tickets", systemImage: "ticket")
             }
 
             NavigationStack(path: $buildsPath) {
@@ -63,28 +81,18 @@ struct RootView: View {
                         BuildDetailView(jobId: jobId)
                     }
             }
-            .tag(Tab.builds)
+            .tag(AppState.Tab.builds)
             .tabItem {
                 Label("Builds", systemImage: "hammer")
             }
 
-            NavigationStack(path: $ticketsPath) {
-                TrackerListView()
-                    // Deep link destination for jumping straight to a ticket.
-                    .navigationDestination(for: TicketDeepLinkTarget.self) { target in
-                        TicketDetailView(ownerUsername: target.ownerUsername, trackerName: target.trackerName, trackerId: target.trackerId, trackerRid: target.trackerRid, ticketId: target.ticketId)
-                    }
+            NavigationStack(path: $morePath) {
+                MoreNavigationRoot()
             }
-            .tag(Tab.tickets)
+            .tag(AppState.Tab.more)
             .tabItem {
-                Label("Tickets", systemImage: "ticket")
+                Label("More", systemImage: "ellipsis.circle")
             }
-
-            SettingsView()
-                .tag(Tab.settings)
-                .tabItem {
-                    Label("Settings", systemImage: "gear")
-                }
         }
         .overlay {
             if isResolvingDeepLink {
@@ -106,10 +114,12 @@ struct RootView: View {
         case .launching:
             break
         case .unauthenticated:
+            homePath = NavigationPath()
+            morePath = NavigationPath()
             repoPath = NavigationPath()
             buildsPath = NavigationPath()
             ticketsPath = NavigationPath()
-            selectedTab = .repositories
+            appState.selectedTab = .home
             isResolvingDeepLink = false
         case .authenticated:
             consumePendingDeepLinkIfPossible(appState.pendingDeepLink)
@@ -122,6 +132,12 @@ struct RootView: View {
         appState.pendingDeepLink = nil
     }
 
+    private func consumePendingTabNavigationIfPossible(_ target: AppState.TabNavigationTarget?) {
+        guard appState.isAuthenticated, let target else { return }
+        handleTabNavigation(target)
+        appState.pendingTabNavigation = nil
+    }
+
     private func handleDeepLink(_ link: DeepLink) {
         guard appState.isAuthenticated else { return }
 
@@ -132,7 +148,7 @@ struct RootView: View {
         case .build(let jobId):
             // Reset the builds navigation and push the detail
             buildsPath = NavigationPath()
-            selectedTab = .builds
+            appState.selectedTab = .builds
             // Defer the push slightly so the tab switch takes effect
             Task { @MainActor in
                 try? await Task.sleep(for: .milliseconds(100))
@@ -144,6 +160,36 @@ struct RootView: View {
         }
     }
 
+    private func handleTabNavigation(_ target: AppState.TabNavigationTarget) {
+        switch target {
+        case .repository(let repository):
+            repoPath = NavigationPath()
+            appState.selectedTab = .repositories
+            Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(100))
+                repoPath.append(repository)
+            }
+
+        case .tracker(let tracker):
+            ticketsPath = NavigationPath()
+            appState.selectedTab = .tickets
+            Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(100))
+                ticketsPath.append(tracker)
+            }
+
+        case .mailingList(let mailingList):
+            morePath = NavigationPath()
+            appState.selectedTab = .more
+            Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(100))
+                morePath.append(MoreRoute.lists)
+                try? await Task.sleep(for: .milliseconds(100))
+                morePath.append(MoreRoute.mailingList(mailingList))
+            }
+        }
+    }
+
     private func resolveRepositoryLink(owner: String, repo: String) {
         isResolvingDeepLink = true
         Task {
@@ -151,7 +197,7 @@ struct RootView: View {
             do {
                 let summary = try await appState.resolveRepository(owner: owner, name: repo)
                 repoPath = NavigationPath()
-                selectedTab = .repositories
+                appState.selectedTab = .repositories
                 try? await Task.sleep(for: .milliseconds(100))
                 repoPath.append(summary)
             } catch {
@@ -167,7 +213,7 @@ struct RootView: View {
             do {
                 let trackerSummary = try await appState.resolveTracker(owner: owner, name: tracker)
                 ticketsPath = NavigationPath()
-                selectedTab = .tickets
+                appState.selectedTab = .tickets
                 try? await Task.sleep(for: .milliseconds(100))
                 ticketsPath.append(trackerSummary)
                 try? await Task.sleep(for: .milliseconds(100))
@@ -182,6 +228,51 @@ struct RootView: View {
                 // Silently fail
             }
         }
+    }
+}
+
+enum MoreDestination: Hashable {
+    case lists
+    case pastes
+    case settings
+}
+
+enum MoreRoute: Hashable {
+    case lists
+    case pastes
+    case settings
+    case mailingList(InboxMailingListReference)
+    case thread(InboxThreadSummary)
+}
+
+private struct MoreNavigationRoot: View {
+    var body: some View {
+        MoreView()
+            .navigationDestination(for: MoreRoute.self) { route in
+                switch route {
+                case .lists:
+                    MailingListListView()
+                case .pastes:
+                    PasteListView()
+                case .settings:
+                    SettingsView()
+                case .mailingList(let mailingList):
+                    MailingListDetailView(mailingList: mailingList)
+                case .thread(let thread):
+                    ThreadDetailView(
+                        thread: thread,
+                        onViewed: {
+                            InboxReadStateStore.markViewed(max(Date(), thread.lastActivityAt), for: thread.id)
+                        },
+                        onMarkRead: {
+                            InboxReadStateStore.markViewed(max(Date(), thread.lastActivityAt), for: thread.id)
+                        },
+                        onMarkUnread: {
+                            InboxReadStateStore.markUnread(for: thread.id)
+                        }
+                    )
+                }
+            }
     }
 }
 
