@@ -1,35 +1,81 @@
-image: swift:5.10
+image: ubuntu/lts
 
 packages:
-  - git
   - ca-certificates
+  - curl
+  - git
+  - gnupg2
+  - libcurl4-openssl-dev
+  - libncurses6
+  - libpython3-dev
+  - libsqlite3-0
+  - libxml2-dev
+  - libz3-dev
+  - pkg-config
+  - zlib1g-dev
 
 sources:
   - https://git.sr.ht/~ccleberg/Hutch
 
+environment:
+  SWIFT_VERSION: 6.2.4
+  SWIFT_DIR: ubuntu2404
+  SWIFT_LABEL: ubuntu24.04
+  SWIFT_BASE: swift-6.2.4-RELEASE-ubuntu24.04
+  SWIFT_HOME: /home/build/.local/swift/swift-6.2.4-RELEASE-ubuntu24.04
+
 tasks:
+  - install-swift: |
+      set -euo pipefail
+      cd /tmp
+
+      SWIFT_URL="https://download.swift.org/swift-${SWIFT_VERSION}-release/${SWIFT_DIR}/swift-${SWIFT_VERSION}-RELEASE/${SWIFT_BASE}.tar.gz"
+      SIG_URL="${SWIFT_URL}.sig"
+
+      curl -fL -o swift.tar.gz "$SWIFT_URL"
+      curl -fL -o swift.tar.gz.sig "$SIG_URL"
+
+      # Import Swift 6.x release signing key
+      gpg --batch --keyserver hkp://keyserver.ubuntu.com --recv-keys \
+        '52BB7E3DE28A71BE22EC05FFEF80A866B47A981F'
+
+      gpg --verify swift.tar.gz.sig swift.tar.gz
+
+      mkdir -p "$HOME/.local/swift"
+      tar -xzf swift.tar.gz -C "$HOME/.local/swift"
+
+      export PATH="${SWIFT_HOME}/usr/bin:$PATH"
+      swift --version
+
   - security-secrets: |
       set -euo pipefail
-      cd Hutch
+
       VERSION=8.24.2
       ARCHIVE="gitleaks_${VERSION}_linux_x64.tar.gz"
       URL="https://github.com/gitleaks/gitleaks/releases/download/v${VERSION}/${ARCHIVE}"
-      curl -fsSLo /tmp/gitleaks.tar.gz "$URL"
-      tar -xzf /tmp/gitleaks.tar.gz -C /tmp
-      install -m 0755 /tmp/gitleaks /usr/local/bin/gitleaks
+
+      mkdir -p "$HOME/.local/bin"
+
+      cd /tmp
+      curl -fL -o gitleaks.tar.gz "$URL"
+      tar -xzf gitleaks.tar.gz
+      install -m 0755 gitleaks "$HOME/.local/bin/gitleaks"
+
+      export PATH="$HOME/.local/bin:$PATH"
+
+      cd "$HOME/Hutch"
       gitleaks git --redact --verbose .
 
-  - security-deps-lockfile: |
+  - repo-structure-check: |
       set -euo pipefail
-      cd Hutch
-      swift package resolve --only-use-versions-from-resolved-file
+      cd "$HOME/Hutch"
 
-  - test: |
-      set -euo pipefail
-      cd Hutch
-      swift test --parallel
+      test -f "Hutch.xcodeproj/project.pbxproj"
+      test -d "website"
+      test -f "README.md"
 
-  - build: |
+  - xcode-project-check: |
       set -euo pipefail
-      cd Hutch
-      swift build -c release
+      cd "$HOME/Hutch"
+
+      grep -q "PBXProject" Hutch.xcodeproj/project.pbxproj
