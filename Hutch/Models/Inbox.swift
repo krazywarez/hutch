@@ -178,6 +178,12 @@ enum InboxReadStateStore {
         defaults.set(dictionary, forKey: key)
     }
 
+    static func markUnread(for threadID: String, defaults: UserDefaults = .standard) {
+        var dictionary = defaults.dictionary(forKey: key) as? [String: TimeInterval] ?? [:]
+        dictionary.removeValue(forKey: threadID)
+        defaults.set(dictionary, forKey: key)
+    }
+
     static func isUnread(threadID: String, lastActivityAt: Date, defaults: UserDefaults = .standard) -> Bool {
         guard let lastViewedAt = lastViewedAt(for: threadID, defaults: defaults) else {
             return true

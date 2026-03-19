@@ -31,6 +31,12 @@ struct InboxView: View {
                 NavigationLink(value: thread) {
                     InboxThreadRow(thread: thread)
                 }
+                .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                    readStateAction(for: thread, in: viewModel)
+                }
+                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                    readStateAction(for: thread, in: viewModel)
+                }
             }
         }
         .listStyle(.plain)
@@ -39,7 +45,7 @@ struct InboxView: View {
                 SRHTLoadingStateView(message: "Loading inbox…")
             } else if let error = viewModel.error, viewModel.threads.isEmpty {
                 SRHTErrorStateView(
-                    title: "Couldn't Load Threads",
+                    title: "Failed to load inbox",
                     message: error,
                     retryAction: { await viewModel.loadThreads() }
                 )
@@ -63,6 +69,21 @@ struct InboxView: View {
                 viewModel.markThreadRead(thread)
             }
         }
+    }
+
+    @ViewBuilder
+    private func readStateAction(for thread: InboxThreadSummary, in viewModel: InboxViewModel) -> some View {
+        Button {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                viewModel.toggleThreadReadState(thread)
+            }
+        } label: {
+            Label(
+                thread.isUnread ? "Mark as Read" : "Mark as Unread",
+                systemImage: thread.isUnread ? "envelope.open" : "envelope.badge"
+            )
+        }
+        .tint(thread.isUnread ? .blue : .gray)
     }
 }
 

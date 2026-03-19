@@ -134,33 +134,34 @@ final class InboxViewModel {
                 return lhs.lastActivityAt > rhs.lastActivityAt
             }
         } catch {
-            threads = []
-            self.error = error.localizedDescription
+            inboxListLogger.error("Inbox request failed: type=inbox error=\(error.localizedDescription, privacy: .public)")
+            self.error = "Failed to load inbox"
         }
     }
 
     func markThreadRead(_ thread: InboxThreadSummary) {
         let viewedAt = max(Date(), thread.lastActivityAt)
         InboxReadStateStore.markViewed(viewedAt, for: thread.id)
-        guard let index = threads.firstIndex(where: { $0.id == thread.id }) else { return }
-        let current = threads[index]
-        threads[index] = InboxThreadSummary(
-            rootEmailID: current.rootEmailID,
-            rootMessageID: current.rootMessageID,
-            threadRootEmailIDs: current.threadRootEmailIDs,
-            threadRootMessageIDs: current.threadRootMessageIDs,
-            listID: current.listID,
-            listRID: current.listRID,
-            listName: current.listName,
-            listOwner: current.listOwner,
-            subject: current.subject,
-            latestSender: current.latestSender,
-            lastActivityAt: current.lastActivityAt,
-            messageCount: current.messageCount,
-            repo: current.repo,
-            containsPatch: current.containsPatch,
-            isUnread: false
+        inboxListLogger.debug(
+            "Inbox mark read: key=\(thread.id, privacy: .public) latestActivityAt=\(thread.lastActivityAt.ISO8601Format(), privacy: .public) storedLastViewedAt=\(viewedAt.ISO8601Format(), privacy: .public)"
         )
+        updateThread(thread, isUnread: false)
+    }
+
+    func markThreadUnread(_ thread: InboxThreadSummary) {
+        InboxReadStateStore.markUnread(for: thread.id)
+        inboxListLogger.debug(
+            "Inbox mark unread: key=\(thread.id, privacy: .public) latestActivityAt=\(thread.lastActivityAt.ISO8601Format(), privacy: .public) storedLastViewedAt=nil"
+        )
+        updateThread(thread, isUnread: true)
+    }
+
+    func toggleThreadReadState(_ thread: InboxThreadSummary) {
+        if thread.isUnread {
+            markThreadRead(thread)
+        } else {
+            markThreadUnread(thread)
+        }
     }
 
     private func fetchSubscriptions() async throws -> [InboxActivitySubscription] {
@@ -211,7 +212,7 @@ final class InboxViewModel {
                         do {
                             return (try await self.fetchThreads(for: mailingList), nil)
                         } catch {
-                            return ([], error.localizedDescription)
+                            return ([], "rid=\(mailingList.rid) error=\(error.localizedDescription)")
                         }
                     }
                 }
@@ -229,6 +230,9 @@ final class InboxViewModel {
 
             summaries.append(contentsOf: batchResult.0)
             failureMessages.append(contentsOf: batchResult.1)
+            for failure in batchResult.1 {
+                inboxListLogger.error("Inbox request failed: type=listThreads \(failure, privacy: .public)")
+            }
             startIndex = endIndex
         }
 
@@ -248,10 +252,14 @@ final class InboxViewModel {
         )
 
         return response.list.threads.results.prefix(listThreadFetchLimit).map { thread in
-            let threadID = "\(mailingList.rid)#\(thread.root.messageID)"
             let groupingKey = "\(mailingList.rid)#\(thread.subject.replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression).trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: #"^(?:(?:re|fwd?)\s*:\s*)+"#, with: "", options: [.regularExpression, .caseInsensitive]).lowercased())"
+            let lastViewedAt = InboxReadStateStore.lastViewedAt(for: groupingKey)
+            let isUnread = InboxReadStateStore.isUnread(threadID: groupingKey, lastActivityAt: thread.updated)
             inboxListLogger.debug(
                 "Inbox thread grouping candidate: listRID=\(mailingList.rid, privacy: .public) rootMessageID=\(thread.root.messageID, privacy: .public) rootEmailID=\(thread.root.id, privacy: .public) groupingKey=\(groupingKey, privacy: .public)"
+            )
+            inboxListLogger.debug(
+                "Inbox unread state: key=\(groupingKey, privacy: .public) latestActivityAt=\(thread.updated.ISO8601Format(), privacy: .public) lastViewedAt=\(lastViewedAt?.ISO8601Format() ?? "nil", privacy: .public) isUnread=\(isUnread, privacy: .public)"
             )
             return InboxThreadSummary(
                 rootEmailID: thread.root.id,
@@ -268,7 +276,7 @@ final class InboxViewModel {
                 messageCount: thread.replies + 1,
                 repo: Self.deriveRepositoryName(from: mailingList.name),
                 containsPatch: thread.root.patch != nil || thread.subject.localizedCaseInsensitiveContains("[patch"),
-                isUnread: InboxReadStateStore.isUnread(threadID: threadID, lastActivityAt: thread.updated)
+                isUnread: isUnread
             )
         }
     }
@@ -316,6 +324,28 @@ final class InboxViewModel {
             }
             return lhs.lastActivityAt > rhs.lastActivityAt
         }
+    }
+
+    private func updateThread(_ thread: InboxThreadSummary, isUnread: Bool) {
+        guard let index = threads.firstIndex(where: { $0.id == thread.id }) else { return }
+        let current = threads[index]
+        threads[index] = InboxThreadSummary(
+            rootEmailID: current.rootEmailID,
+            rootMessageID: current.rootMessageID,
+            threadRootEmailIDs: current.threadRootEmailIDs,
+            threadRootMessageIDs: current.threadRootMessageIDs,
+            listID: current.listID,
+            listRID: current.listRID,
+            listName: current.listName,
+            listOwner: current.listOwner,
+            subject: current.subject,
+            latestSender: current.latestSender,
+            lastActivityAt: current.lastActivityAt,
+            messageCount: current.messageCount,
+            repo: current.repo,
+            containsPatch: current.containsPatch,
+            isUnread: isUnread
+        )
     }
 
     private func deduplicateMailingLists(_ mailingLists: [InboxMailingListReference]) -> [InboxMailingListReference] {

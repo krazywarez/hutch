@@ -132,7 +132,7 @@ struct TicketDetailView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     // Header
-                    ticketHeader(ticket)
+                    ticketHeader(ticket, viewModel: viewModel)
 
                     Divider()
                         .padding(.vertical, 12)
@@ -186,10 +186,16 @@ struct TicketDetailView: View {
     // MARK: - Header
 
     @ViewBuilder
-    private func ticketHeader(_ ticket: TicketDetail) -> some View {
+    private func ticketHeader(_ ticket: TicketDetail, viewModel: TicketDetailViewModel) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(ticket.title)
-                .font(.title3.weight(.semibold))
+            HStack(alignment: .top, spacing: 12) {
+                Text(ticket.title)
+                    .font(.title3.weight(.semibold))
+
+                Spacer(minLength: 12)
+
+                assignToMeButton(ticket: ticket, viewModel: viewModel)
+            }
 
             HStack(spacing: 8) {
                 TicketStatusIcon(status: ticket.status)
@@ -233,6 +239,43 @@ struct TicketDetailView: View {
             }
         }
         .padding()
+    }
+
+    @ViewBuilder
+    private func assignToMeButton(ticket: TicketDetail, viewModel: TicketDetailViewModel) -> some View {
+        if let currentUser = appState.currentUser {
+            let isAssignedToCurrentUser = ticket.assignees.contains {
+                TicketDetailViewModel.matchesAssignee($0, user: currentUser)
+            }
+
+            if isAssignedToCurrentUser {
+                Label("Assigned to you", systemImage: "checkmark.circle.fill")
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(Color(.secondarySystemFill), in: Capsule())
+            } else {
+                Button {
+                    Task {
+                        await viewModel.assignToCurrentUser(currentUser)
+                    }
+                } label: {
+                    if viewModel.isPerformingAction {
+                        ProgressView()
+                            .controlSize(.small)
+                            .frame(minWidth: 88)
+                    } else {
+                        Text("Assign to Me")
+                            .font(.caption.weight(.semibold))
+                            .frame(minWidth: 88)
+                    }
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.small)
+                .disabled(viewModel.isPerformingAction)
+            }
+        }
     }
 
     // MARK: - Comment Input

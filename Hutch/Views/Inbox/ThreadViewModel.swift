@@ -61,6 +61,7 @@ final class ThreadViewModel {
     private(set) var thread: InboxThreadDetail?
     private(set) var isLoading = false
     var error: String?
+    var partialWarning: String?
     var composeDraft: MailComposeDraft?
 
     private let summary: InboxThreadSummary
@@ -168,6 +169,7 @@ final class ThreadViewModel {
         guard !isLoading else { return }
         isLoading = true
         error = nil
+        partialWarning = nil
         defer { isLoading = false }
 
         inboxLogger.debug("Opening inbox thread: \(self.summary.debugIdentifierSummary, privacy: .public)")
@@ -187,18 +189,27 @@ final class ThreadViewModel {
             )
             var messagesByID: [Int: InboxMessage] = [:]
 
+            var hadPartialReplyFailure = false
+
             for payload in threadPayloads {
                 guard let rootMessage = Self.message(from: payload.root, fallbackID: summary.rootEmailID) else {
                     continue
                 }
                 messagesByID[rootMessage.id] = rootMessage
 
-                let descendantMessages = try await fetchAllDescendantMessages(
-                    initialPayload: payload,
-                    candidateMessageIDs: Self.messageIDCandidates(from: payload.root?.messageID ?? summary.rootMessageID)
-                )
-                for message in descendantMessages {
-                    messagesByID[message.id] = message
+                do {
+                    let descendantMessages = try await fetchAllDescendantMessages(
+                        initialPayload: payload,
+                        candidateMessageIDs: Self.messageIDCandidates(from: payload.root?.messageID ?? summary.rootMessageID)
+                    )
+                    for message in descendantMessages {
+                        messagesByID[message.id] = message
+                    }
+                } catch {
+                    hadPartialReplyFailure = true
+                    inboxLogger.error(
+                        "Inbox thread descendants failed for \(self.summary.debugIdentifierSummary, privacy: .public): \(error.localizedDescription, privacy: .public)"
+                    )
                 }
             }
 
@@ -223,9 +234,15 @@ final class ThreadViewModel {
                 messageCount: max(messages.count, summary.messageCount ?? 0),
                 messages: messages
             )
+            if hadPartialReplyFailure {
+                partialWarning = "Some replies could not be loaded."
+            }
         } catch {
-            thread = nil
-            self.error = error.localizedDescription
+            if thread == nil {
+                self.error = "Failed to load thread"
+            } else {
+                self.error = error.localizedDescription
+            }
             inboxLogger.error("Inbox thread detail failed for \(self.summary.debugIdentifierSummary, privacy: .public): \(error.localizedDescription, privacy: .public)")
         }
     }
@@ -318,18 +335,27 @@ final class ThreadViewModel {
                 variables["cursor"] = threadCursor
             }
 
-            let response: InboxThreadDetailResponse = try await Self.executeGraphQLRequest(
-                client: client,
-                query: Self.threadDetailQuery,
-                variables: {
-                    var variables = variables
-                    variables["descCursor"] = nil as String?
-                    return variables
-                }()
-            )
+            let response: InboxThreadDetailResponse
+            do {
+                response = try await Self.executeGraphQLRequest(
+                    client: client,
+                    query: Self.threadDetailQuery,
+                    variables: {
+                        var variables = variables
+                        variables["descCursor"] = nil as String?
+                        return variables
+                    }()
+                )
+            } catch {
+                if Self.isRecoverableNoRows(error) {
+                    inboxLogger.error("Inbox thread page scan recoverable miss for \(self.summary.debugIdentifierSummary, privacy: .public): \(error.localizedDescription, privacy: .public)")
+                    return nil
+                }
+                throw error
+            }
 
             guard let threadPage = response.list?.threads else {
-                throw SRHTError.graphQLErrors([GraphQLError(message: "Thread is no longer available.", locations: nil)])
+                return nil
             }
 
             let candidates = threadPage.results.map { payload in
@@ -389,15 +415,26 @@ final class ThreadViewModel {
         candidateMessageIDs: [String]
     ) async throws -> InboxThreadMessagesPage? {
         for messageID in candidateMessageIDs {
-            let response: InboxThreadLookupResponse = try await Self.executeGraphQLRequest(
-                client: client,
-                query: Self.threadByMessageIDQuery,
-                variables: [
-                    "rid": summary.listRID,
-                    "messageID": messageID,
-                    "descCursor": cursor
-                ]
-            )
+            let response: InboxThreadLookupResponse
+            do {
+                response = try await Self.executeGraphQLRequest(
+                    client: client,
+                    query: Self.threadByMessageIDQuery,
+                    variables: [
+                        "rid": summary.listRID,
+                        "messageID": messageID,
+                        "descCursor": cursor
+                    ]
+                )
+            } catch {
+                if Self.isRecoverableNoRows(error) {
+                    inboxLogger.error(
+                        "Inbox descendant page recoverable miss: thread=\(self.summary.debugIdentifierSummary, privacy: .public) messageID=\(messageID, privacy: .public) error=\(error.localizedDescription, privacy: .public)"
+                    )
+                    continue
+                }
+                throw error
+            }
 
             if let descendants = response.list?.message?.thread?.descendants {
                 return descendants
@@ -533,7 +570,8 @@ final class ThreadViewModel {
     }
 
     private static func sanitizedDisplayBody(from body: String) -> String {
-        let lines = body.components(separatedBy: .newlines)
+        let normalizedBody = normalizeLineEndings(in: body)
+        let lines = normalizedBody.components(separatedBy: "\n")
         let headerPrefixes = ["From:", "Date:", "To:", "Cc:", "Subject:"]
         var headerCount = 0
         var blankLineIndex: Int?
@@ -551,7 +589,7 @@ final class ThreadViewModel {
         }
 
         guard headerCount >= 2, let blankLineIndex else {
-            return body
+            return stripLeadingFromLineIfPresent(in: normalizedBody)
         }
 
         return lines.dropFirst(blankLineIndex + 1).joined(separator: "\n")
@@ -644,6 +682,19 @@ final class ThreadViewModel {
             .replacingOccurrences(of: "\r", with: "\n")
     }
 
+    private static func stripLeadingFromLineIfPresent(in body: String) -> String {
+        let lines = body.components(separatedBy: "\n")
+        guard let firstLine = lines.first, firstLine.hasPrefix("From:") else {
+            return body
+        }
+
+        var remainingLines = Array(lines.dropFirst())
+        if let nextLine = remainingLines.first, nextLine.isEmpty {
+            remainingLines.removeFirst()
+        }
+        return remainingLines.joined(separator: "\n")
+    }
+
     private static func leadingHeaderValue(named headerName: String, in body: String) -> String? {
         let prefix = "\(headerName):"
         let lines = body.components(separatedBy: .newlines)
@@ -698,5 +749,12 @@ final class ThreadViewModel {
             )
         }
         return payload
+    }
+
+    private static func isRecoverableNoRows(_ error: Error) -> Bool {
+        guard case let SRHTError.graphQLErrors(errors) = error else {
+            return false
+        }
+        return errors.allSatisfy { $0.message.localizedCaseInsensitiveContains("no rows in result set") }
     }
 }

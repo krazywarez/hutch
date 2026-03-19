@@ -93,6 +93,14 @@ struct ThreadDetailView: View {
                     .padding(.vertical, 4)
                 }
 
+                if let partialWarning = viewModel.partialWarning {
+                    Section {
+                        Text(partialWarning)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
                 ForEach(thread.messages) { message in
                     InboxMessageRow(message: message)
                 }
@@ -111,7 +119,7 @@ struct ThreadDetailView: View {
                 SRHTLoadingStateView(message: "Loading thread…")
             } else if let error = viewModel.error, viewModel.thread == nil {
                 SRHTErrorStateView(
-                    title: "Couldn't Load Thread",
+                    title: "Failed to load thread",
                     message: error,
                     retryAction: { await viewModel.loadThread() }
                 )

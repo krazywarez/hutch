@@ -66,19 +66,6 @@ struct RootView: View {
                 Label("Repositories", systemImage: "book.closed")
             }
 
-            NavigationStack(path: $buildsPath) {
-                BuildListView()
-                    // Int destination used by deep links (hutch://builds/<id>).
-                    // JobSummary destination is registered inside BuildListView.
-                    .navigationDestination(for: Int.self) { jobId in
-                        BuildDetailView(jobId: jobId)
-                    }
-            }
-            .tag(AppState.Tab.builds)
-            .tabItem {
-                Label("Builds", systemImage: "hammer")
-            }
-
             NavigationStack(path: $ticketsPath) {
                 TrackerListView()
                     // Deep link destination for jumping straight to a ticket.
@@ -96,6 +83,19 @@ struct RootView: View {
                 .tabItem {
                     Label("Settings", systemImage: "gear")
                 }
+
+            NavigationStack(path: $buildsPath) {
+                BuildListView()
+                    // Int destination used by deep links (hutch://builds/<id>).
+                    // JobSummary destination is registered inside BuildListView.
+                    .navigationDestination(for: Int.self) { jobId in
+                        BuildDetailView(jobId: jobId)
+                    }
+            }
+            .tag(AppState.Tab.builds)
+            .tabItem {
+                Label("Builds", systemImage: "hammer")
+            }
         }
         .overlay {
             if isResolvingDeepLink {
