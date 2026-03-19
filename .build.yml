@@ -1,14 +1,45 @@
 image: alpine/edge
 oauth: pages.sr.ht/PAGES:RW
+
 packages:
   - hut
+  - git
+  - ca-certificates
+  - gitleaks
+  - swift
+
 sources:
   - https://git.sr.ht/~ccleberg/Hutch
+
 environment:
   site: hutch.cleberg.net
+
 tasks:
-  - package: |
+  - security-secrets: |
+      set -euo pipefail
+      cd Hutch
+      gitleaks git --redact --verbose .
+
+  - security-deps-lockfile: |
+      set -euo pipefail
+      cd Hutch
+      swift package resolve --only-use-versions-from-resolved-file
+
+  - test: |
+      set -euo pipefail
+      cd Hutch
+      swift test --parallel
+
+  - build: |
+      set -euo pipefail
+      cd Hutch
+      swift build -c release
+
+  - package-site: |
+      set -euo pipefail
       cd Hutch/website
       tar -cvz . > ../../site.tar.gz
-  - upload: |
-      hut pages publish -d $site site.tar.gz
+
+  - upload-site: |
+      set -euo pipefail
+      hut pages publish -d "$site" site.tar.gz
