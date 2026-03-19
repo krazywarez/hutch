@@ -4,7 +4,6 @@ import SwiftUI
 import UIKit
 
 private let inboxReplyLogger = Logger(subsystem: "net.cleberg.Hutch", category: "InboxReply")
-private let inboxThreadNavigationLogger = Logger(subsystem: "net.cleberg.Hutch", category: "InboxThreadNavigation")
 
 struct ThreadDetailView: View {
     let thread: InboxThreadSummary
@@ -53,17 +52,11 @@ struct ThreadDetailView: View {
             isUnread = thread.isUnread
             await vm.loadThread()
         }
-        .onAppear {
-            inboxThreadNavigationLogger.debug("Inbox thread detail appeared: threadID=\(thread.id, privacy: .public)")
-        }
         .onChange(of: viewModel?.thread?.id) { _, threadID in
             guard threadID != nil, !hasMarkedCurrentThreadViewed, !suppressAutoMarkViewed else { return }
             hasMarkedCurrentThreadViewed = true
             isUnread = false
             onViewed()
-        }
-        .onDisappear {
-            inboxThreadNavigationLogger.debug("Inbox thread detail view disappeared: threadID=\(thread.id, privacy: .public)")
         }
         .sheet(item: Binding(
             get: { viewModel?.composeDraft },
@@ -72,14 +65,13 @@ struct ThreadDetailView: View {
             MailComposeView(draft: draft) { result in
                 switch result {
                 case .failed(let message):
-                    inboxReplyLogger.error("Inbox reply failed for thread \(thread.debugIdentifierSummary, privacy: .public): \(message, privacy: .public)")
+                    inboxReplyLogger.error("Inbox reply failed")
                     viewModel?.error = message
                 case .cancelled:
-                    inboxReplyLogger.debug("Inbox reply cancelled for thread \(thread.debugIdentifierSummary, privacy: .public)")
+                    break
                 case .saved:
-                    inboxReplyLogger.debug("Inbox reply draft saved for thread \(thread.debugIdentifierSummary, privacy: .public)")
+                    break
                 case .sent:
-                    inboxReplyLogger.debug("Inbox reply handed off to Mail for thread \(thread.debugIdentifierSummary, privacy: .public)")
                     replySuccessMessage = "Reply handed off to Mail."
                     Task {
                         await viewModel?.loadThread()

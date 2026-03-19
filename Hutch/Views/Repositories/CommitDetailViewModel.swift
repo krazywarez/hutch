@@ -68,7 +68,7 @@ final class CommitDetailViewModel {
             let result = try await executeWithRetry()
             commit = result.repository?.revparse_single
         } catch {
-            self.error = error.localizedDescription
+            self.error = error.userFacingMessage
         }
 
         isLoading = false

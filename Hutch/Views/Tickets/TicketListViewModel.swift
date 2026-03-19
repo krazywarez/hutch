@@ -121,7 +121,7 @@ final class TicketListViewModel {
             cursor = page.cursor
             hasMore = page.cursor != nil
         } catch {
-            self.error = error.localizedDescription
+            self.error = error.userFacingMessage
         }
 
         isLoading = false
@@ -143,7 +143,7 @@ final class TicketListViewModel {
             cursor = page.cursor
             hasMore = page.cursor != nil
         } catch {
-            self.error = error.localizedDescription
+            self.error = error.userFacingMessage
         }
 
         isLoadingMore = false
@@ -185,7 +185,7 @@ final class TicketListViewModel {
             tickets.insert(ticket, at: 0)
             return ticket
         } catch {
-            self.error = "Couldn’t create the ticket. \(error.localizedDescription)"
+            self.error = "Couldn’t create the ticket. \(error.userFacingMessage)"
             return nil
         }
     }

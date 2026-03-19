@@ -344,7 +344,7 @@ final class HgRepositoryDetailViewModel {
 
             summaryLoaded = true
         } catch {
-            self.error = error.localizedDescription
+            self.error = error.userFacingMessage
         }
     }
 
@@ -367,7 +367,7 @@ final class HgRepositoryDetailViewModel {
                 logCursor = nil
                 hasMoreLog = false
             } else {
-                self.error = error.localizedDescription
+                self.error = error.userFacingMessage
             }
         }
     }
@@ -389,7 +389,7 @@ final class HgRepositoryDetailViewModel {
             logCursor = page.cursor
             hasMoreLog = page.cursor != nil
         } catch {
-            self.error = error.localizedDescription
+            self.error = error.userFacingMessage
         }
     }
 
@@ -470,7 +470,7 @@ final class HgRepositoryDetailViewModel {
                 await loadFiles(at: path)
             }
         } catch {
-            self.error = error.localizedDescription
+            self.error = error.userFacingMessage
         }
     }
 
@@ -515,7 +515,7 @@ final class HgRepositoryDetailViewModel {
                 pathStack = path.isEmpty ? [] : path.split(separator: "/").map(String.init)
                 files = []
             } else {
-                self.error = error.localizedDescription
+                self.error = error.userFacingMessage
             }
         }
     }

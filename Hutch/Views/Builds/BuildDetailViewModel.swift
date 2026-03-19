@@ -110,7 +110,7 @@ final class BuildDetailViewModel {
             }
             job = loadedJob
         } catch {
-            self.error = error.localizedDescription
+            self.error = error.userFacingMessage
         }
 
         isLoading = false
@@ -127,7 +127,7 @@ final class BuildDetailViewModel {
         do {
             taskLogs[cacheKey] = try await client.fetchText(url: logURL)
         } catch {
-            self.error = error.localizedDescription
+            self.error = error.userFacingMessage
         }
 
         loadingTaskLogs.remove(cacheKey)
@@ -148,7 +148,7 @@ final class BuildDetailViewModel {
             // Reload job to get updated status.
             await loadJob()
         } catch {
-            self.error = error.localizedDescription
+            self.error = error.userFacingMessage
         }
 
         isCancelling = false
@@ -185,7 +185,7 @@ final class BuildDetailViewModel {
             )
             return result.submit.id
         } catch {
-            self.error = error.localizedDescription
+            self.error = error.userFacingMessage
             return nil
         }
     }
@@ -233,7 +233,7 @@ final class BuildDetailViewModel {
             )
             return result.submit.id
         } catch {
-            self.error = "Couldn’t submit the build. \(error.localizedDescription)"
+            self.error = "Couldn’t submit the build. \(error.userFacingMessage)"
             return nil
         }
     }

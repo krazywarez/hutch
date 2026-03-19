@@ -164,7 +164,7 @@ final class HgRepositorySettingsViewModel {
                 editedNonPublishing = repository.nonPublishing ?? false
             }
         } catch {
-            self.error = error.localizedDescription
+            self.error = error.userFacingMessage
         }
     }
 
@@ -186,7 +186,7 @@ final class HgRepositorySettingsViewModel {
                 responseType: HgUpdateRepositoryResponse.self
             )
         } catch {
-            self.error = error.localizedDescription
+            self.error = error.userFacingMessage
         }
     }
 
@@ -205,7 +205,7 @@ final class HgRepositorySettingsViewModel {
             )
             acls = result.repository?.accessControlList.results ?? []
         } catch {
-            self.error = error.localizedDescription
+            self.error = error.userFacingMessage
         }
     }
 
@@ -239,7 +239,7 @@ final class HgRepositorySettingsViewModel {
             if message.localizedCaseInsensitiveContains("No such repository or user found") {
                 self.error = "That user is not available on hg.sr.ht yet. They need to create or activate an hg.sr.ht repository first."
             } else {
-                self.error = message
+                self.error = error.userFacingMessage
             }
         }
     }
@@ -263,7 +263,7 @@ final class HgRepositorySettingsViewModel {
             )
             acls.removeAll { $0.id == entry.id }
         } catch {
-            self.error = error.localizedDescription
+            self.error = error.userFacingMessage
         }
     }
 
@@ -281,7 +281,7 @@ final class HgRepositorySettingsViewModel {
             )
             didDelete = true
         } catch {
-            self.error = error.localizedDescription
+            self.error = error.userFacingMessage
         }
     }
 }

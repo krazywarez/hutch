@@ -294,7 +294,7 @@ final class FileTreeViewModel {
                 entries = []
             }
         } catch {
-            self.error = error.localizedDescription
+            self.error = error.userFacingMessage
         }
     }
 
@@ -372,7 +372,7 @@ final class FileTreeViewModel {
             }
             entries = allEntries
         } catch {
-            self.error = error.localizedDescription
+            self.error = error.userFacingMessage
         }
     }
 
@@ -397,7 +397,7 @@ final class FileTreeViewModel {
             viewingEntry = entry
             viewingObject = result.repository?.object ?? .unknown
         } catch {
-            self.error = error.localizedDescription
+            self.error = error.userFacingMessage
         }
     }
 
@@ -449,7 +449,7 @@ final class FileTreeViewModel {
                 }
                 entries = allEntries
             } catch {
-                self.error = error.localizedDescription
+                self.error = error.userFacingMessage
             }
         }
     }

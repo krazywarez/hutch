@@ -285,8 +285,8 @@ final class HomeViewModel {
         case .failure(let error):
             self.recentBuilds = []
             self.failedBuilds = []
-            self.failedBuildsError = error.localizedDescription
-            self.recentBuildsError = error.localizedDescription
+            self.failedBuildsError = error.userFacingMessage
+            self.recentBuildsError = error.userFacingMessage
         }
         isLoadingFailedBuilds = false
         isLoadingRecentBuilds = false
@@ -299,7 +299,7 @@ final class HomeViewModel {
             self.assignedTicketsError = nil
         case .failure(let error):
             self.assignedTickets = []
-            self.assignedTicketsError = error.localizedDescription
+            self.assignedTicketsError = error.userFacingMessage
         }
         isLoadingAssignedTickets = false
 

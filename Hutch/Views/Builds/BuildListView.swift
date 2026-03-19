@@ -23,6 +23,7 @@ struct BuildListView: View {
                     } label: {
                         Image(systemName: "plus")
                     }
+                    .accessibilityLabel("Submit build")
                 }
             }
         }

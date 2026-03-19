@@ -100,6 +100,7 @@ struct TicketDetailView: View {
         } label: {
             Image(systemName: "ellipsis.circle")
         }
+        .accessibilityLabel("Ticket actions")
         .sheet(isPresented: $showResolveSheet) {
             ResolveSheet(viewModel: viewModel, isPresented: $showResolveSheet)
                 .presentationDetents([.medium])
@@ -311,7 +312,7 @@ struct TicketDetailView: View {
                 } else {
                     MarkdownContentView(markdown: viewModel.commentText)
                         .frame(minHeight: 80, maxHeight: 200)
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
                 }
             }
 
@@ -359,11 +360,6 @@ private struct MarkdownContentView: View {
             }
         }
         .task(id: markdown) {
-            if renderedHTML != nil {
-                try? await Task.sleep(for: .milliseconds(150))
-                guard !Task.isCancelled else { return }
-            }
-
             let html = await Task.detached(priority: .userInitiated) {
                 markdownToHTML(markdown)
             }.value

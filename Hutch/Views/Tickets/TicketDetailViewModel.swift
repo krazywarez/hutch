@@ -324,7 +324,7 @@ final class TicketDetailViewModel {
             )
             events = payload.events.results.sorted(by: Self.timelineOrder)
         } catch {
-            self.error = error.localizedDescription
+            self.error = error.userFacingMessage
         }
 
         isLoading = false
@@ -359,7 +359,7 @@ final class TicketDetailViewModel {
             events.sort(by: Self.timelineOrder)
             commentText = ""
         } catch {
-            self.error = error.localizedDescription
+            self.error = error.userFacingMessage
         }
 
         isSubmitting = false
@@ -393,7 +393,7 @@ final class TicketDetailViewModel {
             // Re-fetch the ticket to get updated status/resolution
             await loadTicket()
         } catch {
-            self.error = error.localizedDescription
+            self.error = error.userFacingMessage
         }
 
         isPerformingAction = false
@@ -427,7 +427,7 @@ final class TicketDetailViewModel {
             // Reload to reflect the change
             await loadTicket()
         } catch {
-            self.error = error.localizedDescription
+            self.error = error.userFacingMessage
         }
 
         isPerformingAction = false
@@ -485,7 +485,7 @@ final class TicketDetailViewModel {
                 assignees: currentAssignees,
                 labels: currentTicket.labels
             )
-            self.error = error.localizedDescription
+            self.error = error.userFacingMessage
         }
 
         isPerformingAction = false
@@ -520,7 +520,7 @@ final class TicketDetailViewModel {
             // Reload to reflect the change
             await loadTicket()
         } catch {
-            self.error = error.localizedDescription
+            self.error = error.userFacingMessage
         }
 
         isPerformingAction = false
@@ -544,7 +544,7 @@ final class TicketDetailViewModel {
             )
             await loadTicket()
         } catch {
-            self.error = error.localizedDescription
+            self.error = error.userFacingMessage
         }
 
         isPerformingAction = false
@@ -568,7 +568,7 @@ final class TicketDetailViewModel {
             )
             await loadTicket()
         } catch {
-            self.error = error.localizedDescription
+            self.error = error.userFacingMessage
         }
 
         isPerformingAction = false
@@ -587,7 +587,7 @@ final class TicketDetailViewModel {
             )
             trackerLabels = result.user.tracker.labels.results
         } catch {
-            self.error = error.localizedDescription
+            self.error = error.userFacingMessage
         }
     }
 
@@ -610,7 +610,7 @@ final class TicketDetailViewModel {
             )
             trackerLabels.append(result.createLabel)
         } catch {
-            self.error = error.localizedDescription
+            self.error = error.userFacingMessage
         }
 
         isPerformingAction = false

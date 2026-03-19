@@ -146,12 +146,10 @@ struct RootView: View {
             resolveRepositoryLink(owner: owner, repo: repo)
 
         case .build(let jobId):
-            // Reset the builds navigation and push the detail
             buildsPath = NavigationPath()
             appState.selectedTab = .builds
-            // Defer the push slightly so the tab switch takes effect
-            Task { @MainActor in
-                try? await Task.sleep(for: .milliseconds(100))
+            Task {
+                await settleNavigationTransition()
                 buildsPath.append(jobId)
             }
 
@@ -165,26 +163,25 @@ struct RootView: View {
         case .repository(let repository):
             repoPath = NavigationPath()
             appState.selectedTab = .repositories
-            Task { @MainActor in
-                try? await Task.sleep(for: .milliseconds(100))
+            Task {
+                await settleNavigationTransition()
                 repoPath.append(repository)
             }
 
         case .tracker(let tracker):
             ticketsPath = NavigationPath()
             appState.selectedTab = .tickets
-            Task { @MainActor in
-                try? await Task.sleep(for: .milliseconds(100))
+            Task {
+                await settleNavigationTransition()
                 ticketsPath.append(tracker)
             }
 
         case .mailingList(let mailingList):
             morePath = NavigationPath()
             appState.selectedTab = .more
-            Task { @MainActor in
-                try? await Task.sleep(for: .milliseconds(100))
+            Task {
+                await settleNavigationTransition()
                 morePath.append(MoreRoute.lists)
-                try? await Task.sleep(for: .milliseconds(100))
                 morePath.append(MoreRoute.mailingList(mailingList))
             }
         }
@@ -198,7 +195,7 @@ struct RootView: View {
                 let summary = try await appState.resolveRepository(owner: owner, name: repo)
                 repoPath = NavigationPath()
                 appState.selectedTab = .repositories
-                try? await Task.sleep(for: .milliseconds(100))
+                await settleNavigationTransition()
                 repoPath.append(summary)
             } catch {
                 // Silently fail — the repo may not exist or be inaccessible
@@ -214,9 +211,8 @@ struct RootView: View {
                 let trackerSummary = try await appState.resolveTracker(owner: owner, name: tracker)
                 ticketsPath = NavigationPath()
                 appState.selectedTab = .tickets
-                try? await Task.sleep(for: .milliseconds(100))
+                await settleNavigationTransition()
                 ticketsPath.append(trackerSummary)
-                try? await Task.sleep(for: .milliseconds(100))
                 ticketsPath.append(TicketDeepLinkTarget(
                     ownerUsername: String(trackerSummary.owner.canonicalName.dropFirst()),
                     trackerName: trackerSummary.name,
@@ -228,6 +224,12 @@ struct RootView: View {
                 // Silently fail
             }
         }
+    }
+
+    @MainActor
+    private func settleNavigationTransition() async {
+        await Task.yield()
+        await Task.yield()
     }
 }
 

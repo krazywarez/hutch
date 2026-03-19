@@ -173,7 +173,7 @@ final class RepositorySettingsViewModel {
                 responseType: UpdateRepoInfoResponse.self
             )
         } catch {
-            self.error = error.localizedDescription
+            self.error = error.userFacingMessage
         }
     }
 
@@ -196,7 +196,7 @@ final class RepositorySettingsViewModel {
             )
             updatedName = result.updateRepository.name
         } catch {
-            self.error = error.localizedDescription
+            self.error = error.userFacingMessage
         }
     }
 
@@ -255,7 +255,7 @@ final class RepositorySettingsViewModel {
             )
             acls = result.repository?.acls.results ?? []
         } catch {
-            self.error = error.localizedDescription
+            self.error = error.userFacingMessage
         }
     }
 
@@ -286,7 +286,7 @@ final class RepositorySettingsViewModel {
             }
             newACLEntity = ""
         } catch {
-            self.error = error.localizedDescription
+            self.error = error.userFacingMessage
         }
     }
 
@@ -331,7 +331,7 @@ final class RepositorySettingsViewModel {
             )
             acls.removeAll { $0.id == entry.id }
         } catch {
-            self.error = error.localizedDescription
+            self.error = error.userFacingMessage
         }
     }
 
@@ -357,7 +357,7 @@ final class RepositorySettingsViewModel {
             )
             didDelete = true
         } catch {
-            self.error = error.localizedDescription
+            self.error = error.userFacingMessage
         }
     }
 }

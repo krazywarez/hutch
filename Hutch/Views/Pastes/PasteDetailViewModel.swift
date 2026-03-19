@@ -47,7 +47,7 @@ final class PasteDetailViewModel {
             }
             await loadSelectedFileContentsIfNeeded()
         } catch {
-            self.error = error.localizedDescription
+            self.error = error.userFacingMessage
         }
     }
 
@@ -77,7 +77,7 @@ final class PasteDetailViewModel {
             }
             return updatedPaste
         } catch {
-            self.error = error.localizedDescription
+            self.error = error.userFacingMessage
             return nil
         }
     }
@@ -92,7 +92,7 @@ final class PasteDetailViewModel {
             _ = try await service.deletePaste(id: pasteID)
             return true
         } catch {
-            self.error = error.localizedDescription
+            self.error = error.userFacingMessage
             return false
         }
     }
@@ -108,7 +108,7 @@ final class PasteDetailViewModel {
         do {
             fileContents[file.hash] = try await service.loadContents(from: url)
         } catch {
-            self.error = error.localizedDescription
+            self.error = error.userFacingMessage
         }
     }
 }

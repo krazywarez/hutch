@@ -1,7 +1,4 @@
 import SwiftUI
-import os
-
-private let inboxNavigationLogger = Logger(subsystem: "net.cleberg.Hutch", category: "InboxNavigation")
 
 struct InboxView: View {
     @Environment(AppState.self) private var appState
@@ -101,9 +98,6 @@ struct InboxView: View {
                     systemImage: "tray",
                     description: Text("This thread could not be restored.")
                 )
-                .onAppear {
-                    inboxNavigationLogger.error("Inbox navigation destination missing thread snapshot")
-                }
             }
         }
     }
@@ -123,9 +117,6 @@ struct InboxView: View {
     private func selectThread(_ thread: InboxThreadSummary) {
         cacheSelectedThread(thread)
         isShowingThreadDetail = true
-        inboxNavigationLogger.debug(
-            "Inbox navigation triggered: threadID=\(thread.id, privacy: .public) subject=\(thread.subject, privacy: .public)"
-        )
     }
 
     private func cacheSelectedThread(_ thread: InboxThreadSummary) {
@@ -140,9 +131,6 @@ struct InboxView: View {
 
     private func handleThreadDetailDisappear(for threadID: String) {
         let isActiveSelection = selectedThreadID == threadID
-        inboxNavigationLogger.debug(
-            "Inbox thread detail disappeared: threadID=\(threadID, privacy: .public) activeSelection=\(isActiveSelection, privacy: .public)"
-        )
         guard isActiveSelection else { return }
         clearSelection()
     }
@@ -154,9 +142,6 @@ struct InboxView: View {
     }
 
     private func clearSelection() {
-        if let selectedThreadID {
-            inboxNavigationLogger.debug("Inbox selection cleared: threadID=\(selectedThreadID, privacy: .public)")
-        }
         selectedThreadID = nil
         selectedThreadSnapshot = nil
         isShowingThreadDetail = false

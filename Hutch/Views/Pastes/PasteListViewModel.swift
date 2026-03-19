@@ -41,7 +41,7 @@ final class PasteListViewModel {
             hasMore = page.cursor != nil
         } catch {
             if pastes.isEmpty {
-                self.error = error.localizedDescription
+                self.error = error.userFacingMessage
             }
         }
 
@@ -66,7 +66,7 @@ final class PasteListViewModel {
             cursor = page.cursor
             hasMore = page.cursor != nil
         } catch {
-            self.error = error.localizedDescription
+            self.error = error.userFacingMessage
         }
     }
 
@@ -90,7 +90,7 @@ final class PasteListViewModel {
             upsertPaste(paste)
             return paste
         } catch {
-            self.error = error.localizedDescription
+            self.error = error.userFacingMessage
             return nil
         }
     }

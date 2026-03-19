@@ -136,7 +136,7 @@ final class InboxViewModel {
                 return lhs.lastActivityAt > rhs.lastActivityAt
             }
         } catch {
-            inboxListLogger.error("Inbox request failed: type=inbox error=\(error.localizedDescription, privacy: .public)")
+            inboxListLogger.error("Inbox request failed")
             self.error = "Failed to load inbox"
         }
     }
@@ -144,17 +144,11 @@ final class InboxViewModel {
     func markThreadRead(_ thread: InboxThreadSummary) {
         let viewedAt = max(Date(), thread.lastActivityAt)
         InboxReadStateStore.markViewed(viewedAt, for: thread.id)
-        inboxListLogger.debug(
-            "Inbox mark read: key=\(thread.id, privacy: .public) latestActivityAt=\(thread.lastActivityAt.ISO8601Format(), privacy: .public) storedLastViewedAt=\(viewedAt.ISO8601Format(), privacy: .public)"
-        )
         threads.removeAll { $0.id == thread.id }
     }
 
     func markThreadUnread(_ thread: InboxThreadSummary) {
         InboxReadStateStore.markUnread(for: thread.id)
-        inboxListLogger.debug(
-            "Inbox mark unread: key=\(thread.id, privacy: .public) latestActivityAt=\(thread.lastActivityAt.ISO8601Format(), privacy: .public) storedLastViewedAt=nil"
-        )
         updateThread(thread, isUnread: true)
     }
 
@@ -237,7 +231,7 @@ final class InboxViewModel {
             summaries.append(contentsOf: batchResult.0)
             failureMessages.append(contentsOf: batchResult.1)
             for failure in batchResult.1 {
-                inboxListLogger.error("Inbox request failed: type=listThreads \(failure, privacy: .public)")
+                inboxListLogger.error("Inbox thread list request failed: \(failure, privacy: .private)")
             }
             startIndex = endIndex
         }
@@ -259,14 +253,7 @@ final class InboxViewModel {
 
         return response.list.threads.results.prefix(listThreadFetchLimit).map { thread in
             let groupingKey = "\(mailingList.rid)#\(thread.subject.replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression).trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: #"^(?:(?:re|fwd?)\s*:\s*)+"#, with: "", options: [.regularExpression, .caseInsensitive]).lowercased())"
-            let lastViewedAt = InboxReadStateStore.lastViewedAt(for: groupingKey)
             let isUnread = InboxReadStateStore.isUnread(threadID: groupingKey, lastActivityAt: thread.updated)
-            inboxListLogger.debug(
-                "Inbox thread grouping candidate: listRID=\(mailingList.rid, privacy: .public) rootMessageID=\(thread.root.messageID, privacy: .public) rootEmailID=\(thread.root.id, privacy: .public) groupingKey=\(groupingKey, privacy: .public)"
-            )
-            inboxListLogger.debug(
-                "Inbox unread state: key=\(groupingKey, privacy: .public) latestActivityAt=\(thread.updated.ISO8601Format(), privacy: .public) lastViewedAt=\(lastViewedAt?.ISO8601Format() ?? "nil", privacy: .public) isUnread=\(isUnread, privacy: .public)"
-            )
             return InboxThreadSummary(
                 rootEmailID: thread.root.id,
                 rootMessageID: thread.root.messageID,

@@ -33,6 +33,7 @@ struct TicketListView: View {
                     } label: {
                         Image(systemName: "plus")
                     }
+                    .accessibilityLabel("Create ticket")
                 }
             }
         }

@@ -78,7 +78,7 @@ final class TrackerListViewModel {
             cursor = page.cursor
             hasMore = page.cursor != nil
         } catch {
-            self.error = error.localizedDescription
+            self.error = error.userFacingMessage
         }
 
         isLoading = false
@@ -100,7 +100,7 @@ final class TrackerListViewModel {
             cursor = page.cursor
             hasMore = page.cursor != nil
         } catch {
-            self.error = error.localizedDescription
+            self.error = error.userFacingMessage
         }
 
         isLoadingMore = false
@@ -165,19 +165,6 @@ final class TrackerListViewModel {
     }
 
     private func trackerCreationErrorMessage(for error: Error) -> String {
-        let message: String
-
-        if let srhtError = error as? SRHTError {
-            switch srhtError {
-            case .graphQLErrors(let errors):
-                message = errors.map(\.message).joined(separator: "\n")
-            default:
-                message = srhtError.localizedDescription
-            }
-        } else {
-            message = error.localizedDescription
-        }
-
-        return "Couldn’t create the tracker. \(message)"
+        "Couldn’t create the tracker. \(error.userFacingMessage)"
     }
 }

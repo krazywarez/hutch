@@ -24,6 +24,7 @@ struct RepositoryListView: View {
                     } label: {
                         Image(systemName: "plus")
                     }
+                    .accessibilityLabel("Create repository")
                 }
             }
         }

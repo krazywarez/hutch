@@ -189,7 +189,7 @@ final class RepositoryListViewModel {
         } catch {
             // Only show error if we have no cached data to fall back on
             if repositories.isEmpty {
-                self.error = error.localizedDescription
+                self.error = error.userFacingMessage
             }
         }
 
@@ -272,20 +272,7 @@ final class RepositoryListViewModel {
     }
 
     private func repositoryCreationErrorMessage(for error: Error) -> String {
-        let message: String
-
-        if let srhtError = error as? SRHTError {
-            switch srhtError {
-            case .graphQLErrors(let errors):
-                message = errors.map(\.message).joined(separator: "\n")
-            default:
-                message = srhtError.localizedDescription
-            }
-        } else {
-            message = error.localizedDescription
-        }
-
-        return "Couldn’t create the repository. \(message)"
+        "Couldn’t create the repository. \(error.userFacingMessage)"
     }
 
     /// Fetch ALL repositories by paginating through all available pages.

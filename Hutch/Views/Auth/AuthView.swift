@@ -87,7 +87,7 @@ struct TokenEntryView: View {
             do {
                 try await appState.connect(with: tokenTrimmed)
             } catch {
-                errorMessage = error.localizedDescription
+                errorMessage = error.userFacingMessage
             }
             isConnecting = false
         }

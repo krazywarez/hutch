@@ -97,7 +97,7 @@ final class BuildListViewModel {
             hasMore = page.cursor != nil
         } catch {
             if jobs.isEmpty {
-                self.error = error.localizedDescription
+                self.error = error.userFacingMessage
             }
         }
 
@@ -121,7 +121,7 @@ final class BuildListViewModel {
             cursor = page.cursor
             hasMore = page.cursor != nil
         } catch {
-            self.error = error.localizedDescription
+            self.error = error.userFacingMessage
         }
 
         isLoadingMore = false
@@ -171,7 +171,7 @@ final class BuildListViewModel {
             await loadJobs()
             return result.submit.id
         } catch {
-            self.error = "Couldn’t submit the build. \(error.localizedDescription)"
+            self.error = "Couldn’t submit the build. \(error.userFacingMessage)"
             return nil
         }
     }

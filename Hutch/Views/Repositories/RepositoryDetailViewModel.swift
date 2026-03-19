@@ -161,7 +161,7 @@ final class RepositoryDetailViewModel {
             commitCursor = page.cursor
             hasMoreCommits = page.cursor != nil
         } catch {
-            self.error = error.localizedDescription
+            self.error = error.userFacingMessage
         }
 
         isLoadingCommits = false
@@ -183,7 +183,7 @@ final class RepositoryDetailViewModel {
             commitCursor = page.cursor
             hasMoreCommits = page.cursor != nil
         } catch {
-            self.error = error.localizedDescription
+            self.error = error.userFacingMessage
         }
 
         isLoadingMoreCommits = false
@@ -243,7 +243,7 @@ final class RepositoryDetailViewModel {
             branches = allRefs.filter { $0.name.hasPrefix("refs/heads/") }
             tags = allRefs.filter { $0.name.hasPrefix("refs/tags/") }
         } catch {
-            self.error = error.localizedDescription
+            self.error = error.userFacingMessage
         }
 
         isLoadingRefs = false
@@ -337,7 +337,7 @@ final class RepositoryDetailViewModel {
             readmePath = nil
             readmeLoaded = true
         } catch {
-            self.error = error.localizedDescription
+            self.error = error.userFacingMessage
         }
     }
 
@@ -389,7 +389,7 @@ final class RepositoryDetailViewModel {
                 .filter { !$0.artifacts.results.isEmpty }
                 .map { ReferenceWithArtifacts(name: $0.name, artifacts: $0.artifacts.results) }
         } catch {
-            self.error = error.localizedDescription
+            self.error = error.userFacingMessage
         }
 
         isLoadingArtifacts = false

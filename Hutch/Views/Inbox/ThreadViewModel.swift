@@ -172,8 +172,6 @@ final class ThreadViewModel {
         partialWarning = nil
         defer { isLoading = false }
 
-        inboxLogger.debug("Opening inbox thread: \(self.summary.debugIdentifierSummary, privacy: .public)")
-
         do {
             let threadPayloads = try await fetchThreadPayloads()
 
@@ -207,9 +205,7 @@ final class ThreadViewModel {
                     }
                 } catch {
                     hadPartialReplyFailure = true
-                    inboxLogger.error(
-                        "Inbox thread descendants failed for \(self.summary.debugIdentifierSummary, privacy: .public): \(error.localizedDescription, privacy: .public)"
-                    )
+                    inboxLogger.error("Inbox thread descendants failed")
                 }
             }
 
@@ -241,9 +237,9 @@ final class ThreadViewModel {
             if thread == nil {
                 self.error = "Failed to load thread"
             } else {
-                self.error = error.localizedDescription
+                self.error = error.userFacingMessage
             }
-            inboxLogger.error("Inbox thread detail failed for \(self.summary.debugIdentifierSummary, privacy: .public): \(error.localizedDescription, privacy: .public)")
+            inboxLogger.error("Inbox thread detail failed")
         }
     }
 
@@ -275,17 +271,9 @@ final class ThreadViewModel {
 
     private func fetchThreadByMessageID(rootMessageID: String) async throws -> InboxThreadPayloadDetail? {
         let candidateMessageIDs = Self.messageIDCandidates(from: rootMessageID)
-        inboxLogger.debug(
-            "Inbox thread lookup IDs: subject=\(self.summary.subject, privacy: .public) rootEmailID=\(self.summary.rootEmailID, privacy: .public) rootMessageID=\(rootMessageID, privacy: .public) candidates=\(candidateMessageIDs.joined(separator: ", "), privacy: .public)"
-        )
-
         var lastLookupError: Error?
 
         for messageID in candidateMessageIDs {
-            inboxLogger.debug(
-                "Inbox thread detail lookup request: rid=\(self.summary.listRID, privacy: .public) messageID=\(messageID, privacy: .public)"
-            )
-
             do {
                 let response: InboxThreadLookupResponse = try await Self.executeGraphQLRequest(
                     client: client,
@@ -303,10 +291,6 @@ final class ThreadViewModel {
             } catch let error as SRHTError {
                 switch error {
                 case .graphQLErrors(let errors):
-                    let combinedMessage = errors.map(\.message).joined(separator: " | ")
-                    inboxLogger.error(
-                        "Inbox thread message lookup failed: rid=\(self.summary.listRID, privacy: .public) messageID=\(messageID, privacy: .public) errors=\(combinedMessage, privacy: .public)"
-                    )
                     if errors.allSatisfy({ $0.message.localizedCaseInsensitiveContains("no rows in result set") }) {
                         lastLookupError = error
                         continue
@@ -318,11 +302,7 @@ final class ThreadViewModel {
             }
         }
 
-        if let lastLookupError {
-            inboxLogger.debug(
-                "Inbox thread message lookup exhausted candidates for \(self.summary.debugIdentifierSummary, privacy: .public): \(lastLookupError.localizedDescription, privacy: .public)"
-            )
-        }
+        _ = lastLookupError
         return nil
     }
 
@@ -348,7 +328,7 @@ final class ThreadViewModel {
                 )
             } catch {
                 if Self.isRecoverableNoRows(error) {
-                    inboxLogger.error("Inbox thread page scan recoverable miss for \(self.summary.debugIdentifierSummary, privacy: .public): \(error.localizedDescription, privacy: .public)")
+                    inboxLogger.error("Inbox thread page scan missed a recoverable result")
                     return nil
                 }
                 throw error
@@ -357,11 +337,6 @@ final class ThreadViewModel {
             guard let threadPage = response.list?.threads else {
                 return nil
             }
-
-            let candidates = threadPage.results.map { payload in
-                "subject=\(payload.subject ?? "<nil>") rootEmailID=\(payload.root?.id.map(String.init) ?? "<nil>") rootMessageID=\(payload.root?.messageID ?? "<nil>")"
-            }.joined(separator: " | ")
-            inboxLogger.debug("Inbox thread detail page candidates: \(candidates, privacy: .public)")
 
             if let matchedThread = threadPage.results.first(where: {
                 $0.root?.messageID == targetRootMessageID ||
@@ -428,9 +403,7 @@ final class ThreadViewModel {
                 )
             } catch {
                 if Self.isRecoverableNoRows(error) {
-                    inboxLogger.error(
-                        "Inbox descendant page recoverable miss: thread=\(self.summary.debugIdentifierSummary, privacy: .public) messageID=\(messageID, privacy: .public) error=\(error.localizedDescription, privacy: .public)"
-                    )
+                    inboxLogger.error("Inbox descendant page missed a recoverable result")
                     continue
                 }
                 throw error
@@ -449,9 +422,6 @@ final class ThreadViewModel {
             error = "This thread is not ready to reply to yet."
             return
         }
-        inboxLogger.debug(
-            "Preparing inbox reply: subject=\(thread.subject, privacy: .public) listRID=\(thread.listRID, privacy: .public) rootMessageID=\(thread.rootMessageID, privacy: .public) recipient=\(thread.replyRecipient, privacy: .public) senderIdentity=system-mail-account"
-        )
         composeDraft = MailComposeDraft(
             recipients: [thread.replyRecipient],
             ccRecipients: [],
@@ -732,11 +702,6 @@ final class ThreadViewModel {
         )
 
         let (data, _) = try await URLSession.shared.data(for: request)
-        #if DEBUG
-        let responseBody = String(data: data, encoding: .utf8) ?? "<non-utf8 response>"
-        inboxLogger.debug("Inbox thread raw GraphQL response: \(responseBody, privacy: .public)")
-        #endif
-
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .srhtFlexible
         let envelope = try decoder.decode(GraphQLResponse<T>.self, from: data)

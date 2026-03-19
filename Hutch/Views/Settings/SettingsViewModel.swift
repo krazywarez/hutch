@@ -162,7 +162,7 @@ final class SettingsViewModel {
             sshKeys = result.me.sshKeys.results
             pgpKeys = result.me.pgpKeys.results
         } catch {
-            self.error = error.localizedDescription
+            self.error = error.userFacingMessage
         }
 
         isLoading = false
@@ -207,7 +207,7 @@ final class SettingsViewModel {
             }
             isEditingProfile = false
         } catch {
-            self.error = error.localizedDescription
+            self.error = error.userFacingMessage
         }
 
         isSavingProfile = false
@@ -252,7 +252,7 @@ final class SettingsViewModel {
                 )
             }
         } catch {
-            self.error = error.localizedDescription
+            self.error = error.userFacingMessage
         }
 
         isUploadingAvatar = false
@@ -289,7 +289,7 @@ final class SettingsViewModel {
                 )
             }
         } catch {
-            self.error = error.localizedDescription
+            self.error = error.userFacingMessage
         }
 
         isUploadingAvatar = false
@@ -313,7 +313,7 @@ final class SettingsViewModel {
             newSSHKey = ""
             isAddingSSHKey = false
         } catch {
-            self.error = error.localizedDescription
+            self.error = error.userFacingMessage
         }
     }
 
@@ -329,7 +329,7 @@ final class SettingsViewModel {
             )
             sshKeys.removeAll { $0.id == key.id }
         } catch {
-            self.error = error.localizedDescription
+            self.error = error.userFacingMessage
         }
     }
 
@@ -351,7 +351,7 @@ final class SettingsViewModel {
             newPGPKey = ""
             isAddingPGPKey = false
         } catch {
-            self.error = error.localizedDescription
+            self.error = error.userFacingMessage
         }
     }
 
@@ -367,7 +367,7 @@ final class SettingsViewModel {
             )
             pgpKeys.removeAll { $0.id == key.id }
         } catch {
-            self.error = error.localizedDescription
+            self.error = error.userFacingMessage
         }
     }
 
@@ -385,7 +385,7 @@ final class SettingsViewModel {
             )
             personalAccessTokens = result.personalAccessTokens
         } catch {
-            self.error = error.localizedDescription
+            self.error = error.userFacingMessage
         }
 
         isLoadingPATs = false
