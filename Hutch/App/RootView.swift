@@ -12,6 +12,8 @@ struct RootView: View {
     @State private var isResolvingDeepLink = false
 
     var body: some View {
+        @Bindable var appState = appState
+
         Group {
             switch appState.authPhase {
             case .launching:
@@ -36,6 +38,23 @@ struct RootView: View {
         }
         .onChange(of: appState.pendingTabNavigation) { _, newValue in
             consumePendingTabNavigationIfPossible(newValue)
+        }
+        .alert(
+            "Couldn't Open Link",
+            isPresented: Binding(
+                get: { appState.deepLinkError != nil },
+                set: { isPresented in
+                    if !isPresented {
+                        appState.deepLinkError = nil
+                    }
+                }
+            )
+        ) {
+            Button("OK") {
+                appState.deepLinkError = nil
+            }
+        } message: {
+            Text(appState.deepLinkError ?? "")
         }
     }
 
@@ -198,7 +217,7 @@ struct RootView: View {
                 await settleNavigationTransition()
                 repoPath.append(summary)
             } catch {
-                // Silently fail — the repo may not exist or be inaccessible
+                appState.presentRepositoryDeepLinkError()
             }
         }
     }
@@ -221,7 +240,7 @@ struct RootView: View {
                     ticketId: ticketId
                 ))
             } catch {
-                // Silently fail
+                appState.presentTicketDeepLinkError()
             }
         }
     }

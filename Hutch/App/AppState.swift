@@ -54,6 +54,7 @@ final class AppState {
     /// Set by the deep link handler; consumed by RootView to drive navigation.
     var pendingDeepLink: DeepLink?
     var pendingTabNavigation: TabNavigationTarget?
+    var deepLinkError: String?
 
     // MARK: - Init
 
@@ -182,6 +183,14 @@ final class AppState {
         selectedTab = .more
     }
 
+    func presentRepositoryDeepLinkError() {
+        deepLinkError = "The repository could not be found or is inaccessible."
+    }
+
+    func presentTicketDeepLinkError() {
+        deepLinkError = "The ticket could not be found or is inaccessible."
+    }
+
     // MARK: - Private
 
     private static let meQuery = """
@@ -257,6 +266,7 @@ final class AppState {
         currentUser = nil
         pendingDeepLink = nil
         pendingTabNavigation = nil
+        deepLinkError = nil
         selectedTab = .home
     }
 
