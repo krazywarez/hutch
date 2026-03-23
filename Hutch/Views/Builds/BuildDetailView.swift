@@ -6,6 +6,7 @@ struct BuildDetailView: View {
     @Environment(AppState.self) private var appState
     @State private var viewModel: BuildDetailViewModel?
     @State private var rebuiltJobId: Int?
+    @State private var selectedTask: BuildTask?
     @State private var showEditResubmitSheet = false
     @State private var showCancelConfirmation = false
 
@@ -39,6 +40,18 @@ struct BuildDetailView: View {
         )) {
             if let rebuiltJobId {
                 BuildDetailView(jobId: rebuiltJobId)
+            }
+        }
+        .navigationDestination(isPresented: Binding(
+            get: { selectedTask != nil },
+            set: { isPresented in
+                if !isPresented {
+                    selectedTask = nil
+                }
+            }
+        )) {
+            if let selectedTask, let viewModel {
+                BuildTaskLogView(task: selectedTask, viewModel: viewModel)
             }
         }
         .sheet(isPresented: $showEditResubmitSheet) {
@@ -115,7 +128,20 @@ struct BuildDetailView: View {
                 if !job.tasks.isEmpty {
                     ForEach(job.tasks) { task in
                         Section {
-                            TaskLogSection(task: task, viewModel: viewModel)
+                            Button {
+                                selectedTask = task
+                            } label: {
+                                HStack {
+                                    Text(task.status.rawValue.capitalized)
+                                        .font(.subheadline)
+                                        .foregroundStyle(.secondary)
+                                    Spacer()
+                                    Image(systemName: "chevron.right")
+                                        .font(.caption)
+                                        .foregroundStyle(.tertiary)
+                                }
+                            }
+                            .foregroundStyle(.primary)
                         } header: {
                             HStack(spacing: 6) {
                                 TaskStatusIcon(status: task.status)
@@ -291,60 +317,6 @@ private struct EditResubmitBuildSheet: View {
                     }
                     .disabled(manifest.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || viewModel.isSubmittingEditedBuild)
                 }
-            }
-        }
-    }
-}
-
-// MARK: - Task Log Section
-
-private struct TaskLogSection: View {
-    let task: BuildTask
-    let viewModel: BuildDetailViewModel
-
-    @State private var isExpanded: Bool
-
-    init(task: BuildTask, viewModel: BuildDetailViewModel) {
-        self.task = task
-        self.viewModel = viewModel
-        self._isExpanded = State(initialValue: task.status == .failed)
-    }
-
-    var body: some View {
-        DisclosureGroup(isExpanded: $isExpanded) {
-            if viewModel.loadingTaskLogs.contains(task.logCacheKey) {
-                HStack {
-                    Spacer()
-                    ProgressView("Loading log…")
-                    Spacer()
-                }
-            } else if let logText = viewModel.taskLogs[task.logCacheKey] {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    Text(logText)
-                        .font(.caption2.monospaced())
-                        .foregroundStyle(.primary)
-                        .textSelection(.enabled)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-            } else if task.log == nil {
-                Text("No log available.")
-                    .foregroundStyle(.secondary)
-            }
-        } label: {
-            HStack {
-                Text(task.status.rawValue)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-        }
-        .task {
-            if isExpanded {
-                await viewModel.loadTaskLog(task: task)
-            }
-        }
-        .onChange(of: isExpanded) { _, expanded in
-            if expanded {
-                Task { await viewModel.loadTaskLog(task: task) }
             }
         }
     }
