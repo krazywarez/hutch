@@ -27,14 +27,20 @@ private struct SubmittedJob: Decodable, Sendable {
 @Observable
 @MainActor
 final class BuildDetailViewModel {
+    private static let autoRefreshInterval: Duration = .seconds(5)
 
     let jobId: Int
     private let client: SRHTClient
 
+    private var autoRefreshTask: Task<Void, Never>?
     private(set) var job: JobDetail?
     private(set) var isLoading = false
+    private(set) var buildLogText: String?
+    private(set) var isLoadingBuildLog = false
     private(set) var taskLogs: [String: String] = [:]
     private(set) var loadingTaskLogs: Set<String> = []
+    private(set) var failedTaskLogs: Set<String> = []
+    private var taskLogRetryCounts: [String: Int] = [:]
     private(set) var isCancelling = false
     private(set) var isRebuilding = false
     private(set) var isSubmittingEditedBuild = false
@@ -108,7 +114,13 @@ final class BuildDetailViewModel {
             loadedJob.tasks = loadedJob.tasks.enumerated().map { index, task in
                 task.withOrdinal(index)
             }
-            job = loadedJob
+            if job != loadedJob {
+                job = loadedJob
+            }
+
+            if loadedJob.status.isTerminal {
+                stopAutoRefresh()
+            }
         } catch {
             self.error = error.userFacingMessage
         }
@@ -118,19 +130,80 @@ final class BuildDetailViewModel {
 
     func loadTaskLog(task: BuildTask) async {
         let cacheKey = task.logCacheKey
+        let jobIsTerminal = job?.status.isTerminal ?? false
+
+        // Task-specific logs are only fetched after the job reaches a terminal
+        // state. While the build is active, the UI shows the shared live build log.
         guard let log = task.log,
               let logURL = URL(string: log.fullURL),
-              !loadingTaskLogs.contains(cacheKey),
-              taskLogs[cacheKey] == nil else { return }
+              !loadingTaskLogs.contains(cacheKey) else { return }
+        guard jobIsTerminal else { return }
+        if jobIsTerminal, taskLogs[cacheKey] != nil { return }
+        failedTaskLogs.remove(cacheKey)
         loadingTaskLogs.insert(cacheKey)
 
         do {
             taskLogs[cacheKey] = try await client.fetchText(url: logURL)
+            failedTaskLogs.remove(cacheKey)
         } catch {
+            failedTaskLogs.insert(cacheKey)
             self.error = error.userFacingMessage
         }
 
         loadingTaskLogs.remove(cacheKey)
+    }
+
+    func loadBuildLog() async {
+        guard let log = job?.log,
+              let logURL = URL(string: log.fullURL),
+              !isLoadingBuildLog else { return }
+
+        let jobIsTerminal = job?.status.isTerminal ?? false
+        if jobIsTerminal, buildLogText != nil { return }
+
+        isLoadingBuildLog = true
+
+        do {
+            buildLogText = try await client.fetchText(url: logURL)
+        } catch {
+            self.error = error.userFacingMessage
+        }
+
+        isLoadingBuildLog = false
+    }
+
+    func retryTaskLog(task: BuildTask) async {
+        let cacheKey = task.logCacheKey
+        failedTaskLogs.remove(cacheKey)
+        taskLogRetryCounts[cacheKey, default: 0] += 1
+        await loadTaskLog(task: task)
+    }
+
+    func displayedLogText(for task: BuildTask?) -> String? {
+        guard let task else { return nil }
+        guard let job else { return nil }
+
+        if !job.status.isTerminal {
+            return buildLogText
+        }
+
+        return taskLogs[task.logCacheKey] ?? buildLogText
+    }
+
+    func isShowingBuildLogFallback(for task: BuildTask?) -> Bool {
+        guard let task, let job else { return false }
+        if !job.status.isTerminal {
+            return buildLogText != nil
+        }
+
+        return taskLogs[task.logCacheKey] == nil && buildLogText != nil
+    }
+
+    func taskLogTrigger(for task: BuildTask?) -> String? {
+        guard let task, let logURL = task.log?.fullURL else { return nil }
+        let retryCount = taskLogRetryCounts[task.logCacheKey, default: 0]
+        let isTerminal = job?.status.isTerminal ?? false
+        return "\(logURL)#\(retryCount)#\(isTerminal)"
     }
 
     func cancelJob() async {
@@ -236,5 +309,51 @@ final class BuildDetailViewModel {
             self.error = "Couldn’t submit the build. \(error.userFacingMessage)"
             return nil
         }
+    }
+
+    func startAutoRefresh() {
+        guard autoRefreshTask == nil else { return }
+        guard shouldAutoRefresh else { return }
+
+        print("Build auto-refresh started")
+
+        autoRefreshTask = Task { [weak self] in
+            while !Task.isCancelled {
+                do {
+                    try await Task.sleep(for: Self.autoRefreshInterval)
+                } catch {
+                    break
+                }
+
+                guard let self else { return }
+                await self.performAutoRefreshTick()
+            }
+        }
+    }
+
+    func stopAutoRefresh() {
+        guard let autoRefreshTask else { return }
+
+        autoRefreshTask.cancel()
+        self.autoRefreshTask = nil
+        print("Build auto-refresh stopped")
+    }
+
+    private var shouldAutoRefresh: Bool {
+        guard let job else { return true }
+        return !job.status.isTerminal
+    }
+
+    private func performAutoRefreshTick() async {
+        guard !Task.isCancelled, shouldAutoRefresh, !isLoading else {
+            if !shouldAutoRefresh {
+                stopAutoRefresh()
+            }
+            return
+        }
+
+        print("Build refresh tick")
+        await loadJob()
+        await loadBuildLog()
     }
 }

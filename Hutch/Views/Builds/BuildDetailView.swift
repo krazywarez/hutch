@@ -6,9 +6,13 @@ struct BuildDetailView: View {
     @Environment(AppState.self) private var appState
     @State private var viewModel: BuildDetailViewModel?
     @State private var rebuiltJobId: Int?
-    @State private var selectedTask: BuildTask?
+    @State private var selectedTaskName: String?
     @State private var showEditResubmitSheet = false
     @State private var showCancelConfirmation = false
+
+    private var isPresentingLogSheet: Bool {
+        selectedTaskName != nil
+    }
 
     var body: some View {
         Group {
@@ -42,23 +46,43 @@ struct BuildDetailView: View {
                 BuildDetailView(jobId: rebuiltJobId)
             }
         }
-        .navigationDestination(isPresented: Binding(
-            get: { selectedTask != nil },
-            set: { isPresented in
-                if !isPresented {
-                    selectedTask = nil
-                }
-            }
-        )) {
-            if let selectedTask, let viewModel {
-                BuildTaskLogView(task: selectedTask, viewModel: viewModel)
-            }
-        }
         .sheet(isPresented: $showEditResubmitSheet) {
             if let viewModel, let job = viewModel.job {
                 EditResubmitBuildSheet(viewModel: viewModel, job: job) { jobId in
                     showEditResubmitSheet = false
                     rebuiltJobId = jobId
+                }
+            }
+        }
+        .sheet(isPresented: Binding(
+            get: { selectedTaskName != nil },
+            set: { isPresented in
+                if !isPresented {
+                    selectedTaskName = nil
+                }
+            }
+        )) {
+            if let selectedTaskName, let viewModel {
+                NavigationStack {
+                    BuildTaskLogView(taskName: selectedTaskName, viewModel: viewModel)
+                        .toolbar {
+                            ToolbarItem(placement: .cancellationAction) {
+                                Button("Done") {
+                                    self.selectedTaskName = nil
+                                }
+                            }
+                        }
+                }
+            } else {
+                NavigationStack {
+                    SRHTLoadingStateView(message: "Loading…")
+                        .toolbar {
+                            ToolbarItem(placement: .cancellationAction) {
+                                Button("Done") {
+                                    self.selectedTaskName = nil
+                                }
+                            }
+                        }
                 }
             }
         }
@@ -75,7 +99,15 @@ struct BuildDetailView: View {
                 let vm = BuildDetailViewModel(jobId: jobId, client: appState.client)
                 viewModel = vm
                 await vm.loadJob()
+                vm.startAutoRefresh()
             }
+        }
+        .onAppear {
+            viewModel?.startAutoRefresh()
+        }
+        .onDisappear {
+            guard !isPresentingLogSheet else { return }
+            viewModel?.stopAutoRefresh()
         }
     }
 
@@ -129,7 +161,7 @@ struct BuildDetailView: View {
                     ForEach(job.tasks) { task in
                         Section {
                             Button {
-                                selectedTask = task
+                                selectedTaskName = task.name
                             } label: {
                                 HStack {
                                     Text(task.status.rawValue.capitalized)

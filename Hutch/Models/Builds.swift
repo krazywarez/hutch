@@ -19,6 +19,14 @@ enum JobStatus: String, Codable, Sendable {
         default: false
         }
     }
+
+    /// Whether the job has reached a terminal state and no longer changes.
+    var isTerminal: Bool {
+        switch self {
+        case .success, .failed, .cancelled, .timeout: true
+        case .pending, .queued, .running: false
+        }
+    }
 }
 
 /// Status of a single build task within a job.
@@ -33,7 +41,7 @@ enum TaskStatus: String, Codable, Sendable {
 // MARK: - Build Task
 
 /// A single task within a build job.
-struct BuildTask: Codable, Sendable, Identifiable {
+struct BuildTask: Codable, Sendable, Identifiable, Equatable {
     private(set) var ordinal: Int?
     let name: String
     let status: TaskStatus
@@ -103,7 +111,7 @@ struct JobTaskSummary: Codable, Sendable, Hashable {
 // MARK: - Job Detail (for detail view)
 
 /// Full job model with all fields for the detail view.
-struct JobDetail: Codable, Sendable {
+struct JobDetail: Codable, Sendable, Equatable {
     let id: Int
     let created: Date
     let updated: Date
@@ -119,7 +127,7 @@ struct JobDetail: Codable, Sendable {
 }
 
 /// The log associated with a build job.
-struct BuildLog: Codable, Sendable {
+struct BuildLog: Codable, Sendable, Equatable {
     let fullURL: String
 }
 
