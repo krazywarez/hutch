@@ -48,6 +48,8 @@ struct SettingsView: View {
                 patSection(viewModel)
             }
 
+            behaviorSection()
+
             // Token / Sign Out
             tokenSection()
 
@@ -381,6 +383,25 @@ struct SettingsView: View {
     }
 
     // MARK: - Token / Sign Out Section
+
+    @ViewBuilder
+    private func behaviorSection() -> some View {
+        Section {
+            Toggle(
+                "Swipe actions",
+                isOn: Binding(
+                    get: {
+                        UserDefaults.standard.object(forKey: AppStorageKeys.swipeActionsEnabled) as? Bool ?? true
+                    },
+                    set: { UserDefaults.standard.set($0, forKey: AppStorageKeys.swipeActionsEnabled) }
+                )
+            )
+        } header: {
+            Text("Behavior")
+        } footer: {
+            Text("When enabled, swipe list rows to quickly take actions like resolving tickets, cancelling builds, and deleting pastes.")
+        }
+    }
 
     @ViewBuilder
     private func tokenSection() -> some View {
@@ -727,6 +748,10 @@ private struct AboutView: View {
                 Text("Hutch uses your SourceHut personal access token to make requests on your behalf. The token is stored locally in the iOS keychain.")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
+
+                Link(destination: URL(string: "https://hutch.cleberg.net/privacy.html")!) {
+                    SwiftUI.Label("Privacy Policy", systemImage: "hand.raised")
+                }
             }
 
             Section("Acknowledgements") {
