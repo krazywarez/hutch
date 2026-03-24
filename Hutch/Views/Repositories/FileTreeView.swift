@@ -184,7 +184,7 @@ private struct FileTreeContentView: View {
     private func fileContentView(entry: TreeEntry, object: GitObject) -> some View {
         switch object {
         case .textBlob(let blob):
-            textBlobView(entry: entry, blob: blob)
+            textBlobView(entry, blob: blob)
         case .binaryBlob(let blob):
             binaryBlobView(entry: entry, blob: blob)
         default:
@@ -221,7 +221,7 @@ private struct FileTreeContentView: View {
     // MARK: - Text Blob
 
     @ViewBuilder
-    private func textBlobView(entry: TreeEntry, blob: GitTextBlob) -> some View {
+    private func textBlobView(_ entry: TreeEntry, blob: GitTextBlob) -> some View {
         VStack(spacing: 0) {
             HStack {
                 Spacer()
