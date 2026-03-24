@@ -23,6 +23,6 @@ Ensure stability and reliability for the following core workflows:
 ## **Test Environments**
 
 
-| Platform | Versions | Devices/Testers |
-| -------- | -------- | --------------- |
-| iOS      | v1.0+    | iOS 17+         |
+| Platform | App Version | Devices/Testers |
+| -------- | ----------- | --------------- |
+| iOS      | v2.3.1+     | iOS 17+         |
