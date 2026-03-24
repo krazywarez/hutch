@@ -87,7 +87,9 @@ struct BuildDetailView: View {
             }
         }
         .alert("Cancel Build?", isPresented: $showCancelConfirmation) {
-            Button("Keep Running", role: .cancel) {}
+            Button("Keep Running", role: .cancel) {
+                // Alert dismissal is implicit; no additional action required.
+            }
             Button("Cancel Build", role: .destructive) {
                 Task { await viewModel?.cancelJob() }
             }

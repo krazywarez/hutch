@@ -424,7 +424,9 @@ private struct EventRow: View {
             .padding(.horizontal)
             .padding(.vertical, 8)
             .alert("System Status Change", isPresented: $isShowingSystemStatusInfo) {
-                Button("OK", role: .cancel) {}
+                Button("OK", role: .cancel) {
+                    // Alert dismissal is implicit; no additional action required.
+                }
             } message: {
                 Text("This status change was recorded automatically or without a named user attached to the event.")
             }

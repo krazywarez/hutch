@@ -40,7 +40,9 @@ struct SRHTShareButton<Label: View>: View {
             }
         }
         .alert("Share Unavailable", isPresented: $isShowingFallbackAlert) {
-            Button("OK", role: .cancel) {}
+            Button("OK", role: .cancel) {
+                // Alert dismissal is implicit; no additional action required.
+            }
         } message: {
             Text(target.fallbackMessage)
         }
@@ -54,5 +56,8 @@ private struct ShareSheet: UIViewControllerRepresentable {
         UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
     }
 
-    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {
+        // UIActivityViewController is fully configured in makeUIViewController.
+        // No state-driven updates are required.
+    }
 }

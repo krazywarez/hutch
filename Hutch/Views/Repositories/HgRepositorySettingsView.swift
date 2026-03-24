@@ -55,7 +55,9 @@ struct HgRepositorySettingsView: View {
             "Permanently delete \(repository.owner.canonicalName)/\(repository.name)?",
             isPresented: $showDeleteConfirmation
         ) {
-            Button("Cancel", role: .cancel) {}
+            Button("Cancel", role: .cancel) {
+                // Alert dismissal is implicit; no additional action required.
+            }
             Button("Delete", role: .destructive) {
                 Task {
                     await viewModel.deleteRepository()
@@ -76,7 +78,9 @@ struct HgRepositorySettingsView: View {
                 }
             }
         )) {
-            Button("Cancel", role: .cancel) {}
+            Button("Cancel", role: .cancel) {
+                // Alert dismissal is implicit; no additional action required.
+            }
             Button("Remove Access", role: .destructive) {
                 guard let entry = pendingACLDeletion else { return }
                 Task {
@@ -234,7 +238,10 @@ struct HgRepositorySettingsView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
-            Button("Remove Revision", role: .destructive) {}
+            Button("Remove Revision", role: .destructive) {
+                // Not implemented: the hg.sr.ht API does not expose a histedit endpoint.
+                // This button is disabled until the API supports revision removal.
+            }
                 .disabled(true)
         }
     }

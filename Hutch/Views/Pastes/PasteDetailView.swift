@@ -63,7 +63,9 @@ struct PasteDetailView: View {
             }
         }
         .alert("Delete Paste?", isPresented: $showDeleteConfirmation) {
-            Button("Cancel", role: .cancel) {}
+            Button("Cancel", role: .cancel) {
+                // Alert dismissal is implicit; no additional action required.
+            }
             Button("Delete", role: .destructive) {
                 Task {
                     if await viewModel?.deletePaste() == true {

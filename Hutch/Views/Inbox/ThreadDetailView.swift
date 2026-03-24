@@ -277,7 +277,10 @@ private struct MailComposeView: UIViewControllerRepresentable {
         return controller
     }
 
-    func updateUIViewController(_ uiViewController: UIViewController, context: Context) {}
+    func updateUIViewController(_ uiViewController: UIViewController, context: Context) {
+        // The view controller is fully configured in makeUIViewController.
+        // No state-driven updates are required.
+    }
 
     final class Coordinator: NSObject, MFMailComposeViewControllerDelegate {
         let onComplete: (Result) -> Void

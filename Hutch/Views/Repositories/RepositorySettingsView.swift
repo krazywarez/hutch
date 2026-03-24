@@ -58,7 +58,9 @@ struct RepositorySettingsView: View {
             "Permanently delete \(repository.owner.canonicalName)/\(repository.name)?",
             isPresented: $showDeleteConfirmation
         ) {
-            Button("Cancel", role: .cancel) {}
+            Button("Cancel", role: .cancel) {
+                // Alert dismissal is implicit; no additional action required.
+            }
             Button("Delete", role: .destructive) {
                 Task {
                     await viewModel.deleteRepository()
@@ -79,7 +81,9 @@ struct RepositorySettingsView: View {
                 }
             }
         )) {
-            Button("Cancel", role: .cancel) {}
+            Button("Cancel", role: .cancel) {
+                // Alert dismissal is implicit; no additional action required.
+            }
             Button("Remove Access", role: .destructive) {
                 guard let entry = pendingACLDeletion else { return }
                 Task {

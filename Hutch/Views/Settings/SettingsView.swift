@@ -99,7 +99,9 @@ struct SettingsView: View {
                 }
             )
         ) {
-            Button("Cancel", role: .cancel) {}
+            Button("Cancel", role: .cancel) {
+                // Alert dismissal is implicit; no additional action required.
+            }
             Button(pendingDestructiveAction?.confirmationLabel ?? "Confirm", role: .destructive) {
                 guard let action = pendingDestructiveAction else { return }
                 pendingDestructiveAction = nil
@@ -608,7 +610,9 @@ private struct EditProfileSheet: View {
                 }
             }
             .alert("Remove Avatar?", isPresented: $isShowingRemoveAvatarConfirmation) {
-                Button("Cancel", role: .cancel) {}
+                Button("Cancel", role: .cancel) {
+                    // Alert dismissal is implicit; no additional action required.
+                }
                 Button("Remove Avatar", role: .destructive) {
                     Task {
                         await viewModel.removeAvatar()
