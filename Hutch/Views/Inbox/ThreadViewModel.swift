@@ -684,36 +684,12 @@ final class ThreadViewModel {
         query: String,
         variables: [String: any Sendable]
     ) async throws -> T {
-        guard let token = KeychainHelper.loadToken(), !token.isEmpty else {
-            throw SRHTError.unauthorized
-        }
-
-        var request = URLRequest(url: SRHTService.lists.url)
-        request.httpMethod = "POST"
-        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-
-        let encoder = JSONEncoder()
-        request.httpBody = try encoder.encode(
-            GraphQLRequestBody(
-                query: query,
-                variables: variables.mapValues { AnyCodable($0) }
-            )
+        try await client.execute(
+            service: .lists,
+            query: query,
+            variables: variables,
+            responseType: T.self
         )
-
-        let (data, _) = try await URLSession.shared.data(for: request)
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .srhtFlexible
-        let envelope = try decoder.decode(GraphQLResponse<T>.self, from: data)
-        if let errors = envelope.errors, !errors.isEmpty {
-            throw SRHTError.graphQLErrors(errors)
-        }
-        guard let payload = envelope.data else {
-            throw SRHTError.decodingError(
-                DecodingError.dataCorrupted(.init(codingPath: [], debugDescription: "No data in thread detail response"))
-            )
-        }
-        return payload
     }
 
     private static func isRecoverableNoRows(_ error: Error) -> Bool {
