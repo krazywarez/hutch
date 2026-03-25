@@ -7,7 +7,7 @@ struct NeedsAttentionEntry: TimelineEntry {
 }
 
 struct NeedsAttentionTimelineProvider: TimelineProvider {
-    func placeholder(in context: Context) -> NeedsAttentionEntry {
+    func placeholder(in _: Context) -> NeedsAttentionEntry {
         NeedsAttentionEntry(
             date: .now,
             snapshot: NeedsAttentionSnapshot(
@@ -19,7 +19,7 @@ struct NeedsAttentionTimelineProvider: TimelineProvider {
         )
     }
 
-    func getSnapshot(in context: Context, completion: @escaping (NeedsAttentionEntry) -> Void) {
+    func getSnapshot(in _: Context, completion: @escaping (NeedsAttentionEntry) -> Void) {
         completion(
             NeedsAttentionEntry(
                 date: .now,
@@ -28,7 +28,7 @@ struct NeedsAttentionTimelineProvider: TimelineProvider {
         )
     }
 
-    func getTimeline(in context: Context, completion: @escaping (Timeline<NeedsAttentionEntry>) -> Void) {
+    func getTimeline(in _: Context, completion: @escaping (Timeline<NeedsAttentionEntry>) -> Void) {
         let refreshDate = Calendar.current.date(byAdding: .minute, value: 20, to: .now) ?? .now.addingTimeInterval(1200)
         let entry = NeedsAttentionEntry(date: .now, snapshot: NeedsAttentionSnapshotStore.load())
         completion(Timeline(entries: [entry], policy: .after(refreshDate)))
