@@ -276,309 +276,8 @@ func clearWebContentRenderCaches() {
 
 // MARK: - Markdown to HTML
 
-nonisolated func markdownToHTML(_ text: String, imageURLResolver: ((String) -> String?)? = nil) -> String {
-    let normalizedText = text
-        .replacingOccurrences(of: "\r\n", with: "\n")
-        .replacingOccurrences(of: "\r", with: "\n")
-    let lines = normalizedText.split(separator: "\n", omittingEmptySubsequences: false).map(String.init)
-    var html = ""
-    var inCodeBlock = false
-    var codeBlockInListItem = false
-    var codeBlockLines: [String] = []
-    var listType: MarkupListType?
-    var inBlockquote = false
-    var pendingListItemBreak = false
-    var currentListItemLines: [String] = []
-    var currentListItemBlocks: [String] = []
-    var paragraph: [String] = []
-    var tableRows: [[String]] = []
-
-    func flushParagraph() {
-        if !paragraph.isEmpty {
-            let normalizedParagraph = paragraph
-                .map { $0.trimmingCharacters(in: .whitespaces) }
-                .joined(separator: " ")
-            html += "<p>" + normalizedParagraph + "</p>\n"
-            paragraph = []
-        }
-    }
-
-    func flushListItem() {
-        guard !currentListItemLines.isEmpty || !currentListItemBlocks.isEmpty else { return }
-        let itemContent = currentListItemLines
-            .map { $0.trimmingCharacters(in: .whitespaces) }
-            .joined(separator: " ")
-
-        if currentListItemBlocks.isEmpty {
-            html += "<li>" + renderTaskListItem(
-                itemContent,
-                inlineRenderer: { processInline($0, imageURLResolver: imageURLResolver) }
-            ) + "</li>\n"
-        } else {
-            if !itemContent.isEmpty {
-                currentListItemBlocks.append(
-                    "<p>" + renderTaskListItem(
-                        itemContent,
-                        inlineRenderer: { processInline($0, imageURLResolver: imageURLResolver) }
-                    ) + "</p>"
-                )
-            }
-            html += "<li>" + currentListItemBlocks.joined(separator: "\n") + "</li>\n"
-        }
-        currentListItemLines = []
-        currentListItemBlocks = []
-    }
-
-    func flushListItemParagraphIntoBlocks() {
-        guard !currentListItemLines.isEmpty else { return }
-        let itemContent = currentListItemLines
-            .map { $0.trimmingCharacters(in: .whitespaces) }
-            .joined(separator: " ")
-        currentListItemBlocks.append(
-            "<p>" + renderTaskListItem(
-                itemContent,
-                inlineRenderer: { processInline($0, imageURLResolver: imageURLResolver) }
-            ) + "</p>"
-        )
-        currentListItemLines = []
-    }
-
-    func flushCodeBlock() {
-        let content = codeBlockLines.joined(separator: "\n")
-        let blockHTML = "<pre><code>" + content + "</code></pre>\n"
-        if codeBlockInListItem {
-            currentListItemBlocks.append(blockHTML)
-        } else {
-            html += blockHTML
-        }
-        codeBlockLines = []
-        codeBlockInListItem = false
-    }
-
-    func closeList() {
-        flushListItem()
-        switch listType {
-        case .unordered:
-            html += "</ul>\n"
-        case .ordered:
-            html += "</ol>\n"
-        case nil:
-            break
-        }
-        listType = nil
-    }
-
-    func flushTable() {
-        guard !tableRows.isEmpty else { return }
-        html += renderHTMLTable(
-            rows: tableRows,
-            inlineRenderer: { processInline($0, imageURLResolver: imageURLResolver) }
-        )
-        tableRows = []
-    }
-
-    func closeBlockquote() {
-        if inBlockquote {
-            flushParagraph()
-            html += "</blockquote>\n"
-            inBlockquote = false
-        }
-    }
-
-    for line in lines {
-        let trimmed = line.trimmingCharacters(in: .whitespaces)
-
-        if pendingListItemBreak, listType != nil {
-            if trimmed.isEmpty {
-                continue
-            }
-            if isIndentedContinuationLine(line) || trimmed.hasPrefix("```") {
-                pendingListItemBreak = false
-            } else if isMarkdownUnorderedListItem(trimmed) || orderedListItem(in: trimmed) != nil {
-                flushListItem()
-                pendingListItemBreak = false
-            } else {
-                flushListItem()
-                closeList()
-                pendingListItemBreak = false
-            }
-        }
-
-        if let rawHTML = sanitizedMarkdownHTMLLine(from: trimmed) {
-            closeBlockquote()
-            flushParagraph()
-            flushTable()
-            if listType != nil {
-                flushListItemParagraphIntoBlocks()
-                currentListItemBlocks.append(rawHTML)
-            } else {
-                closeList()
-                html += rawHTML + "\n"
-            }
-            continue
-        }
-
-        // Fenced code blocks
-        if trimmed.hasPrefix("```") {
-            if inCodeBlock {
-                flushCodeBlock()
-                inCodeBlock = false
-            } else {
-                closeBlockquote()
-                flushParagraph()
-                flushTable()
-                codeBlockInListItem = listType != nil && (!currentListItemLines.isEmpty || !currentListItemBlocks.isEmpty)
-                if !codeBlockInListItem {
-                    closeList()
-                } else {
-                    flushListItemParagraphIntoBlocks()
-                }
-                inCodeBlock = true
-                codeBlockLines = []
-            }
-            continue
-        }
-
-        if inCodeBlock {
-            codeBlockLines.append(escapeHTML(line))
-            continue
-        }
-
-        if isTableLine(trimmed) {
-            closeBlockquote()
-            flushParagraph()
-            closeList()
-            tableRows.append(parseTableRow(trimmed))
-            continue
-        } else {
-            flushTable()
-        }
-
-        // Headings
-        if line.hasPrefix("###### ") {
-            closeBlockquote()
-            flushParagraph()
-            closeList()
-            html += "<h6>" + processInline(String(line.dropFirst(7)), imageURLResolver: imageURLResolver) + "</h6>\n"
-            continue
-        }
-        if line.hasPrefix("##### ") {
-            closeBlockquote()
-            flushParagraph()
-            closeList()
-            html += "<h5>" + processInline(String(line.dropFirst(6)), imageURLResolver: imageURLResolver) + "</h5>\n"
-            continue
-        }
-        if line.hasPrefix("#### ") {
-            closeBlockquote()
-            flushParagraph()
-            closeList()
-            html += "<h4>" + processInline(String(line.dropFirst(5)), imageURLResolver: imageURLResolver) + "</h4>\n"
-            continue
-        }
-        if line.hasPrefix("### ") {
-            closeBlockquote()
-            flushParagraph()
-            closeList()
-            html += "<h3>" + processInline(String(line.dropFirst(4)), imageURLResolver: imageURLResolver) + "</h3>\n"
-            continue
-        }
-        if line.hasPrefix("## ") {
-            closeBlockquote()
-            flushParagraph()
-            closeList()
-            html += "<h2>" + processInline(String(line.dropFirst(3)), imageURLResolver: imageURLResolver) + "</h2>\n"
-            continue
-        }
-        if line.hasPrefix("# ") {
-            closeBlockquote()
-            flushParagraph()
-            closeList()
-            html += "<h1>" + processInline(String(line.dropFirst(2)), imageURLResolver: imageURLResolver) + "</h1>\n"
-            continue
-        }
-
-        if isMarkdownHorizontalRule(trimmed) {
-            closeBlockquote()
-            flushParagraph()
-            closeList()
-            html += "<hr>\n"
-            continue
-        }
-
-        if trimmed.hasPrefix("> ") {
-            flushTable()
-            closeList()
-            if !inBlockquote {
-                flushParagraph()
-                html += "<blockquote>\n"
-                inBlockquote = true
-            }
-            paragraph.append(processInline(String(trimmed.dropFirst(2)), imageURLResolver: imageURLResolver))
-            continue
-        } else {
-            closeBlockquote()
-        }
-
-        // List items
-        if trimmed.hasPrefix("- ") || trimmed.hasPrefix("* ") {
-            flushParagraph()
-            if listType != .unordered {
-                closeList()
-                html += "<ul>\n"
-                listType = .unordered
-            }
-            flushListItem()
-            currentListItemLines = [String(trimmed.dropFirst(2))]
-            continue
-        }
-        if let orderedItem = orderedListItem(in: trimmed) {
-            flushParagraph()
-            if listType != .ordered {
-                closeList()
-                html += "<ol>\n"
-                listType = .ordered
-            }
-            flushListItem()
-            currentListItemLines = [orderedItem]
-            continue
-        }
-
-        if listType != nil && isIndentedContinuationLine(line) {
-            currentListItemLines.append(trimmed)
-            continue
-        }
-
-        // Blank line
-        if trimmed.isEmpty {
-            if inBlockquote {
-                closeBlockquote()
-            } else if listType != nil, !currentListItemLines.isEmpty || !currentListItemBlocks.isEmpty {
-                pendingListItemBreak = true
-            } else {
-                flushParagraph()
-                closeList()
-            }
-            continue
-        }
-
-        // Regular text — accumulate into paragraph
-        paragraph.append(processInline(line, imageURLResolver: imageURLResolver))
-    }
-
-    // Flush remaining state
-    if inCodeBlock {
-        flushCodeBlock()
-    }
-    closeBlockquote()
-    flushParagraph()
-    flushTable()
-    closeList()
-
-    return html
-}
-
 nonisolated func processInline(_ text: String, imageURLResolver: ((String) -> String?)? = nil) -> String {
+
     var protectedFragments: [String: String] = [:]
     var result = protectMatches(
         in: text,
@@ -1109,7 +808,7 @@ nonisolated func escapeHTML(_ text: String) -> String {
         .replacingOccurrences(of: "\"", with: "&quot;")
 }
 
-nonisolated private func escapeHTMLAttribute(_ text: String) -> String {
+nonisolated func escapeHTMLAttribute(_ text: String) -> String {
     escapeHTML(text).replacingOccurrences(of: "'", with: "&#39;")
 }
 
@@ -1212,21 +911,16 @@ nonisolated private func renderHTMLTable(
     return html
 }
 
-private enum MarkupListType: Equatable {
+private enum OrgListType: Equatable {
     case unordered
     case ordered
 }
-
-private typealias OrgListType = MarkupListType
 
 nonisolated private func orderedListItem(in line: String) -> String? {
     guard let match = line.firstMatch(of: /^(\d+)\.\s+(.+)$/) else { return nil }
     return String(match.2)
 }
 
-nonisolated private func isMarkdownHorizontalRule(_ line: String) -> Bool {
-    matchesRegex(line, pattern: #"^\s*([*\-_])(?:\s*\1){2,}\s*$"#)
-}
 
 nonisolated private func isOrgHorizontalRule(_ line: String) -> Bool {
     matchesRegex(line, pattern: #"^\s*-{5,}\s*$"#)
@@ -1252,11 +946,8 @@ nonisolated private func isIndentedContinuationLine(_ line: String) -> Bool {
     return first == " " || first == "\t"
 }
 
-nonisolated private func isMarkdownUnorderedListItem(_ line: String) -> Bool {
-    line.hasPrefix("- ") || line.hasPrefix("* ")
-}
 
-nonisolated private func decodeHTMLEntities(_ text: String) -> String {
+nonisolated func decodeHTMLEntities(_ text: String) -> String {
     text
         .replacingOccurrences(of: "&amp;", with: "&")
         .replacingOccurrences(of: "&quot;", with: "\"")
@@ -1265,12 +956,34 @@ nonisolated private func decodeHTMLEntities(_ text: String) -> String {
         .replacingOccurrences(of: "&gt;", with: ">")
 }
 
-nonisolated private func sanitizedMarkdownHTMLLine(from line: String) -> String? {
-    guard line.hasPrefix("<"), line.hasSuffix(">") else { return nil }
-    return sanitizedMarkdownHTMLTag(line)
+nonisolated func sanitizedMarkdownHTMLBlock(_ rawHTML: String) -> String? {
+    var protectedFragments: [String: String] = [:]
+    var foundUnsafeMarkup = false
+    let protected = protectMatches(
+        in: rawHTML,
+        pattern: #"(?s)<!--.*?-->|</?[A-Za-z][^>]*?>"#,
+        protectedFragments: &protectedFragments
+    ) { match, nsText in
+        let rawTag = nsText.substring(with: match.range)
+        guard let sanitizedTag = sanitizedMarkdownHTMLTag(rawTag) else {
+            foundUnsafeMarkup = true
+            return ""
+        }
+        return sanitizedTag
+    }
+
+    guard !foundUnsafeMarkup else { return nil }
+
+    var sanitized = escapeHTML(protected)
+    sanitized = replaceMatches(in: sanitized, pattern: #"ZZPROTECTED\d+ZZ"#) { match, nsText in
+        let token = nsText.substring(with: match.range)
+        return protectedFragments[token] ?? ""
+    }
+
+    return sanitized.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : sanitized
 }
 
-nonisolated private func sanitizedMarkdownHTMLTag(_ rawTag: String) -> String? {
+nonisolated func sanitizedMarkdownHTMLTag(_ rawTag: String) -> String? {
     let trimmed = rawTag.trimmingCharacters(in: .whitespacesAndNewlines)
     guard trimmed.hasPrefix("<"), trimmed.hasSuffix(">") else { return nil }
     guard !trimmed.lowercased().hasPrefix("<!--") else { return nil }
@@ -1597,8 +1310,9 @@ private struct HTMLWebViewRepresentable: UIViewRepresentable {
             pre {
                 padding: 8px;
                 overflow-x: auto;
-                white-space: pre-wrap;
-                word-wrap: break-word;
+                white-space: pre;
+                word-break: normal;
+                overflow-wrap: normal;
             }
             img { max-width: 100%; height: auto; }
             input[type="checkbox"] {
@@ -1706,10 +1420,6 @@ private final class HTMLWebViewCoordinator: NSObject, WKNavigationDelegate, @unc
             self.parent.loadError = nil
         }
         updateHeight(for: webView)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self, weak webView] in
-            guard let self, let webView else { return }
-            self.updateHeight(for: webView)
-        }
     }
 
     func webView(_: WKWebView, didFail _: WKNavigation!, withError error: Error) {
@@ -1754,15 +1464,19 @@ private final class HTMLWebViewCoordinator: NSObject, WKNavigationDelegate, @unc
     }
 
     private func updateHeight(for webView: WKWebView) {
-        webView.layoutIfNeeded()
-        let height = ceil(max(webView.scrollView.contentSize.height, webView.sizeThatFits(.zero).height)) + 4
-        guard height > 0 else { return }
-        DispatchQueue.main.async {
-            if let html = self.lastHTML {
-                Self.heightCache.setObject(NSNumber(value: Double(height)), forKey: html as NSString)
-            }
-            if abs(self.parent.dynamicHeight - height) > 0.5 {
-                self.parent.dynamicHeight = height
+        webView.evaluateJavaScript("document.body.scrollHeight") { [weak self] result, _ in
+            guard let self else { return }
+            guard let heightValue = result as? NSNumber else { return }
+            let height = CGFloat(heightValue.doubleValue)
+            guard height > 0 else { return }
+            let rounded = ceil(height) + 4
+            DispatchQueue.main.async {
+                if let html = self.lastHTML {
+                    Self.heightCache.setObject(NSNumber(value: Double(rounded)), forKey: html as NSString)
+                }
+                if abs(self.parent.dynamicHeight - rounded) > 0.5 {
+                    self.parent.dynamicHeight = rounded
+                }
             }
         }
     }
