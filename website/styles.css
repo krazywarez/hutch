@@ -312,3 +312,9 @@ code {
 
   text-align: center;
 }
+
+.info-banner-live {
+  background: #edf7ee;
+  border-color: #cfe8d3;
+  color: #1d5c2f;
+}
