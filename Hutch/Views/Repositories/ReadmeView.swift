@@ -1001,7 +1001,7 @@ nonisolated private func renderHTMLTable(
     if hasHeaderSeparator {
         html += "<thead><tr>"
         for (index, cell) in headerRow.enumerated() {
-            html += "<th" + tableAlignmentStyleAttribute(columnAlignments[safe: index] ?? nil) + ">" + inlineRenderer(cell) + "</th>"
+            html += "<th" + tableAlignmentStyleAttribute(columnAlignment(at: index, in: columnAlignments)) + ">" + inlineRenderer(cell) + "</th>"
         }
         html += "</tr></thead>\n"
     }
@@ -1010,13 +1010,18 @@ nonisolated private func renderHTMLTable(
     for row in bodyRows {
         html += "<tr>"
         for (index, cell) in row.enumerated() {
-            html += "<td" + tableAlignmentStyleAttribute(columnAlignments[safe: index] ?? nil) + ">" + inlineRenderer(cell) + "</td>"
+            html += "<td" + tableAlignmentStyleAttribute(columnAlignment(at: index, in: columnAlignments)) + ">" + inlineRenderer(cell) + "</td>"
         }
         html += "</tr>\n"
     }
     html += "</tbody>\n"
     html += "</table>\n"
     return html
+}
+
+nonisolated private func columnAlignment(at index: Int, in alignments: [String?]) -> String? {
+    guard alignments.indices.contains(index) else { return nil }
+    return alignments[index]
 }
 
 nonisolated private func tableAlignmentStyleAttribute(_ alignment: String?) -> String {
