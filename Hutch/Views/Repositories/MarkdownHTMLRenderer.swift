@@ -10,7 +10,9 @@ private struct MarkdownHTMLRenderer: MarkupVisitor {
     typealias Result = String
 
     nonisolated(unsafe) let imageURLResolver: ((String) -> String?)?
-    private var isRenderingTableHead = false
+    nonisolated(unsafe) private var isRenderingTableHead = false
+    nonisolated(unsafe) private var currentTableAlignments: [Markdown.Table.ColumnAlignment?] = []
+    nonisolated(unsafe) private var currentTableColumnIndex = 0
 
     nonisolated init(imageURLResolver: ((String) -> String?)?) {
         self.imageURLResolver = imageURLResolver
@@ -140,7 +142,14 @@ private struct MarkdownHTMLRenderer: MarkupVisitor {
     }
 
     nonisolated mutating func visitTable(_ table: Markdown.Table) -> String {
-        "<table>\n\(visitChildren(of: table))</table>\n"
+        let previousAlignments = currentTableAlignments
+        let previousColumnIndex = currentTableColumnIndex
+        currentTableAlignments = table.columnAlignments
+        currentTableColumnIndex = 0
+        let content = visitChildren(of: table)
+        currentTableAlignments = previousAlignments
+        currentTableColumnIndex = previousColumnIndex
+        return "<table>\n\(content)</table>\n"
     }
 
     nonisolated mutating func visitTableHead(_ tableHead: Markdown.Table.Head) -> String {
@@ -160,12 +169,18 @@ private struct MarkdownHTMLRenderer: MarkupVisitor {
     }
 
     nonisolated mutating func visitTableRow(_ tableRow: Markdown.Table.Row) -> String {
-        "<tr>\(visitChildren(of: tableRow))</tr>\n"
+        let previousColumnIndex = currentTableColumnIndex
+        currentTableColumnIndex = 0
+        let content = visitChildren(of: tableRow)
+        currentTableColumnIndex = previousColumnIndex
+        return "<tr>\(content)</tr>\n"
     }
 
     nonisolated mutating func visitTableCell(_ tableCell: Markdown.Table.Cell) -> String {
         let tagName = isRenderingTableHead ? "th" : "td"
-        return "<\(tagName)>\(visitChildren(of: tableCell))</\(tagName)>"
+        let styleAttribute = alignmentStyleAttribute(forColumn: currentTableColumnIndex)
+        currentTableColumnIndex += 1
+        return "<\(tagName)\(styleAttribute)>\(visitChildren(of: tableCell))</\(tagName)>"
     }
 
     nonisolated private mutating func visitChildren(of markup: Markup) -> String {
@@ -193,6 +208,25 @@ private struct MarkdownHTMLRenderer: MarkupVisitor {
             }
             return text
         }
+    }
+
+    nonisolated private func alignmentStyleAttribute(forColumn column: Int) -> String {
+        guard column < currentTableAlignments.count,
+              let alignment = currentTableAlignments[column] else {
+            return ""
+        }
+
+        let textAlignment: String
+        switch alignment {
+        case .left:
+            textAlignment = "left"
+        case .center:
+            textAlignment = "center"
+        case .right:
+            textAlignment = "right"
+        }
+
+        return " style=\"text-align: \(textAlignment);\""
     }
 
     nonisolated private func checkboxHTML(for checkbox: Checkbox) -> String {

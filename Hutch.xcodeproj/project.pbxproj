@@ -11,7 +11,6 @@
 		8B2F89672F69DEB900FC0253 /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = 8B2F89642F69DEB900FC0253 /* README.md */; };
 		8B2F89682F69DEB900FC0253 /* SECURITY.md in Resources */ = {isa = PBXBuildFile; fileRef = 8B2F89652F69DEB900FC0253 /* SECURITY.md */; };
 		8BE082012F80000100000001 /* HutchWidgetExtension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = 8BE081F62F80000100000001 /* HutchWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
-		8BE09E792F7B20CB00F88693 /* TEST_README.md in Resources */ = {isa = PBXBuildFile; fileRef = 8BE09E782F7B20CB00F88693 /* TEST_README.md */; };
 		8BF100032F9A000100000001 /* Markdown in Frameworks */ = {isa = PBXBuildFile; productRef = 8BF100022F9A000100000001 /* Markdown */; };
 /* End PBXBuildFile section */
 
@@ -55,7 +54,6 @@
 		8B8182C22F6B742B000AE049 /* HutchTests */ = {isa = PBXFileReference; lastKnownFileType = folder; path = HutchTests; sourceTree = "<group>"; };
 		8BDCA5272F6B76B20066AA29 /* HutchTests.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = HutchTests.xctestplan; sourceTree = "<group>"; };
 		8BE081F62F80000100000001 /* HutchWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = HutchWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
-		8BE09E782F7B20CB00F88693 /* TEST_README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = TEST_README.md; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -143,7 +141,6 @@
 				8BE081F52F80000100000001 /* HutchWidgetExtension */,
 				8B8182B82F6B73F3000AE049 /* HutchTests */,
 				8B4B28D22F6704280045FA19 /* Products */,
-				8BE09E782F7B20CB00F88693 /* TEST_README.md */,
 			);
 			sourceTree = "<group>";
 		};
@@ -281,7 +278,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				8B2F89662F69DEB900FC0253 /* LICENSE in Resources */,
-				8BE09E792F7B20CB00F88693 /* TEST_README.md in Resources */,
 				8B2F89672F69DEB900FC0253 /* README.md in Resources */,
 				8B2F89682F69DEB900FC0253 /* SECURITY.md in Resources */,
 			);
@@ -486,7 +482,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 2.4.2;
+				MARKETING_VERSION = 2.5.0;
 				PRODUCT_BUNDLE_IDENTIFIER = net.cleberg.Hutch;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -523,7 +519,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 2.4.2;
+				MARKETING_VERSION = 2.5.0;
 				PRODUCT_BUNDLE_IDENTIFIER = net.cleberg.Hutch;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;

@@ -55,6 +55,16 @@ struct MarkdownRenderingTests {
     }
 
     @Test
+    func markdownTableAlignment() {
+        let input = "| Left | Center | Right |\n|:-----|:------:|------:|\n| a | b | c |"
+        let html = markdownToHTML(input)
+
+        #expect(html.contains("text-align: left;"))
+        #expect(html.contains("text-align: center;"))
+        #expect(html.contains("text-align: right;"))
+    }
+
+    @Test
     func markdownStrikethrough() {
         let html = markdownToHTML("~~deleted~~")
 
