@@ -371,20 +371,18 @@ nonisolated func orgToHTML(_ text: String, imageURLResolver: ((String) -> String
     var date: String?
     let lines = rawLines.filter { line in
         let trimmed = line.trimmingCharacters(in: .whitespaces)
-        guard let keywordMatch = trimmed.firstMatch(of: /^#\+([A-Za-z]+):\s*(.*)$/) else {
+        guard let directive = orgKeywordDirective(in: trimmed) else {
             return true
         }
-        let keyword = String(keywordMatch.1).lowercased()
-        let value = String(keywordMatch.2).trimmingCharacters(in: .whitespaces)
-        switch keyword {
+        switch directive.keyword {
         case "title":
-            title = value
+            title = directive.value
             return false
         case "author":
-            author = value
+            author = directive.value
             return false
         case "date":
-            date = value
+            date = directive.value
             return false
         default:
             return true
@@ -397,10 +395,36 @@ nonisolated func orgToHTML(_ text: String, imageURLResolver: ((String) -> String
     var srcLanguage: String?
     var inExampleBlock = false
     var inCenterBlock = false
+    var inVerseBlock = false
     var currentListItemLines: [String] = []
     var paragraph: [String] = []
     var tableRows: [[String]] = []
     var propertyRows: [(String, String)] = []
+    var verseLines: [String] = []
+    var pendingBlockName: String?
+    var pendingBlockCaption: String?
+    var activeBlockCaption: String?
+    var isWrappingBlockFigure = false
+
+    func beginPendingBlockWrapperIfNeeded() {
+        guard pendingBlockName != nil || pendingBlockCaption != nil else { return }
+        let idAttribute = pendingBlockName.map { #" id="\#(escapeHTMLAttribute($0))""# } ?? ""
+        html += #"<figure class="org-block"\#(idAttribute)>"# + "\n"
+        activeBlockCaption = pendingBlockCaption
+        isWrappingBlockFigure = true
+        pendingBlockName = nil
+        pendingBlockCaption = nil
+    }
+
+    func closePendingBlockWrapper() {
+        guard isWrappingBlockFigure else { return }
+        if let activeBlockCaption {
+            html += "<figcaption>" + processOrgInline(activeBlockCaption, imageURLResolver: imageURLResolver) + "</figcaption>\n"
+        }
+        html += "</figure>\n"
+        activeBlockCaption = nil
+        isWrappingBlockFigure = false
+    }
 
     func flushParagraph() {
         if !paragraph.isEmpty {
@@ -414,12 +438,9 @@ nonisolated func orgToHTML(_ text: String, imageURLResolver: ((String) -> String
 
     func flushListItem() {
         guard !currentListItemLines.isEmpty else { return }
-        let content = currentListItemLines
-            .map { $0.trimmingCharacters(in: .whitespaces) }
-            .joined(separator: " ")
-        html += "<li>" + renderTaskListItem(
-            content,
-            inlineRenderer: { processOrgInline($0, imageURLResolver: imageURLResolver) }
+        html += "<li>" + renderOrgListItemBody(
+            currentListItemLines,
+            imageURLResolver: imageURLResolver
         ) + "</li>\n"
         currentListItemLines = []
     }
@@ -439,10 +460,12 @@ nonisolated func orgToHTML(_ text: String, imageURLResolver: ((String) -> String
 
     func flushTable() {
         guard !tableRows.isEmpty else { return }
+        beginPendingBlockWrapperIfNeeded()
         html += renderHTMLTable(
             rows: tableRows,
             inlineRenderer: { processOrgInline($0, imageURLResolver: imageURLResolver) }
         )
+        closePendingBlockWrapper()
         tableRows = []
     }
 
@@ -469,6 +492,7 @@ nonisolated func orgToHTML(_ text: String, imageURLResolver: ((String) -> String
         if srcLanguage != nil {
             html += "</code></pre>\n"
             srcLanguage = nil
+            closePendingBlockWrapper()
         }
     }
 
@@ -476,6 +500,7 @@ nonisolated func orgToHTML(_ text: String, imageURLResolver: ((String) -> String
         if inExampleBlock {
             html += "</code></pre>\n"
             inExampleBlock = false
+            closePendingBlockWrapper()
         }
     }
 
@@ -484,6 +509,21 @@ nonisolated func orgToHTML(_ text: String, imageURLResolver: ((String) -> String
             flushParagraph()
             html += "</div>\n"
             inCenterBlock = false
+            closePendingBlockWrapper()
+        }
+    }
+
+    func closeVerseBlock() {
+        if inVerseBlock {
+            let content = verseLines
+                .map { processOrgInline($0, imageURLResolver: imageURLResolver) }
+                .joined(separator: "\n")
+            html += #"<blockquote class="org-verse">"# + "\n"
+            html += content + "\n"
+            html += "</blockquote>\n"
+            verseLines = []
+            inVerseBlock = false
+            closePendingBlockWrapper()
         }
     }
 
@@ -529,6 +569,15 @@ nonisolated func orgToHTML(_ text: String, imageURLResolver: ((String) -> String
             continue
         }
 
+        if inVerseBlock {
+            if trimmed.lowercased() == "#+end_verse" {
+                closeVerseBlock()
+            } else {
+                verseLines.append(line)
+            }
+            continue
+        }
+
         if inQuoteBlock, trimmed.lowercased() == "#+end_quote" {
             closeQuoteBlock()
             continue
@@ -549,9 +598,25 @@ nonisolated func orgToHTML(_ text: String, imageURLResolver: ((String) -> String
             continue
         }
 
+        if let directive = orgKeywordDirective(in: trimmed) {
+            switch directive.keyword {
+            case "caption":
+                pendingBlockCaption = directive.value
+                continue
+            case "name":
+                pendingBlockName = directive.value
+                continue
+            case "options", "property":
+                continue
+            default:
+                break
+            }
+        }
+
         if trimmed.lowercased().hasPrefix("#+begin_src") {
             closeQuoteBlock()
             flushBlockState()
+            beginPendingBlockWrapperIfNeeded()
             let language = trimmed
                 .split(separator: " ", maxSplits: 1, omittingEmptySubsequences: true)
                 .dropFirst()
@@ -567,6 +632,7 @@ nonisolated func orgToHTML(_ text: String, imageURLResolver: ((String) -> String
         if trimmed.lowercased() == "#+begin_example" {
             closeQuoteBlock()
             flushBlockState()
+            beginPendingBlockWrapperIfNeeded()
             html += "<pre><code>"
             inExampleBlock = true
             continue
@@ -574,6 +640,7 @@ nonisolated func orgToHTML(_ text: String, imageURLResolver: ((String) -> String
 
         if trimmed.lowercased() == "#+begin_quote" {
             flushBlockState()
+            beginPendingBlockWrapperIfNeeded()
             html += "<blockquote>\n"
             inQuoteBlock = true
             continue
@@ -582,8 +649,18 @@ nonisolated func orgToHTML(_ text: String, imageURLResolver: ((String) -> String
         if trimmed.lowercased() == "#+begin_center" {
             closeQuoteBlock()
             flushBlockState()
+            beginPendingBlockWrapperIfNeeded()
             html += "<div style=\"text-align:center\">\n"
             inCenterBlock = true
+            continue
+        }
+
+        if trimmed.lowercased() == "#+begin_verse" {
+            closeQuoteBlock()
+            flushBlockState()
+            beginPendingBlockWrapperIfNeeded()
+            verseLines = []
+            inVerseBlock = true
             continue
         }
 
@@ -640,8 +717,13 @@ nonisolated func orgToHTML(_ text: String, imageURLResolver: ((String) -> String
             continue
         }
 
+        if listType != nil && isIndentedContinuationLine(line) {
+            currentListItemLines.append(line)
+            continue
+        }
+
         // List items: - item
-        if trimmed.hasPrefix("- ") {
+        if !isIndentedContinuationLine(line), trimmed.hasPrefix("- ") {
             flushParagraph()
             flushPropertyDrawer()
             if listType != .unordered {
@@ -654,7 +736,7 @@ nonisolated func orgToHTML(_ text: String, imageURLResolver: ((String) -> String
             continue
         }
 
-        if let orderedItem = orderedListItem(in: trimmed) {
+        if !isIndentedContinuationLine(line), let orderedItem = orderedListItem(in: trimmed) {
             flushParagraph()
             flushPropertyDrawer()
             if listType != .ordered {
@@ -664,11 +746,6 @@ nonisolated func orgToHTML(_ text: String, imageURLResolver: ((String) -> String
             }
             flushListItem()
             currentListItemLines = [orderedItem]
-            continue
-        }
-
-        if listType != nil && isIndentedContinuationLine(line) {
-            currentListItemLines.append(trimmed)
             continue
         }
 
@@ -683,12 +760,17 @@ nonisolated func orgToHTML(_ text: String, imageURLResolver: ((String) -> String
         }
 
         // Regular text
+        if pendingBlockName != nil || pendingBlockCaption != nil {
+            pendingBlockName = nil
+            pendingBlockCaption = nil
+        }
         paragraph.append(line)
     }
 
     closeSourceBlock()
     closeExampleBlock()
     closeCenterBlock()
+    closeVerseBlock()
     closeQuoteBlock()
     flushBlockState()
 
@@ -701,41 +783,25 @@ nonisolated private func processOrgInline(_ text: String, imageURLResolver: ((St
 
     result = protectMatches(
         in: result,
-        pattern: #"\[\[([^\]]+)\]\[([^\]]+)\]\]"#,
+        pattern: #"\[\[([^\]]+)\]\[\[([^\]]+)\]\]\]"#,
         protectedFragments: &protectedFragments
     ) { match, nsText in
-        let url = nsText.substring(with: match.range(at: 1))
-        let label = nsText.substring(with: match.range(at: 2))
-        if let imageHTML = makeOrgImageHTML(
-            source: url,
-            alt: label,
-            imageURLResolver: imageURLResolver
-        ) {
-            return imageHTML
-        }
-        guard let sanitizedURL = sanitizedReadmeLinkURLString(url) else {
-            return label
-        }
-        return #"<a href="\#(sanitizedURL)">\#(label)</a>"#
-    }
-    result = protectMatches(
-        in: result,
-        pattern: #"\[\[([^\]]+)\]\]"#,
-        protectedFragments: &protectedFragments
-    ) { match, nsText in
-        let url = nsText.substring(with: match.range(at: 1))
-        if let imageHTML = makeOrgImageHTML(
-            source: url,
+        let destination = nsText.substring(with: match.range(at: 1))
+        let source = nsText.substring(with: match.range(at: 2))
+        guard let imageHTML = makeOrgImageHTML(
+            source: source,
             alt: nil,
             imageURLResolver: imageURLResolver
-        ) {
+        ) else {
+            return source
+        }
+        guard let sanitizedURL = sanitizedReadmeLinkURLString(destination) else {
             return imageHTML
         }
-        guard let sanitizedURL = sanitizedReadmeLinkURLString(url) else {
-            return url
-        }
-        return #"<a href="\#(sanitizedURL)">\#(url)</a>"#
+        return #"<a href="\#(sanitizedURL)">\#(imageHTML)</a>"#
     }
+
+    result = protectOrgLinks(in: result, protectedFragments: &protectedFragments, imageURLResolver: imageURLResolver)
     result = protectMatches(
         in: result,
         pattern: #"(?<!\S)~(.+?)~(?=\s|$|[.,;:!?])|(?<!\S)=(.+?)=(?=\s|$|[.,;:!?])"#,
@@ -875,9 +941,44 @@ nonisolated private func parseTableRow(_ line: String) -> [String] {
         .map { String($0).trimmingCharacters(in: .whitespaces) }
 }
 
+nonisolated private func parseOrgTableSeparatorRow(_ line: String) -> [String] {
+    var content = line.trimmingCharacters(in: .whitespaces)
+    if content.hasPrefix("|") {
+        content.removeFirst()
+    }
+    if content.hasSuffix("|") {
+        content.removeLast()
+    }
+    return content
+        .split(separator: "+", omittingEmptySubsequences: false)
+        .map { String($0).trimmingCharacters(in: .whitespaces) }
+}
+
 nonisolated private func isTableSeparatorCell(_ cell: String) -> Bool {
+    tableAlignment(for: cell) != nil
+}
+
+nonisolated private func tableAlignment(for cell: String) -> String? {
     let trimmed = cell.trimmingCharacters(in: .whitespaces)
-    return !trimmed.isEmpty && trimmed.allSatisfy { $0 == "-" || $0 == "+" }
+    guard !trimmed.isEmpty else { return nil }
+
+    let core = trimmed.replacingOccurrences(of: ":", with: "")
+    guard !core.isEmpty, core.allSatisfy({ $0 == "-" || $0 == "+" }) else {
+        return nil
+    }
+
+    let isLeftAligned = trimmed.hasPrefix(":")
+    let isRightAligned = trimmed.hasSuffix(":")
+    switch (isLeftAligned, isRightAligned) {
+    case (true, true):
+        return "center"
+    case (true, false):
+        return "left"
+    case (false, true):
+        return "right"
+    case (false, false):
+        return ""
+    }
 }
 
 nonisolated private func renderHTMLTable(
@@ -885,15 +986,22 @@ nonisolated private func renderHTMLTable(
     inlineRenderer: (String) -> String
 ) -> String {
     guard !rows.isEmpty else { return "" }
-    let hasHeaderSeparator = rows.count > 1 && rows[1].allSatisfy(isTableSeparatorCell)
+    let separatorCells: [String]
+    if rows.count > 1, rows[1].count == 1 {
+        separatorCells = parseOrgTableSeparatorRow(rows[1][0])
+    } else {
+        separatorCells = rows.count > 1 ? rows[1] : []
+    }
+    let hasHeaderSeparator = rows.count > 1 && !separatorCells.isEmpty && separatorCells.allSatisfy(isTableSeparatorCell)
     let headerRow = rows.first ?? []
     let bodyRows = hasHeaderSeparator ? Array(rows.dropFirst(2)) : rows
+    let columnAlignments = hasHeaderSeparator ? separatorCells.map(tableAlignment) : []
     var html = "<table>\n"
 
     if hasHeaderSeparator {
         html += "<thead><tr>"
-        for cell in headerRow {
-            html += "<th>" + inlineRenderer(cell) + "</th>"
+        for (index, cell) in headerRow.enumerated() {
+            html += "<th" + tableAlignmentStyleAttribute(columnAlignments[safe: index] ?? nil) + ">" + inlineRenderer(cell) + "</th>"
         }
         html += "</tr></thead>\n"
     }
@@ -901,14 +1009,19 @@ nonisolated private func renderHTMLTable(
     html += "<tbody>\n"
     for row in bodyRows {
         html += "<tr>"
-        for cell in row {
-            html += "<td>" + inlineRenderer(cell) + "</td>"
+        for (index, cell) in row.enumerated() {
+            html += "<td" + tableAlignmentStyleAttribute(columnAlignments[safe: index] ?? nil) + ">" + inlineRenderer(cell) + "</td>"
         }
         html += "</tr>\n"
     }
     html += "</tbody>\n"
     html += "</table>\n"
     return html
+}
+
+nonisolated private func tableAlignmentStyleAttribute(_ alignment: String?) -> String {
+    guard let alignment, !alignment.isEmpty else { return "" }
+    return #" style="text-align: \#(alignment);""#
 }
 
 private enum OrgListType: Equatable {
@@ -919,6 +1032,200 @@ private enum OrgListType: Equatable {
 nonisolated private func orderedListItem(in line: String) -> String? {
     guard let match = line.firstMatch(of: /^(\d+)\.\s+(.+)$/) else { return nil }
     return String(match.2)
+}
+
+nonisolated private func renderOrgListItemBody(
+    _ lines: [String],
+    imageURLResolver: ((String) -> String?)? = nil
+) -> String {
+    guard let firstLine = lines.first else { return "" }
+
+    var contentLines: [String] = [firstLine.trimmingCharacters(in: .whitespaces)]
+    var nestedLines: [String] = []
+
+    for line in lines.dropFirst() {
+        let trimmed = line.trimmingCharacters(in: .whitespaces)
+        if trimmed.isEmpty {
+            continue
+        }
+
+        if isIndentedListItemLine(line) {
+            nestedLines.append(outdentOrgListLine(line))
+        } else {
+            contentLines.append(trimmed)
+        }
+    }
+
+    var html = renderTaskListItem(
+        contentLines.joined(separator: " "),
+        inlineRenderer: { processOrgInline($0, imageURLResolver: imageURLResolver) }
+    )
+    if !nestedLines.isEmpty {
+        html += "\n" + renderNestedOrgListHTML(nestedLines, imageURLResolver: imageURLResolver)
+    }
+    return html
+}
+
+nonisolated private func renderNestedOrgListHTML(
+    _ lines: [String],
+    imageURLResolver: ((String) -> String?)? = nil
+) -> String {
+    var html = ""
+    var listType: OrgListType?
+    var currentItemLines: [String] = []
+
+    func flushNestedItem() {
+        guard !currentItemLines.isEmpty else { return }
+        html += "<li>" + renderOrgListItemBody(currentItemLines, imageURLResolver: imageURLResolver) + "</li>\n"
+        currentItemLines = []
+    }
+
+    func closeNestedList() {
+        flushNestedItem()
+        switch listType {
+        case .unordered:
+            html += "</ul>\n"
+        case .ordered:
+            html += "</ol>\n"
+        case nil:
+            break
+        }
+        listType = nil
+    }
+
+    for line in lines {
+        let trimmed = line.trimmingCharacters(in: .whitespaces)
+        if trimmed.hasPrefix("- ") {
+            if listType != .unordered {
+                closeNestedList()
+                html += "<ul>\n"
+                listType = .unordered
+            }
+            flushNestedItem()
+            currentItemLines = [String(trimmed.dropFirst(2))]
+            continue
+        }
+
+        if let orderedItem = orderedListItem(in: trimmed) {
+            if listType != .ordered {
+                closeNestedList()
+                html += "<ol>\n"
+                listType = .ordered
+            }
+            flushNestedItem()
+            currentItemLines = [orderedItem]
+            continue
+        }
+
+        if listType != nil {
+            currentItemLines.append(line)
+        }
+    }
+
+    closeNestedList()
+    return html
+}
+
+nonisolated private func protectOrgLinks(
+    in text: String,
+    protectedFragments: inout [String: String],
+    imageURLResolver: ((String) -> String?)? = nil
+) -> String {
+    var result = text
+
+    while let range = result.range(of: "[[") {
+        guard let parsed = parseOrgLink(in: result, from: range.lowerBound) else {
+            break
+        }
+        let token = "ZZPROTECTED\(protectedFragments.count)ZZ"
+        protectedFragments[token] = renderOrgLink(
+            destination: parsed.destination,
+            label: parsed.label,
+            imageURLResolver: imageURLResolver
+        )
+        result.replaceSubrange(parsed.range, with: token)
+    }
+
+    return result
+}
+
+nonisolated private func parseOrgLink(
+    in text: String,
+    from start: String.Index
+) -> (range: Range<String.Index>, destination: String, label: String?)? {
+    guard text[start...].hasPrefix("[[") else { return nil }
+
+    var index = text.index(start, offsetBy: 2)
+    guard let destinationEnd = text[index...].range(of: "][" )?.lowerBound else {
+        guard let end = text[index...].range(of: "]]")?.lowerBound else { return nil }
+        return (start..<text.index(end, offsetBy: 2), String(text[index..<end]), nil)
+    }
+
+    let destination = String(text[index..<destinationEnd])
+    index = text.index(destinationEnd, offsetBy: 2)
+    let labelStart = index
+    var depth = 0
+
+    while index < text.endIndex {
+        if text[index...].hasPrefix("[[") {
+            depth += 1
+            index = text.index(index, offsetBy: 2)
+            continue
+        }
+        if text[index...].hasPrefix("]]") {
+            if depth == 0 {
+                let end = text.index(index, offsetBy: 2)
+                return (start..<end, destination, String(text[labelStart..<index]))
+            }
+            depth -= 1
+            index = text.index(index, offsetBy: 2)
+            continue
+        }
+        index = text.index(after: index)
+    }
+
+    return nil
+}
+
+nonisolated private func renderOrgLink(
+    destination: String,
+    label: String?,
+    imageURLResolver: ((String) -> String?)? = nil
+) -> String {
+    if let label, label.hasPrefix("[["), label.hasSuffix("]]") {
+        let source = String(label.dropFirst(2).dropLast(2))
+        if let imageHTML = makeOrgImageHTML(source: source, alt: nil, imageURLResolver: imageURLResolver) {
+            guard let sanitizedURL = sanitizedReadmeLinkURLString(destination) else {
+                return imageHTML
+            }
+            return #"<a href="\#(sanitizedURL)">\#(imageHTML)</a>"#
+        }
+    }
+
+    if let imageHTML = makeOrgImageHTML(
+        source: destination,
+        alt: label,
+        imageURLResolver: imageURLResolver
+    ) {
+        return imageHTML
+    }
+
+    guard let sanitizedURL = sanitizedReadmeLinkURLString(destination) else {
+        return label ?? destination
+    }
+
+    let renderedLabel = label.map { processOrgInline($0, imageURLResolver: imageURLResolver) } ?? destination
+    return #"<a href="\#(sanitizedURL)">\#(renderedLabel)</a>"#
+}
+
+nonisolated private func orgKeywordDirective(in line: String) -> (keyword: String, value: String)? {
+    guard let match = line.firstMatch(of: /^#\+([A-Za-z][A-Za-z0-9_-]*):\s*(.*)$/) else {
+        return nil
+    }
+    return (
+        keyword: String(match.1).lowercased(),
+        value: String(match.2).trimmingCharacters(in: .whitespaces)
+    )
 }
 
 
@@ -944,6 +1251,27 @@ nonisolated private func isIndentedContinuationLine(_ line: String) -> Bool {
     guard !line.trimmingCharacters(in: .whitespaces).isEmpty else { return false }
     guard let first = line.first else { return false }
     return first == " " || first == "\t"
+}
+
+nonisolated private func isIndentedListItemLine(_ line: String) -> Bool {
+    guard isIndentedContinuationLine(line) else { return false }
+    let trimmed = line.trimmingCharacters(in: .whitespaces)
+    return trimmed.hasPrefix("- ") || orderedListItem(in: trimmed) != nil
+}
+
+nonisolated private func outdentOrgListLine(_ line: String) -> String {
+    var result = line
+    while result.first == " " || result.first == "\t" {
+        result.removeFirst()
+    }
+    return result
+}
+
+private extension Array {
+    subscript(safe index: Int) -> Element? {
+        guard indices.contains(index) else { return nil }
+        return self[index]
+    }
 }
 
 
@@ -1334,6 +1662,9 @@ private struct HTMLWebViewRepresentable: UIViewRepresentable {
                 color: inherit;
                 opacity: 0.85;
             }
+            .org-verse {
+                white-space: pre-wrap;
+            }
             hr {
                 border: none;
                 border-top: 1px solid rgba(128, 128, 128, 0.35);
@@ -1367,6 +1698,14 @@ private struct HTMLWebViewRepresentable: UIViewRepresentable {
             }
             dd { margin: 0; }
             .org-metadata { margin-bottom: 1em; }
+            figure.org-block {
+                margin: 0.75em 0;
+            }
+            figure.org-block figcaption {
+                margin-top: 0.4em;
+                color: rgba(128, 128, 128, 0.85);
+                font-size: 0.9em;
+            }
             .org-title { margin: 0 0 0.25em; }
             .org-author, .org-date {
                 margin: 0;

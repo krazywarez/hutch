@@ -231,6 +231,108 @@ struct OrgRenderingTests {
 
         #expect(html.contains("<li>First line continues here</li>"))
     }
+
+    @Test
+    func orgHeaderKeywordsIgnored() {
+        let html = orgToHTML("""
+        #+OPTIONS: toc:nil
+        #+PROPERTY: header-args :results output
+        Body text
+        """)
+
+        #expect(!html.contains("#+OPTIONS"))
+        #expect(!html.contains("#+PROPERTY"))
+        #expect(html.contains("<p>Body text</p>"))
+    }
+
+    @Test
+    func orgVerseBlock() {
+        let html = orgToHTML("""
+        #+begin_verse
+        There is a line.
+          And an indented line.
+        #+end_verse
+        """)
+
+        #expect(html.contains(#"<blockquote class="org-verse">"#))
+        #expect(html.contains("There is a line."))
+        #expect(html.contains("And an indented line."))
+        #expect(!html.contains("#+begin_verse"))
+    }
+
+    @Test
+    func orgNamedBlockRendersCaption() {
+        let html = orgToHTML("""
+        #+CAPTION: Build output
+        #+NAME: build-log
+        #+begin_example
+        hello world
+        #+end_example
+        """)
+
+        #expect(html.contains(#"<figure class="org-block" id="build-log">"#))
+        #expect(html.contains("<figcaption>Build output</figcaption>"))
+        #expect(!html.contains("#+CAPTION"))
+        #expect(!html.contains("#+NAME"))
+    }
+
+    @Test
+    func orgLinkedImageRenders() {
+        let html = orgToHTML("[[https://example.com][[https://img.cleberg.net/apps/hutch/screenshots/ipad/01_patch.jpg]]]")
+
+        #expect(html.contains(#"<a href="https://example.com">"#))
+        #expect(html.contains(#"<img src="https://img.cleberg.net/apps/hutch/screenshots/ipad/01_patch.jpg" alt="">"#))
+    }
+
+    @Test
+    func orgLinkedRelativeImageRenders() {
+        let html = orgToHTML(
+            "[[https://example.com/docs][[./images/badge.svg]]]",
+            imageURLResolver: { source in
+                source == "./images/badge.svg" ? "https://git.sr.ht/~ccleberg/Hutch/blob/HEAD/images/badge.svg" : nil
+            }
+        )
+
+        #expect(html.contains(#"<a href="https://example.com/docs">"#))
+        #expect(html.contains(#"<img src="https://git.sr.ht/~ccleberg/Hutch/blob/HEAD/images/badge.svg" alt="">"#))
+    }
+
+    @Test
+    func orgNestedBulletListRendersNestedMarkup() {
+        let html = orgToHTML("""
+        * Lists
+        ** Unordered
+        - First bullet
+        - Second bullet
+        - Third bullet with /italic/ and *bold*
+        - Bullet with wrapped
+          continuation line
+        - Bullet with nested list
+          - Nested child one
+          - Nested child two
+        - Bullet with inline code ~let x = 1~
+        """)
+
+        #expect(html.contains("<ul>"))
+        #expect(html.contains("<li>Bullet with nested list\n<ul>"))
+        #expect(html.contains("<li>Nested child one</li>"))
+        #expect(html.contains("<li>Nested child two</li>"))
+        #expect(html.contains("<li>Bullet with wrapped continuation line</li>"))
+    }
+
+    @Test
+    func orgTableAlignmentRendersStyles() {
+        let html = orgToHTML("""
+        | Left | Center | Right |
+        |:-----+:-----:+------:|
+        | a    | b      | c     |
+        | 1    | 2      | 3     |
+        """)
+
+        #expect(html.contains("text-align: left;"))
+        #expect(html.contains("text-align: center;"))
+        #expect(html.contains("text-align: right;"))
+    }
 }
 
 struct RepositoryAssetURLTests {
