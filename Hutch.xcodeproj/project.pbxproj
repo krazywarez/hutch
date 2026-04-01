@@ -16,6 +16,7 @@
 		8BE09E812F7B2CC300F88693 /* styles.css in Resources */ = {isa = PBXBuildFile; fileRef = 8BE09E7D2F7B2CC300F88693 /* styles.css */; };
 		8BE09E822F7B2CC300F88693 /* privacy.html in Resources */ = {isa = PBXBuildFile; fileRef = 8BE09E7B2F7B2CC300F88693 /* privacy.html */; };
 		8BF100032F9A000100000001 /* Markdown in Frameworks */ = {isa = PBXBuildFile; productRef = 8BF100022F9A000100000001 /* Markdown */; };
+		8BF100052F9A000100000002 /* Splash in Frameworks */ = {isa = PBXBuildFile; productRef = 8BF100042F9A000100000002 /* Splash */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -116,6 +117,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				8BF100032F9A000100000001 /* Markdown in Frameworks */,
+				8BF100052F9A000100000002 /* Splash in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -198,6 +200,7 @@
 			name = Hutch;
 			packageProductDependencies = (
 				8BF100022F9A000100000001 /* Markdown */,
+				8BF100042F9A000100000002 /* Splash */,
 			);
 			productName = Hutch;
 			productReference = 8B4B28D12F6704280045FA19 /* Hutch.app */;
@@ -279,6 +282,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				8BF100012F9A000100000001 /* XCRemoteSwiftPackageReference "swift-markdown" */,
+				8BF100062F9A000100000002 /* XCRemoteSwiftPackageReference "Splash" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 8B4B28D22F6704280045FA19 /* Products */;
@@ -710,6 +714,14 @@
 				minimumVersion = 0.7.3;
 			};
 		};
+		8BF100062F9A000100000002 /* XCRemoteSwiftPackageReference "Splash" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/JohnSundell/Splash";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.16.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -717,6 +729,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 8BF100012F9A000100000001 /* XCRemoteSwiftPackageReference "swift-markdown" */;
 			productName = Markdown;
+		};
+		8BF100042F9A000100000002 /* Splash */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 8BF100062F9A000100000002 /* XCRemoteSwiftPackageReference "Splash" */;
+			productName = Splash;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

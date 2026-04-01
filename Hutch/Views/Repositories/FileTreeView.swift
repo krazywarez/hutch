@@ -1,4 +1,8 @@
+import Splash
 import SwiftUI
+import UIKit
+
+private typealias ViewColor = SwiftUI.Color
 
 struct FileTreeView: View {
     let repository: RepositorySummary
@@ -9,7 +13,7 @@ struct FileTreeView: View {
     var body: some View {
         Group {
             if let viewModel {
-                FileTreeContentView(repository: repository, viewModel: viewModel)
+                FileTreeContentView(viewModel: viewModel)
             } else {
                 SRHTLoadingStateView(message: "Loading files…")
             }
@@ -33,10 +37,14 @@ struct FileTreeView: View {
 // MARK: - Content View
 
 private struct FileTreeContentView: View {
-    let repository: RepositorySummary
     let viewModel: FileTreeViewModel
 
+    @AppStorage(AppStorageKeys.wrapRepositoryFileLines) private var wrapRepositoryFileLines = false
     @State private var showRefPicker = false
+    @State private var showFileShareSheet = false
+    @State private var showShareUnavailableAlert = false
+    @State private var didCopyFileContents = false
+    @State private var copyResetTask: Task<Void, Never>?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -64,18 +72,9 @@ private struct FileTreeContentView: View {
             get: { viewModel.error },
             set: { viewModel.error = $0 }
         ))
-        .refreshable {
-            await viewModel.loadRootTree()
+        .onChange(of: viewModel.viewingEntry?.name) { _, _ in
+            resetCopyConfirmation()
         }
-    }
-
-    private var shareURL: URL? {
-        guard let viewingEntry = viewModel.viewingEntry else { return nil }
-        return SRHTWebURL.file(
-            repository: repository,
-            revspec: viewModel.revspec,
-            path: currentFilePath(for: viewingEntry)
-        )
     }
 
     private var revspecLabel: String {
@@ -138,13 +137,6 @@ private struct FileTreeContentView: View {
         .background(.bar)
     }
 
-    private func currentFilePath(for entry: TreeEntry) -> String {
-        let directoryComponents = viewModel.navStack
-            .dropFirst()
-            .map(\.name)
-        return (directoryComponents + [entry.name]).joined(separator: "/")
-    }
-
     // MARK: - Content Area
 
     @ViewBuilder
@@ -176,6 +168,33 @@ private struct FileTreeContentView: View {
                 description: Text("This directory has no files.")
             )
         }
+    }
+
+    private func shareFileContents(_ text: String) {
+        if text.isEmpty {
+            showShareUnavailableAlert = true
+        } else {
+            showFileShareSheet = true
+        }
+    }
+
+    private func copyFileContents(_ text: String) {
+        UIPasteboard.general.string = text
+        didCopyFileContents = true
+        copyResetTask?.cancel()
+        copyResetTask = Task {
+            try? await Task.sleep(for: .seconds(2))
+            guard !Task.isCancelled else { return }
+            await MainActor.run {
+                didCopyFileContents = false
+            }
+        }
+    }
+
+    private func resetCopyConfirmation() {
+        copyResetTask?.cancel()
+        copyResetTask = nil
+        didCopyFileContents = false
     }
 
     // MARK: - File Content View
@@ -216,36 +235,34 @@ private struct FileTreeContentView: View {
                 }
         }
         .listStyle(.plain)
+        .refreshable {
+            await viewModel.loadRootTree()
+        }
     }
 
     // MARK: - Text Blob
 
     @ViewBuilder
     private func textBlobView(_ entry: TreeEntry, blob: GitTextBlob) -> some View {
-        VStack(spacing: 0) {
-            HStack {
-                Spacer()
-                SRHTShareButton(url: shareURL, target: .file) {
-                    Label("Share File", systemImage: "square.and.arrow.up")
-                }
-                .buttonStyle(.bordered)
-            }
-            .padding(.horizontal)
-            .padding(.top, 12)
+        let text = blob.text ?? ""
 
-            GeometryReader { geometry in
-                ScrollView([.vertical, .horizontal]) {
-                    Text(blob.text ?? "")
-                        .font(.system(.body, design: .monospaced))
-                        .multilineTextAlignment(.leading)
-                        .fixedSize(horizontal: true, vertical: false)
-                        .frame(minWidth: geometry.size.width,
-                               minHeight: geometry.size.height,
-                               alignment: .topLeading)
-                        .padding()
-                }
-                .frame(width: geometry.size.width, height: geometry.size.height)
-            }
+        VStack(spacing: 0) {
+            CodeFileTextView(
+                text: text,
+                fileName: entry.name,
+                wrapLines: wrapRepositoryFileLines
+            )
+        }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            fileActionToolbar(text: text)
+        }
+        .sheet(isPresented: $showFileShareSheet) {
+            FileContentShareSheet(activityItems: [text])
+        }
+        .alert("Share Unavailable", isPresented: $showShareUnavailableAlert) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(SRHTShareTarget.file.fallbackMessage)
         }
     }
 
@@ -273,11 +290,6 @@ private struct FileTreeContentView: View {
                 .font(.subheadline)
                 .foregroundStyle(.tertiary)
 
-            SRHTShareButton(url: shareURL, target: .file) {
-                Label("Share File", systemImage: "square.and.arrow.up")
-            }
-            .buttonStyle(.bordered)
-
             if let content = blob.content, let url = URL(string: content) {
                 Link(destination: url) {
                     Label("Open in Safari", systemImage: "safari")
@@ -302,6 +314,460 @@ private struct FileTreeContentView: View {
         let formatter = ByteCountFormatter()
         formatter.countStyle = .file
         return formatter.string(fromByteCount: Int64(bytes))
+    }
+
+    private func fileActionToolbar(text: String) -> some View {
+        HStack(spacing: 0) {
+            toolbarButton(
+                title: "Share",
+                systemImage: "square.and.arrow.up"
+            ) {
+                shareFileContents(text)
+            }
+
+            toolbarButton(
+                title: didCopyFileContents ? "Copied" : "Copy All",
+                systemImage: didCopyFileContents ? "checkmark" : "doc.on.doc"
+            ) {
+                copyFileContents(text)
+            }
+
+            toolbarButton(
+                title: wrapRepositoryFileLines ? "Wrap On" : "Wrap Off",
+                systemImage: "text.word.spacing"
+            ) {
+                wrapRepositoryFileLines.toggle()
+            }
+        }
+        .padding(.horizontal, 8)
+        .padding(.top, 10)
+        .padding(.bottom, 8)
+        .background(.bar)
+        .overlay(alignment: .top) {
+            Divider()
+        }
+    }
+
+    private func toolbarButton(
+        title: String,
+        systemImage: String,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            VStack(spacing: 4) {
+                Image(systemName: systemImage)
+                    .font(.system(size: 17, weight: .semibold))
+                Text(title)
+                    .font(.caption2)
+                    .lineLimit(1)
+            }
+            .frame(maxWidth: .infinity)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(.primary)
+    }
+}
+
+private struct CodeFileTextView: UIViewRepresentable {
+    let text: String
+    let fileName: String
+    let wrapLines: Bool
+
+    private let font = UIFont(name: "SFMono-Regular", size: 12)
+        ?? UIFont.monospacedSystemFont(ofSize: 12, weight: .regular)
+
+    func makeUIView(context _: Context) -> CodeFileUIView {
+        CodeFileUIView(
+            text: text,
+            fileName: fileName,
+            font: font,
+            wrapLines: wrapLines
+        )
+    }
+
+    func updateUIView(_ uiView: CodeFileUIView, context _: Context) {
+        uiView.updateContent(
+            text: text,
+            fileName: fileName,
+            font: font,
+            wrapLines: wrapLines
+        )
+    }
+}
+
+private struct FileContentShareSheet: UIViewControllerRepresentable {
+    let activityItems: [Any]
+
+    func makeUIViewController(context _: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
+    }
+
+    func updateUIViewController(_ : UIActivityViewController, context _: Context) {}
+}
+
+private final class CodeFileUIView: UIView {
+    private enum Layout {
+        static let verticalPadding: CGFloat = 12
+        static let gutterLeadingPadding: CGFloat = 12
+        static let gutterTrailingPadding: CGFloat = 8
+    }
+
+    private final class LineRow {
+        let gutterRow = UIView()
+        let gutterLabel = UILabel()
+        let codeRow = UIView()
+        let codeLabel = UILabel()
+        let gutterHeightConstraint: NSLayoutConstraint
+        let codeHeightConstraint: NSLayoutConstraint
+
+        init() {
+            gutterRow.translatesAutoresizingMaskIntoConstraints = false
+            gutterLabel.translatesAutoresizingMaskIntoConstraints = false
+            codeRow.translatesAutoresizingMaskIntoConstraints = false
+            codeLabel.translatesAutoresizingMaskIntoConstraints = false
+
+            gutterHeightConstraint = gutterRow.heightAnchor.constraint(equalToConstant: 0)
+            codeHeightConstraint = codeRow.heightAnchor.constraint(equalToConstant: 0)
+        }
+    }
+
+    private let outerScrollView = UIScrollView()
+    private let contentView = UIView()
+    private let gutterContainerView = UIView()
+    private let gutterStackView = UIStackView()
+    private let horizontalScrollView = UIScrollView()
+    private let codeContainerView = UIView()
+    private let codeStackView = UIStackView()
+
+    private var codeContainerWidthConstraint: NSLayoutConstraint?
+    private var gutterWidthConstraint: NSLayoutConstraint?
+
+    private var rows: [LineRow] = []
+    private var currentText = ""
+    private var currentFileName = ""
+    private var currentFont: UIFont
+    private var wrapLines: Bool
+    private var needsLineLayoutUpdate = true
+    private var lastMeasuredCodeWidth: CGFloat = 0
+
+    init(text: String, fileName: String, font: UIFont, wrapLines: Bool) {
+        self.currentFont = font
+        self.wrapLines = wrapLines
+        super.init(frame: .zero)
+        setupViews()
+        updateContent(text: text, fileName: fileName, font: font, wrapLines: wrapLines)
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        updateLineLayoutsIfNeeded()
+    }
+
+    func updateContent(text: String, fileName: String, font: UIFont, wrapLines: Bool) {
+        let contentChanged = text != currentText || fileName != currentFileName || font != currentFont
+        let wrapChanged = wrapLines != self.wrapLines
+
+        currentText = text
+        currentFileName = fileName
+        currentFont = font
+        self.wrapLines = wrapLines
+
+        if contentChanged {
+            rebuildRows()
+        }
+
+        if contentChanged || wrapChanged {
+            updateWrapConfiguration(resetHorizontalOffset: wrapChanged)
+            needsLineLayoutUpdate = true
+            setNeedsLayout()
+            layoutIfNeeded()
+        }
+    }
+
+    private func setupViews() {
+        backgroundColor = .systemBackground
+
+        outerScrollView.translatesAutoresizingMaskIntoConstraints = false
+        contentView.translatesAutoresizingMaskIntoConstraints = false
+        gutterContainerView.translatesAutoresizingMaskIntoConstraints = false
+        gutterStackView.translatesAutoresizingMaskIntoConstraints = false
+        horizontalScrollView.translatesAutoresizingMaskIntoConstraints = false
+        codeContainerView.translatesAutoresizingMaskIntoConstraints = false
+        codeStackView.translatesAutoresizingMaskIntoConstraints = false
+
+        gutterStackView.axis = .vertical
+        gutterStackView.alignment = .fill
+        gutterStackView.distribution = .fill
+        gutterStackView.spacing = 0
+
+        codeStackView.axis = .vertical
+        codeStackView.alignment = .fill
+        codeStackView.distribution = .fill
+        codeStackView.spacing = 0
+
+        outerScrollView.alwaysBounceVertical = true
+        horizontalScrollView.alwaysBounceVertical = false
+        horizontalScrollView.showsVerticalScrollIndicator = false
+
+        addSubview(outerScrollView)
+        outerScrollView.addSubview(contentView)
+        contentView.addSubview(gutterContainerView)
+        contentView.addSubview(horizontalScrollView)
+        gutterContainerView.addSubview(gutterStackView)
+        horizontalScrollView.addSubview(codeContainerView)
+        codeContainerView.addSubview(codeStackView)
+
+        codeContainerWidthConstraint = codeContainerView.widthAnchor.constraint(equalTo: horizontalScrollView.frameLayoutGuide.widthAnchor)
+        gutterWidthConstraint = gutterContainerView.widthAnchor.constraint(equalToConstant: 0)
+
+        NSLayoutConstraint.activate([
+            outerScrollView.leadingAnchor.constraint(equalTo: leadingAnchor),
+            outerScrollView.trailingAnchor.constraint(equalTo: trailingAnchor),
+            outerScrollView.topAnchor.constraint(equalTo: topAnchor),
+            outerScrollView.bottomAnchor.constraint(equalTo: bottomAnchor),
+
+            contentView.leadingAnchor.constraint(equalTo: outerScrollView.contentLayoutGuide.leadingAnchor),
+            contentView.trailingAnchor.constraint(equalTo: outerScrollView.contentLayoutGuide.trailingAnchor),
+            contentView.topAnchor.constraint(equalTo: outerScrollView.contentLayoutGuide.topAnchor),
+            contentView.bottomAnchor.constraint(equalTo: outerScrollView.contentLayoutGuide.bottomAnchor),
+            contentView.widthAnchor.constraint(equalTo: outerScrollView.frameLayoutGuide.widthAnchor),
+
+            gutterContainerView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+            gutterContainerView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: Layout.verticalPadding),
+            gutterContainerView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -Layout.verticalPadding),
+
+            horizontalScrollView.leadingAnchor.constraint(equalTo: gutterContainerView.trailingAnchor),
+            horizontalScrollView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
+            horizontalScrollView.topAnchor.constraint(equalTo: gutterContainerView.topAnchor),
+            horizontalScrollView.bottomAnchor.constraint(equalTo: gutterContainerView.bottomAnchor),
+
+            gutterStackView.leadingAnchor.constraint(equalTo: gutterContainerView.leadingAnchor, constant: Layout.gutterLeadingPadding),
+            gutterStackView.trailingAnchor.constraint(equalTo: gutterContainerView.trailingAnchor, constant: -Layout.gutterTrailingPadding),
+            gutterStackView.topAnchor.constraint(equalTo: gutterContainerView.topAnchor),
+            gutterStackView.bottomAnchor.constraint(equalTo: gutterContainerView.bottomAnchor),
+
+            codeContainerView.leadingAnchor.constraint(equalTo: horizontalScrollView.contentLayoutGuide.leadingAnchor),
+            codeContainerView.trailingAnchor.constraint(equalTo: horizontalScrollView.contentLayoutGuide.trailingAnchor),
+            codeContainerView.topAnchor.constraint(equalTo: horizontalScrollView.contentLayoutGuide.topAnchor),
+            codeContainerView.bottomAnchor.constraint(equalTo: horizontalScrollView.contentLayoutGuide.bottomAnchor),
+            codeContainerView.heightAnchor.constraint(equalTo: horizontalScrollView.frameLayoutGuide.heightAnchor),
+
+            codeStackView.leadingAnchor.constraint(equalTo: codeContainerView.leadingAnchor),
+            codeStackView.trailingAnchor.constraint(equalTo: codeContainerView.trailingAnchor),
+            codeStackView.topAnchor.constraint(equalTo: codeContainerView.topAnchor),
+            codeStackView.bottomAnchor.constraint(equalTo: codeContainerView.bottomAnchor)
+        ])
+
+        gutterWidthConstraint?.isActive = true
+    }
+
+    private func rebuildRows() {
+        rows.forEach { row in
+            gutterStackView.removeArrangedSubview(row.gutterRow)
+            row.gutterRow.removeFromSuperview()
+            codeStackView.removeArrangedSubview(row.codeRow)
+            row.codeRow.removeFromSuperview()
+        }
+        rows.removeAll()
+
+        let attributedText = CodeSyntaxHighlighter.attributedText(
+            for: currentText,
+            fileName: currentFileName,
+            font: currentFont
+        )
+        let lines = makeLines(from: attributedText, font: currentFont)
+
+        gutterWidthConstraint?.constant = Self.gutterWidth(lineCount: lines.count, font: currentFont)
+
+        for line in lines {
+            let row = makeRow(for: line)
+            rows.append(row)
+            gutterStackView.addArrangedSubview(row.gutterRow)
+            codeStackView.addArrangedSubview(row.codeRow)
+        }
+    }
+
+    private func makeRow(for line: CodeFileLineData) -> LineRow {
+        let row = LineRow()
+
+        row.gutterLabel.font = currentFont
+        row.gutterLabel.textColor = .secondaryLabel
+        row.gutterLabel.textAlignment = .right
+        row.gutterLabel.text = line.number
+
+        row.codeLabel.attributedText = line.text
+        row.codeLabel.font = currentFont
+
+        row.gutterRow.addSubview(row.gutterLabel)
+        row.codeRow.addSubview(row.codeLabel)
+
+        NSLayoutConstraint.activate([
+            row.gutterHeightConstraint,
+            row.codeHeightConstraint,
+
+            row.gutterLabel.leadingAnchor.constraint(equalTo: row.gutterRow.leadingAnchor),
+            row.gutterLabel.trailingAnchor.constraint(equalTo: row.gutterRow.trailingAnchor),
+            row.gutterLabel.topAnchor.constraint(equalTo: row.gutterRow.topAnchor),
+            row.gutterLabel.bottomAnchor.constraint(lessThanOrEqualTo: row.gutterRow.bottomAnchor),
+
+            row.codeLabel.leadingAnchor.constraint(equalTo: row.codeRow.leadingAnchor),
+            row.codeLabel.trailingAnchor.constraint(equalTo: row.codeRow.trailingAnchor),
+            row.codeLabel.topAnchor.constraint(equalTo: row.codeRow.topAnchor),
+            row.codeLabel.bottomAnchor.constraint(lessThanOrEqualTo: row.codeRow.bottomAnchor)
+        ])
+
+        return row
+    }
+
+    private func updateWrapConfiguration(resetHorizontalOffset: Bool) {
+        horizontalScrollView.alwaysBounceHorizontal = !wrapLines
+        horizontalScrollView.isScrollEnabled = true
+
+        if wrapLines {
+            codeContainerWidthConstraint?.isActive = true
+        } else {
+            codeContainerWidthConstraint?.isActive = false
+        }
+
+        for row in rows {
+            row.codeLabel.numberOfLines = wrapLines ? 0 : 1
+            row.codeLabel.lineBreakMode = wrapLines ? .byWordWrapping : .byClipping
+        }
+
+        if resetHorizontalOffset {
+            horizontalScrollView.setContentOffset(.zero, animated: false)
+        }
+    }
+
+    private func updateLineLayoutsIfNeeded() {
+        let availableWidth = max(horizontalScrollView.bounds.width, 0)
+        let shouldUpdateForWidth = wrapLines && abs(availableWidth - lastMeasuredCodeWidth) > 0.5
+
+        guard needsLineLayoutUpdate || shouldUpdateForWidth else { return }
+
+        lastMeasuredCodeWidth = availableWidth
+        let measurementWidth = wrapLines ? max(availableWidth, 1) : CGFloat.greatestFiniteMagnitude
+
+        for row in rows {
+            row.codeLabel.preferredMaxLayoutWidth = wrapLines ? measurementWidth : 0
+            let measuredSize = row.codeLabel.sizeThatFits(
+                CGSize(width: measurementWidth, height: CGFloat.greatestFiniteMagnitude)
+            )
+            let rowHeight = max(ceil(measuredSize.height), ceil(currentFont.lineHeight))
+            row.gutterHeightConstraint.constant = rowHeight
+            row.codeHeightConstraint.constant = rowHeight
+        }
+
+        needsLineLayoutUpdate = false
+    }
+
+    private func makeLines(from attributedText: NSAttributedString, font: UIFont) -> [CodeFileLineData] {
+        let string = attributedText.string as NSString
+        var lines: [CodeFileLineData] = []
+        var currentLocation = 0
+        var lineNumber = 1
+
+        while currentLocation < attributedText.length {
+            let searchRange = NSRange(location: currentLocation, length: attributedText.length - currentLocation)
+            let newlineRange = string.range(of: "\n", options: [], range: searchRange)
+            let lineRange: NSRange
+
+            if newlineRange.location == NSNotFound {
+                lineRange = searchRange
+                currentLocation = attributedText.length
+            } else {
+                lineRange = NSRange(location: currentLocation, length: newlineRange.location - currentLocation)
+                currentLocation = newlineRange.location + newlineRange.length
+            }
+
+            lines.append(CodeFileLineData(
+                number: String(lineNumber),
+                text: attributedText.attributedSubstring(from: lineRange)
+            ))
+            lineNumber += 1
+        }
+
+        if attributedText.length == 0 || string.hasSuffix("\n") {
+            lines.append(CodeFileLineData(
+                number: String(lineNumber),
+                text: NSAttributedString(string: "", attributes: [.font: font])
+            ))
+        }
+
+        return lines
+    }
+
+    private static func gutterWidth(lineCount: Int, font: UIFont) -> CGFloat {
+        let digits = String(max(lineCount, 1)).count
+        let sample = String(repeating: "8", count: digits)
+        let numberWidth = ceil((sample as NSString).size(withAttributes: [.font: font]).width)
+        return Layout.gutterLeadingPadding + numberWidth + Layout.gutterTrailingPadding
+    }
+}
+
+private struct CodeFileLineData {
+    let number: String
+    let text: NSAttributedString
+}
+
+private enum CodeSyntaxHighlighter {
+    static func attributedText(for text: String, fileName: String, font: UIFont) -> NSAttributedString {
+        guard supportsSplashHighlighting(fileName: fileName) else {
+            return plainText(text, font: font)
+        }
+
+        var splashFont = Font(size: Double(font.pointSize))
+        splashFont.resource = .preloaded(font)
+
+        let theme = Theme(
+            font: splashFont,
+            plainTextColor: .label,
+            tokenColors: [
+                .keyword: .systemPink,
+                .string: .systemRed,
+                .type: .systemTeal,
+                .call: .systemBlue,
+                .number: .systemPurple,
+                .comment: .secondaryLabel,
+                .property: .systemGreen,
+                .dotAccess: .systemIndigo,
+                .preprocessing: .systemOrange
+            ],
+            backgroundColor: .clear
+        )
+
+        let highlighted = SyntaxHighlighter(
+            format: AttributedStringOutputFormat(theme: theme)
+        ).highlight(text)
+
+        return NSMutableAttributedString(attributedString: highlighted)
+    }
+
+    private static func plainText(_ text: String, font: UIFont) -> NSAttributedString {
+        NSAttributedString(
+            string: text,
+            attributes: [
+                .font: font,
+                .foregroundColor: UIColor.label
+            ]
+        )
+    }
+
+    private static func supportsSplashHighlighting(fileName: String) -> Bool {
+        let supportedExtensions: Set<String> = [
+            "swift",
+            "swiftinterface",
+            "playground"
+        ]
+        return supportedExtensions.contains(
+            (fileName as NSString).pathExtension.lowercased()
+        )
     }
 }
 
@@ -329,7 +795,7 @@ private struct TreeEntryRow: View {
         }
     }
 
-    private var iconColor: Color {
+    private var iconColor: ViewColor {
         switch entry.object {
         case .tree: .blue
         case .unknown: .orange
@@ -424,7 +890,7 @@ private struct RefPickerSheet: View {
         }
     }
 
-    private func refRow(title: String, systemImage: String, color: Color, isSelected: Bool) -> some View {
+    private func refRow(title: String, systemImage: String, color: ViewColor, isSelected: Bool) -> some View {
         HStack(spacing: 12) {
             Image(systemName: systemImage)
                 .foregroundStyle(color)
