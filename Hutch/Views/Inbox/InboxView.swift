@@ -70,9 +70,6 @@ struct InboxView: View {
                         withAnimation(.easeInOut(duration: 0.2)) {
                             viewModel.markAllThreadsRead()
                         }
-                        Task {
-                            await viewModel.loadThreads()
-                        }
                     }
                 }
             }

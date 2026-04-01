@@ -8,6 +8,7 @@ private let settingsBioMarkdownOptions = AttributedString.MarkdownParsingOptions
 struct SettingsView: View {
     @Environment(AppState.self) private var appState
     @Environment(\.colorScheme) private var colorScheme
+    @AppStorage(AppStorageKeys.swipeActionsEnabled) private var swipeActionsEnabled = true
     @State private var viewModel: SettingsViewModel?
     @State private var pendingDestructiveAction: SettingsDestructiveAction?
 
@@ -389,15 +390,7 @@ struct SettingsView: View {
     @ViewBuilder
     private func behaviorSection() -> some View {
         Section {
-            Toggle(
-                "Swipe actions",
-                isOn: Binding(
-                    get: {
-                        UserDefaults.standard.object(forKey: AppStorageKeys.swipeActionsEnabled) as? Bool ?? true
-                    },
-                    set: { UserDefaults.standard.set($0, forKey: AppStorageKeys.swipeActionsEnabled) }
-                )
-            )
+            Toggle("Swipe actions", isOn: $swipeActionsEnabled)
         } header: {
             Text("Behavior")
         } footer: {

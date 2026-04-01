@@ -3,6 +3,7 @@ import SwiftUI
 struct HomeView: View {
     @AppStorage(AppStorageKeys.swipeActionsEnabled) private var swipeActionsEnabled = true
     @Environment(AppState.self) private var appState
+    @Environment(\.scenePhase) private var scenePhase
     @State private var viewModel: HomeViewModel?
     private let previewLimit = 4
     private let projectPreviewLimit = 3
@@ -38,6 +39,12 @@ struct HomeView: View {
             }
 
             await vm.loadDashboard()
+        }
+        .onChange(of: scenePhase) { _, newPhase in
+            guard newPhase == .active, let viewModel else { return }
+            Task {
+                await viewModel.loadDashboard()
+            }
         }
     }
 

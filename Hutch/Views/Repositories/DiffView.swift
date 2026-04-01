@@ -76,13 +76,15 @@ private struct DiffBlockView: View {
     let lines: [String]
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            ForEach(Array(lines.enumerated()), id: \.offset) { _, line in
-                DiffLineView(line: line)
+        ScrollView(.horizontal, showsIndicators: false) {
+            LazyVStack(alignment: .leading, spacing: 0) {
+                ForEach(Array(lines.enumerated()), id: \.offset) { _, line in
+                    DiffLineView(line: line)
+                }
             }
+            .frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)
         }
         .font(.system(.caption, design: .monospaced))
-        .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color(.secondarySystemBackground))
     }
 }

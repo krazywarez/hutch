@@ -441,6 +441,7 @@ private final class CodeFileUIView: UIView {
     private let codeStackView = UIStackView()
 
     private var codeContainerWidthConstraint: NSLayoutConstraint?
+    private var codeContainerExplicitWidthConstraint: NSLayoutConstraint?
     private var gutterWidthConstraint: NSLayoutConstraint?
 
     private var rows: [LineRow] = []
@@ -524,6 +525,7 @@ private final class CodeFileUIView: UIView {
         codeContainerView.addSubview(codeStackView)
 
         codeContainerWidthConstraint = codeContainerView.widthAnchor.constraint(equalTo: horizontalScrollView.frameLayoutGuide.widthAnchor)
+        codeContainerExplicitWidthConstraint = codeContainerView.widthAnchor.constraint(equalToConstant: 0)
         gutterWidthConstraint = gutterContainerView.widthAnchor.constraint(equalToConstant: 0)
 
         NSLayoutConstraint.activate([
@@ -627,12 +629,14 @@ private final class CodeFileUIView: UIView {
 
     private func updateWrapConfiguration(resetHorizontalOffset: Bool) {
         horizontalScrollView.alwaysBounceHorizontal = !wrapLines
-        horizontalScrollView.isScrollEnabled = true
+        horizontalScrollView.isScrollEnabled = !wrapLines
 
         if wrapLines {
             codeContainerWidthConstraint?.isActive = true
+            codeContainerExplicitWidthConstraint?.isActive = false
         } else {
             codeContainerWidthConstraint?.isActive = false
+            codeContainerExplicitWidthConstraint?.isActive = true
         }
 
         for row in rows {
@@ -662,6 +666,18 @@ private final class CodeFileUIView: UIView {
             let rowHeight = max(ceil(measuredSize.height), ceil(currentFont.lineHeight))
             row.gutterHeightConstraint.constant = rowHeight
             row.codeHeightConstraint.constant = rowHeight
+        }
+
+        if wrapLines {
+            codeContainerExplicitWidthConstraint?.constant = 0
+        } else {
+            let maxLineWidth = rows.reduce(CGFloat(0)) { partialResult, row in
+                let measuredWidth = row.codeLabel.sizeThatFits(
+                    CGSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
+                ).width
+                return max(partialResult, ceil(measuredWidth))
+            }
+            codeContainerExplicitWidthConstraint?.constant = max(maxLineWidth, availableWidth)
         }
 
         needsLineLayoutUpdate = false
