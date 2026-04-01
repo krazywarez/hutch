@@ -20,6 +20,7 @@ private struct ProjectSummaryPayload: Decodable, Sendable {
     let website: String?
     let visibility: Visibility
     let tags: [String]
+    let updated: Date
 }
 
 private struct ProjectDetailResponse: Decodable, Sendable {
@@ -92,6 +93,7 @@ struct ProjectService: Sendable {
                     website
                     visibility
                     tags
+                    updated
                 }
                 cursor
             }
@@ -162,7 +164,7 @@ struct ProjectService: Sendable {
             for try await project in group {
                 projects.append(project)
             }
-            return projects.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+            return projects.sorted { $0.updated > $1.updated }
         }
     }
 
@@ -267,6 +269,7 @@ struct ProjectService: Sendable {
                     website: project.website,
                     visibility: project.visibility,
                     tags: project.tags,
+                    updated: summary.updated,
                     mailingLists: deduplicate(mailingLists),
                     sources: deduplicate(sources),
                     trackers: deduplicate(trackers)

@@ -65,6 +65,7 @@ struct Project: Identifiable, Hashable, Sendable {
     let website: String?
     let visibility: Visibility
     let tags: [String]
+    let updated: Date
     let mailingLists: [MailingList]
     let sources: [SourceRepo]
     let trackers: [Tracker]
