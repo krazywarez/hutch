@@ -5,6 +5,7 @@ enum KeychainHelper: Sendable {
 
     private static let service = "net.cleberg.Hutch"
     private static let tokenAccount = "srht-access-token"
+    private static let accountsAccount = "srht-accounts"
 
     // MARK: - Save
 
@@ -55,6 +56,45 @@ enum KeychainHelper: Sendable {
             return nil
         }
         return token
+    }
+
+    // MARK: - Multi-account list
+
+    static func saveAccounts(_ accounts: [AccountEntry]) throws {
+        let data = try JSONEncoder().encode(accounts)
+
+        let deleteQuery: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: accountsAccount
+        ]
+        SecItemDelete(deleteQuery as CFDictionary)
+
+        let addQuery: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: accountsAccount,
+            kSecValueData as String: data,
+            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+        ]
+        let status = SecItemAdd(addQuery as CFDictionary, nil)
+        guard status == errSecSuccess else {
+            throw KeychainError.saveFailed(status)
+        }
+    }
+
+    static func loadAccounts() -> [AccountEntry] {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: accountsAccount,
+            kSecReturnData as String: true,
+            kSecMatchLimit as String: kSecMatchLimitOne
+        ]
+        var result: AnyObject?
+        guard SecItemCopyMatching(query as CFDictionary, &result) == errSecSuccess,
+              let data = result as? Data else { return [] }
+        return (try? JSONDecoder().decode([AccountEntry].self, from: data)) ?? []
     }
 
     // MARK: - Delete
