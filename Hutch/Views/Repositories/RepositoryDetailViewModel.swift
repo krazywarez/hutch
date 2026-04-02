@@ -24,8 +24,31 @@ private struct RefsRepository: Decodable, Sendable {
 }
 
 private struct RefsPage: Decodable, Sendable {
-    let results: [Reference]
+    let results: [ReferencePayload]
     let cursor: String?
+}
+
+/// Decodes a single reference including the optional follow object for date extraction.
+private struct ReferencePayload: Decodable, Sendable {
+    let name: String
+    let target: String?
+    let follow: ReferenceFollow?
+
+    func toDetail() -> ReferenceDetail {
+        // Branches and lightweight tags follow to a Commit (author.time).
+        // Annotated tags follow to a Tag object (tagger.time).
+        let date = follow?.author?.time ?? follow?.tagger?.time
+        return ReferenceDetail(name: name, target: target, date: date)
+    }
+}
+
+private struct ReferenceFollow: Decodable, Sendable {
+    let author: ReferenceSignature?
+    let tagger: ReferenceSignature?
+}
+
+private struct ReferenceSignature: Decodable, Sendable {
+    let time: Date
 }
 
 private struct ReadmeResponse: Decodable, Sendable {
@@ -98,8 +121,8 @@ final class RepositoryDetailViewModel {
 
     // MARK: - References state
 
-    private(set) var branches: [Reference] = []
-    private(set) var tags: [Reference] = []
+    private(set) var branches: [ReferenceDetail] = []
+    private(set) var tags: [ReferenceDetail] = []
     private(set) var isLoadingRefs = false
 
     // MARK: - README state
@@ -220,7 +243,14 @@ final class RepositoryDetailViewModel {
     query refs($rid: ID!) {
         repository(rid: $rid) {
             references {
-                results { name target }
+                results {
+                    name
+                    target
+                    follow {
+                        ... on Commit { author { time } }
+                        ... on Tag { tagger { time } }
+                    }
+                }
                 cursor
             }
         }
@@ -240,8 +270,8 @@ final class RepositoryDetailViewModel {
                 responseType: RefsResponse.self
             )
             let allRefs = result.repository?.references.results ?? []
-            branches = allRefs.filter { $0.name.hasPrefix("refs/heads/") }
-            tags = allRefs.filter { $0.name.hasPrefix("refs/tags/") }
+            branches = allRefs.filter { $0.name.hasPrefix("refs/heads/") }.map { $0.toDetail() }
+            tags = allRefs.filter { $0.name.hasPrefix("refs/tags/") }.map { $0.toDetail() }
         } catch {
             self.error = error.userFacingMessage
         }

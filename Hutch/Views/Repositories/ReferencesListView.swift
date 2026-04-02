@@ -51,14 +51,21 @@ struct ReferencesListView: View {
 }
 
 private struct ReferenceRow: View {
-    let reference: Reference
+    let reference: ReferenceDetail
     let prefix: String
 
     var body: some View {
         HStack {
             Label {
-                Text(shortName)
-                    .font(.body.monospaced())
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(shortName)
+                        .font(.body.monospaced())
+                    if let date = reference.date {
+                        Text(date.relativeDescription)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
             } icon: {
                 Image(systemName: icon)
                     .foregroundStyle(iconColor)

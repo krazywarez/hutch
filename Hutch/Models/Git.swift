@@ -82,6 +82,13 @@ struct Reference: Codable, Sendable, Hashable {
     let target: String?
 }
 
+/// A Git reference enriched with the date of its tip commit or tag, for display in the Refs tab.
+struct ReferenceDetail: Sendable, Hashable {
+    let name: String
+    let target: String?
+    let date: Date?
+}
+
 // MARK: - TreeEntry
 
 /// An entry in a Git tree (file or directory).

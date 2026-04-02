@@ -2,7 +2,7 @@ import SwiftUI
 
 struct RepositorySettingsView: View {
     let repository: RepositorySummary
-    let branches: [Reference]
+    let branches: [ReferenceDetail]
     let client: SRHTClient
     let onRenamed: (String) -> Void
     let onDeleted: () -> Void

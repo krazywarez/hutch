@@ -102,7 +102,7 @@ final class RepositorySettingsViewModel {
 
     // MARK: - Branches (for HEAD picker)
 
-    var branches: [Reference]
+    var branches: [ReferenceDetail]
 
     // MARK: - Results
 
@@ -112,7 +112,7 @@ final class RepositorySettingsViewModel {
 
     init(
         repository: RepositorySummary,
-        branches: [Reference],
+        branches: [ReferenceDetail],
         client: SRHTClient
     ) {
         self.repositoryId = repository.id
