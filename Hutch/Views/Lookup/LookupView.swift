@@ -1,4 +1,7 @@
 import SwiftUI
+import os
+
+private let lookupLogger = Logger(subsystem: "net.cleberg.Hutch", category: "Lookup")
 
 enum LookupType: String, CaseIterable, Identifiable {
     case user = "User"
@@ -166,17 +169,47 @@ final class LookupViewModel {
         let query = """
         query userLookup($username: String!) {
             user: userByName(username: $username) {
-                id username canonicalName email avatar
+                id
+                created
+                updated
+                canonicalName
+                username
+                email
+                url
+                location
+                bio
+                avatar
+                pronouns
+                userType
             }
         }
         """
 
-        let result = try await client.execute(
-            service: .meta,
-            query: query,
-            variables: ["username": username],
-            responseType: Response.self
-        )
+        lookupLogger.debug("Looking up user profile for username: \(username, privacy: .public)")
+
+        let result: Response
+        do {
+            result = try await client.execute(
+                service: .meta,
+                query: query,
+                variables: ["username": username],
+                responseType: Response.self
+            )
+        } catch {
+            lookupLogger.error(
+                """
+                User lookup failed
+                username: \(username, privacy: .public)
+                query:
+                \(query, privacy: .public)
+                error:
+                \(String(describing: error), privacy: .public)
+                """
+            )
+            throw error
+        }
+
+        lookupLogger.debug("User lookup succeeded for username: \(username, privacy: .public)")
 
         return .user(result.user)
     }
