@@ -89,7 +89,7 @@ struct RootView: View {
             }
             .tag(AppState.Tab.tickets)
             .tabItem {
-                Label("Tickets", systemImage: "ticket")
+                Label("Trackers", systemImage: "checklist")
             }
 
             NavigationStack(path: $buildsPath) {

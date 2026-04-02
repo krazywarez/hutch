@@ -115,7 +115,7 @@ struct MailingListListView: View {
                 SRHTLoadingStateView(message: "Loading mailing lists…")
             }
         }
-        .navigationTitle("Lists")
+        .navigationTitle("Mailing Lists")
         .task {
             if viewModel == nil {
                 let vm = MailingListListViewModel(client: appState.client)

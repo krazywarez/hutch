@@ -15,7 +15,7 @@ struct MoreView: View {
         List {
             Section {
                 NavigationLink(value: MoreRoute.lists) {
-                    Label("Lists", systemImage: "list.bullet.rectangle")
+                    Label("Mailing Lists", systemImage: "list.bullet.rectangle")
                 }
 
                 NavigationLink(value: MoreRoute.pastes) {
