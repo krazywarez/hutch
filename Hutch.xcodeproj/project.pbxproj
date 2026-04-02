@@ -10,6 +10,13 @@
 		8B2F89662F69DEB900FC0253 /* LICENSE in Resources */ = {isa = PBXBuildFile; fileRef = 8B2F89632F69DEB900FC0253 /* LICENSE */; };
 		8B2F89672F69DEB900FC0253 /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = 8B2F89642F69DEB900FC0253 /* README.md */; };
 		8B2F89682F69DEB900FC0253 /* SECURITY.md in Resources */ = {isa = PBXBuildFile; fileRef = 8B2F89652F69DEB900FC0253 /* SECURITY.md */; };
+		8B2FA9CD2F7E211800E609E2 /* meta.json in Resources */ = {isa = PBXBuildFile; fileRef = 8B2FA9C82F7E211800E609E2 /* meta.json */; };
+		8B2FA9CE2F7E211800E609E2 /* hg.json in Resources */ = {isa = PBXBuildFile; fileRef = 8B2FA9C62F7E211800E609E2 /* hg.json */; };
+		8B2FA9CF2F7E211800E609E2 /* builds.json in Resources */ = {isa = PBXBuildFile; fileRef = 8B2FA9C42F7E211800E609E2 /* builds.json */; };
+		8B2FA9D02F7E211800E609E2 /* git.json in Resources */ = {isa = PBXBuildFile; fileRef = 8B2FA9C52F7E211800E609E2 /* git.json */; };
+		8B2FA9D12F7E211800E609E2 /* paste.json in Resources */ = {isa = PBXBuildFile; fileRef = 8B2FA9C92F7E211800E609E2 /* paste.json */; };
+		8B2FA9D22F7E211800E609E2 /* todo.json in Resources */ = {isa = PBXBuildFile; fileRef = 8B2FA9CA2F7E211800E609E2 /* todo.json */; };
+		8B2FA9D32F7E211800E609E2 /* lists.json in Resources */ = {isa = PBXBuildFile; fileRef = 8B2FA9C72F7E211800E609E2 /* lists.json */; };
 		8BE082012F80000100000001 /* HutchWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 8BE081F62F80000100000001 /* HutchWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		8BE09E7F2F7B2CC300F88693 /* storebutton.svg in Resources */ = {isa = PBXBuildFile; fileRef = 8BE09E7C2F7B2CC300F88693 /* storebutton.svg */; };
 		8BE09E802F7B2CC300F88693 /* index.html in Resources */ = {isa = PBXBuildFile; fileRef = 8BE09E7A2F7B2CC300F88693 /* index.html */; };
@@ -54,6 +61,13 @@
 		8B2F89632F69DEB900FC0253 /* LICENSE */ = {isa = PBXFileReference; lastKnownFileType = text; path = LICENSE; sourceTree = "<group>"; };
 		8B2F89642F69DEB900FC0253 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		8B2F89652F69DEB900FC0253 /* SECURITY.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = SECURITY.md; sourceTree = "<group>"; };
+		8B2FA9C42F7E211800E609E2 /* builds.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = builds.json; sourceTree = "<group>"; };
+		8B2FA9C52F7E211800E609E2 /* git.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = git.json; sourceTree = "<group>"; };
+		8B2FA9C62F7E211800E609E2 /* hg.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = hg.json; sourceTree = "<group>"; };
+		8B2FA9C72F7E211800E609E2 /* lists.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = lists.json; sourceTree = "<group>"; };
+		8B2FA9C82F7E211800E609E2 /* meta.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = meta.json; sourceTree = "<group>"; };
+		8B2FA9C92F7E211800E609E2 /* paste.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = paste.json; sourceTree = "<group>"; };
+		8B2FA9CA2F7E211800E609E2 /* todo.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = todo.json; sourceTree = "<group>"; };
 		8B4B28D12F6704280045FA19 /* Hutch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Hutch.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		8B8182B72F6B73F3000AE049 /* HutchTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = HutchTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		8B8182C22F6B742B000AE049 /* HutchTests */ = {isa = PBXFileReference; lastKnownFileType = folder; path = HutchTests; sourceTree = "<group>"; };
@@ -138,9 +152,32 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		8B2FA9CB2F7E211800E609E2 /* API */ = {
+			isa = PBXGroup;
+			children = (
+				8B2FA9C42F7E211800E609E2 /* builds.json */,
+				8B2FA9C52F7E211800E609E2 /* git.json */,
+				8B2FA9C62F7E211800E609E2 /* hg.json */,
+				8B2FA9C72F7E211800E609E2 /* lists.json */,
+				8B2FA9C82F7E211800E609E2 /* meta.json */,
+				8B2FA9C92F7E211800E609E2 /* paste.json */,
+				8B2FA9CA2F7E211800E609E2 /* todo.json */,
+			);
+			path = API;
+			sourceTree = "<group>";
+		};
+		8B2FA9CC2F7E211800E609E2 /* Docs */ = {
+			isa = PBXGroup;
+			children = (
+				8B2FA9CB2F7E211800E609E2 /* API */,
+			);
+			path = Docs;
+			sourceTree = "<group>";
+		};
 		8B4B28C82F6704280045FA19 = {
 			isa = PBXGroup;
 			children = (
+				8B2FA9CC2F7E211800E609E2 /* Docs */,
 				8BE09E7E2F7B2CC300F88693 /* website */,
 				8BDCA5272F6B76B20066AA29 /* HutchTests.xctestplan */,
 				8B8182C22F6B742B000AE049 /* HutchTests */,
@@ -304,6 +341,13 @@
 				8B2F89662F69DEB900FC0253 /* LICENSE in Resources */,
 				8B2F89672F69DEB900FC0253 /* README.md in Resources */,
 				8B2F89682F69DEB900FC0253 /* SECURITY.md in Resources */,
+				8B2FA9CD2F7E211800E609E2 /* meta.json in Resources */,
+				8B2FA9CE2F7E211800E609E2 /* hg.json in Resources */,
+				8B2FA9CF2F7E211800E609E2 /* builds.json in Resources */,
+				8B2FA9D02F7E211800E609E2 /* git.json in Resources */,
+				8B2FA9D12F7E211800E609E2 /* paste.json in Resources */,
+				8B2FA9D22F7E211800E609E2 /* todo.json in Resources */,
+				8B2FA9D32F7E211800E609E2 /* lists.json in Resources */,
 				8BE09E7F2F7B2CC300F88693 /* storebutton.svg in Resources */,
 				8BE09E802F7B2CC300F88693 /* index.html in Resources */,
 				8BE09E812F7B2CC300F88693 /* styles.css in Resources */,
