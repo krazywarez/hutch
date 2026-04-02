@@ -190,7 +190,15 @@ struct TicketListView: View {
 
             // Tickets
             ForEach(viewModel.filteredTickets) { ticket in
-                NavigationLink(value: ticket) {
+                NavigationLink {
+                    TicketDetailView(
+                        ownerUsername: String(tracker.owner.canonicalName.dropFirst()),
+                        trackerName: tracker.name,
+                        trackerId: tracker.id,
+                        trackerRid: tracker.rid,
+                        ticketId: ticket.id
+                    )
+                } label: {
                     TicketRowView(ticket: ticket)
                 }
                 .swipeActions(edge: .leading, allowsFullSwipe: true) {
@@ -249,15 +257,6 @@ struct TicketListView: View {
         .srhtErrorBanner(error: $vm.error)
         .refreshable {
             await viewModel.loadTickets()
-        }
-        .navigationDestination(for: TicketSummary.self) { ticket in
-            TicketDetailView(
-                ownerUsername: String(tracker.owner.canonicalName.dropFirst()),
-                trackerName: tracker.name,
-                trackerId: tracker.id,
-                trackerRid: tracker.rid,
-                ticketId: ticket.id
-            )
         }
     }
 

@@ -1,7 +1,10 @@
 import SwiftUI
 
 struct UserProfileView: View {
+    @Environment(AppState.self) private var appState
+
     let user: User
+    @State private var profileViewModel: UserProfileViewModel?
 
     private static let iso8601Formatter: ISO8601DateFormatter = {
         let formatter = ISO8601DateFormatter()
@@ -86,10 +89,70 @@ struct UserProfileView: View {
                     }
                 }
             }
+
+            if let viewModel = profileViewModel {
+                Section {
+                    if viewModel.isLoadingRepositories && viewModel.repositories.isEmpty {
+                        ProgressView()
+                    } else if viewModel.repositories.isEmpty {
+                        Text("No public repositories.")
+                            .foregroundStyle(.secondary)
+                    } else {
+                        ForEach(viewModel.repositories.prefix(4)) { repo in
+                            NavigationLink {
+                                RepositoryDetailView(repository: repo)
+                            } label: {
+                                RepositoryRowView(repository: repo, buildStatus: .none)
+                            }
+                        }
+                        if viewModel.repositories.count > 4 {
+                            NavigationLink("See All") {
+                                UserRepositoriesView(viewModel: viewModel)
+                            }
+                        }
+                    }
+                } header: {
+                    Text("Repositories")
+                }
+
+                Section {
+                    if viewModel.isLoadingTrackers && viewModel.trackers.isEmpty {
+                        ProgressView()
+                    } else if viewModel.trackers.isEmpty {
+                        Text("No public trackers.")
+                            .foregroundStyle(.secondary)
+                    } else {
+                        ForEach(viewModel.trackers.prefix(4)) { tracker in
+                            NavigationLink {
+                                TicketListView(tracker: tracker)
+                            } label: {
+                                UserProfileTrackerRowView(tracker: tracker)
+                            }
+                        }
+                        if viewModel.trackers.count > 4 {
+                            NavigationLink("See All") {
+                                UserTrackersView(viewModel: viewModel)
+                            }
+                        }
+                    }
+                } header: {
+                    Text("Trackers")
+                }
+            }
         }
         .listStyle(.insetGrouped)
         .navigationTitle(user.canonicalName)
         .navigationBarTitleDisplayMode(.inline)
+        .task {
+            let owner = user.canonicalName.hasPrefix("~")
+                ? String(user.canonicalName.dropFirst())
+                : user.canonicalName
+            let vm = UserProfileViewModel(ownerUsername: owner, client: appState.client)
+            profileViewModel = vm
+            async let repos: () = vm.loadRepositories()
+            async let trackers: () = vm.loadTrackers()
+            _ = await (repos, trackers)
+        }
     }
 
     private func formattedTimestamp(_ value: String) -> String {
@@ -98,5 +161,40 @@ struct UserProfileView: View {
         }
 
         return date.formatted(date: .abbreviated, time: .shortened)
+    }
+}
+
+struct UserProfileTrackerRowView: View {
+    let tracker: TrackerSummary
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Text(tracker.name)
+                    .font(.subheadline.weight(.medium))
+
+                Spacer()
+
+                VisibilityBadge(visibility: tracker.visibility)
+            }
+
+            if let owner = tracker.owner.canonicalName.split(separator: "~").last {
+                Text("~\(owner)")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            if let description = tracker.description, !description.isEmpty {
+                Text(description)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+            }
+
+            Text(tracker.updated.relativeDescription)
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+        }
+        .padding(.vertical, 2)
     }
 }
