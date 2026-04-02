@@ -3,7 +3,7 @@ import os
 
 private let lookupLogger = Logger(subsystem: "net.cleberg.Hutch", category: "Lookup")
 
-enum LookupType: String, CaseIterable, Identifiable {
+enum LookupType: String, CaseIterable, Identifiable, Codable, Sendable {
     case user = "User"
     case gitRepo = "Git Repo"
     case hgRepo = "Hg Repo"
@@ -74,10 +74,12 @@ final class LookupViewModel {
     var inputText: String = ""
     private(set) var result: LookupResult?
     private(set) var isLooking = false
+    private(set) var history: [LookupHistoryEntry]
     var error: String?
 
     private let client: SRHTClient
     private let appState: AppState
+    private let defaults: UserDefaults
 
     var resultBinding: Binding<LookupResult?> {
         Binding(
@@ -90,9 +92,11 @@ final class LookupViewModel {
         )
     }
 
-    init(client: SRHTClient, appState: AppState) {
+    init(client: SRHTClient, appState: AppState, defaults: UserDefaults = .standard) {
         self.client = client
         self.appState = appState
+        self.defaults = defaults
+        self.history = LookupHistoryStore.load(defaults: defaults)
     }
 
     func lookup() async {
@@ -121,6 +125,17 @@ final class LookupViewModel {
         } catch {
             self.error = error.userFacingMessage
         }
+    }
+
+    func rerun(_ entry: LookupHistoryEntry) async {
+        selectedType = entry.type
+        inputText = entry.query
+        await lookup()
+    }
+
+    func clearHistory() {
+        LookupHistoryStore.clear(defaults: defaults)
+        history = []
     }
 
     private func parseOwnerAndName() -> (owner: String, name: String)? {
@@ -161,6 +176,7 @@ final class LookupViewModel {
 
     private func lookupUser() async throws -> LookupResult {
         guard let username = parseUsername() else { throw LookupError.invalidInput }
+        recordHistory(type: .user, query: "~\(username)")
 
         struct Response: Decodable, Sendable {
             let user: User
@@ -216,6 +232,8 @@ final class LookupViewModel {
 
     private func lookupRepository(service: SRHTService) async throws -> LookupResult {
         guard let (owner, name) = parseOwnerAndName() else { throw LookupError.invalidInput }
+        let type: LookupType = service == .git ? .gitRepo : .hgRepo
+        recordHistory(type: type, query: "~\(owner)/\(name)")
 
         let repository = try await appState.resolveRepository(owner: owner, name: name, service: service)
         let resolvedRepository = RepositorySummary(
@@ -235,6 +253,7 @@ final class LookupViewModel {
 
     private func lookupMailingList() async throws -> LookupResult {
         guard let (owner, name) = parseOwnerAndName() else { throw LookupError.invalidInput }
+        recordHistory(type: .mailingList, query: "~\(owner)/\(name)")
 
         struct Response: Decodable, Sendable {
             let user: UserWithList
@@ -266,12 +285,14 @@ final class LookupViewModel {
 
     private func lookupTracker() async throws -> LookupResult {
         guard let (owner, name) = parseOwnerAndName() else { throw LookupError.invalidInput }
+        recordHistory(type: .tracker, query: "~\(owner)/\(name)")
         let tracker = try await appState.resolveTracker(owner: owner, name: name)
         return .tracker(tracker)
     }
 
     private func lookupBuildJob() async throws -> LookupResult {
         guard let jobId = parseBuildJobId() else { throw LookupError.invalidInput }
+        recordHistory(type: .buildJob, query: String(jobId))
 
         struct Response: Decodable, Sendable {
             let job: JobIdOnly
@@ -299,6 +320,11 @@ final class LookupViewModel {
 
     private enum LookupError: Error {
         case invalidInput
+    }
+
+    private func recordHistory(type: LookupType, query: String) {
+        LookupHistoryStore.record(type: type, query: query, defaults: defaults)
+        history = LookupHistoryStore.load(defaults: defaults)
     }
 }
 
@@ -359,6 +385,33 @@ struct LookupView: View {
                         Spacer()
                         ProgressView()
                     }
+                }
+            }
+
+            if !vm.history.isEmpty {
+                Section("Recent Searches") {
+                    ForEach(vm.history) { entry in
+                        Button {
+                            Task { await vm.rerun(entry) }
+                        } label: {
+                            HStack {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(entry.query)
+                                        .foregroundStyle(.primary)
+                                    Text(entry.type.rawValue)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                                Spacer()
+                            }
+                        }
+                        .disabled(vm.isLooking)
+                    }
+
+                    Button("Clear History", role: .destructive) {
+                        vm.clearHistory()
+                    }
+                    .disabled(vm.isLooking)
                 }
             }
         }
