@@ -10,6 +10,7 @@ struct RepositorySettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var viewModel: RepositorySettingsViewModel?
     @State private var showDeleteConfirmation = false
+    @State private var showRenameConfirmation = false
     @State private var pendingACLDeletion: ACLEntry?
     @State private var saveResultAlert: SaveResultAlert?
 
@@ -54,6 +55,25 @@ struct RepositorySettingsView: View {
             deleteSection(viewModel)
         }
         .srhtErrorBanner(error: $vm.error)
+        .alert(
+            "Rename repository to \(viewModel.editedName.trimmingCharacters(in: .whitespacesAndNewlines))?",
+            isPresented: $showRenameConfirmation
+        ) {
+            Button("Cancel", role: .cancel) {
+                // Alert dismissal is implicit; no additional action required.
+            }
+            Button("Rename", role: .destructive) {
+                Task {
+                    await viewModel.rename()
+                    if let newName = viewModel.updatedName {
+                        onRenamed(newName)
+                        dismiss()
+                    }
+                }
+            }
+        } message: {
+            Text("This will change the repository URL. Existing clones will be redirected but links may break.")
+        }
         .alert(
             "Permanently delete \(repository.owner.canonicalName)/\(repository.name)?",
             isPresented: $showDeleteConfirmation
@@ -168,13 +188,7 @@ struct RepositorySettingsView: View {
                 .foregroundStyle(.secondary)
 
             Button {
-                Task {
-                    await viewModel.rename()
-                    if let newName = viewModel.updatedName {
-                        onRenamed(newName)
-                        dismiss()
-                    }
-                }
+                showRenameConfirmation = true
             } label: {
                 if viewModel.isRenaming {
                     ProgressView()
