@@ -20,6 +20,11 @@ struct TicketDetailView: View {
     // Comment composer mode
     @State private var commentMode: CommentMode = .write
 
+    private var isOwnedByCurrentUser: Bool {
+        guard let currentUser = appState.currentUser else { return false }
+        return normalizedUsername(currentUser.username) == normalizedUsername(ownerUsername)
+    }
+
     private enum CommentMode: String, CaseIterable {
         case write = "Write"
         case preview = "Preview"
@@ -41,7 +46,7 @@ struct TicketDetailView: View {
                     Image(systemName: "square.and.arrow.up")
                 }
 
-                if let viewModel, viewModel.ticket != nil {
+                if let viewModel, viewModel.ticket != nil, isOwnedByCurrentUser {
                     actionsMenu(viewModel)
                 }
             }
@@ -195,7 +200,9 @@ struct TicketDetailView: View {
 
                 Spacer(minLength: 12)
 
-                assignToMeButton(ticket: ticket, viewModel: viewModel)
+                if isOwnedByCurrentUser {
+                    assignToMeButton(ticket: ticket, viewModel: viewModel)
+                }
             }
 
             HStack(spacing: 8) {
@@ -333,6 +340,11 @@ struct TicketDetailView: View {
             }
         }
         .padding()
+    }
+
+    private func normalizedUsername(_ value: String) -> String {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.hasPrefix("~") ? String(trimmed.dropFirst()) : trimmed
     }
 }
 

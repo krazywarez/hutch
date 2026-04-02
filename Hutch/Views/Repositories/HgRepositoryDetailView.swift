@@ -14,6 +14,11 @@ struct HgRepositoryDetailView: View {
     @State private var isShowingRepositoryDetails = false
     @State private var showBrowseRefPicker = false
 
+    private var canManageRepository: Bool {
+        guard let currentUser = appState.currentUser else { return false }
+        return normalizedUsername(currentUser.username) == normalizedUsername(repository.owner.canonicalName)
+    }
+
     private var shareURL: URL? {
         guard let viewModel, let selectedFilePath = viewModel.selectedFilePath else { return nil }
         return SRHTWebURL.file(
@@ -51,10 +56,12 @@ struct HgRepositoryDetailView: View {
                     Image(systemName: "square.and.arrow.up")
                 }
 
-                Button {
-                    showSettings = true
-                } label: {
-                    Image(systemName: "gear")
+                if canManageRepository {
+                    Button {
+                        showSettings = true
+                    } label: {
+                        Image(systemName: "gear")
+                    }
                 }
             }
         }
@@ -83,6 +90,11 @@ struct HgRepositoryDetailView: View {
                 _ = await (summary, browse, log)
             }
         }
+    }
+
+    private func normalizedUsername(_ value: String) -> String {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.hasPrefix("~") ? String(trimmed.dropFirst()) : trimmed
     }
 
     @ViewBuilder

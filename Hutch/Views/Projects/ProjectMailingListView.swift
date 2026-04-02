@@ -257,7 +257,23 @@ struct MailingListDetailView: View {
 
         List {
             ForEach(viewModel.filteredThreads) { thread in
-                NavigationLink(value: MoreRoute.thread(thread)) {
+                NavigationLink {
+                    ThreadDetailView(
+                        thread: thread,
+                        onViewed: {
+                            InboxReadStateStore.markViewed(max(Date(), thread.lastActivityAt), for: thread.id)
+                            NeedsAttentionSnapshotStore.adjustUnreadInboxThreads(by: -1)
+                        },
+                        onMarkRead: {
+                            InboxReadStateStore.markViewed(max(Date(), thread.lastActivityAt), for: thread.id)
+                            NeedsAttentionSnapshotStore.adjustUnreadInboxThreads(by: -1)
+                        },
+                        onMarkUnread: {
+                            InboxReadStateStore.markUnread(for: thread.id)
+                            NeedsAttentionSnapshotStore.adjustUnreadInboxThreads(by: 1)
+                        }
+                    )
+                } label: {
                     InboxThreadRow(thread: thread)
                 }
                 .swipeActions(edge: .trailing, allowsFullSwipe: true) {

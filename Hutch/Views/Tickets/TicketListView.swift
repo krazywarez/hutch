@@ -18,6 +18,11 @@ struct TicketListView: View {
     @State private var showTrackerLabels = false
     @State private var showDeleteTrackerConfirmation = false
 
+    private var isOwnedByCurrentUser: Bool {
+        guard let currentUser = appState.currentUser else { return false }
+        return normalizedUsername(currentUser.username) == normalizedUsername(tracker.owner.canonicalName)
+    }
+
     init(
         tracker: TrackerSummary,
         onTrackerUpdated: @escaping (TrackerSummary) -> Void = { _ in },
@@ -58,7 +63,9 @@ struct TicketListView: View {
                     }
                     .accessibilityLabel("Create ticket")
 
-                    trackerActionsMenu
+                    if isOwnedByCurrentUser {
+                        trackerActionsMenu
+                    }
                 }
             }
         }

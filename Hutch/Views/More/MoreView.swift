@@ -14,6 +14,10 @@ struct MoreView: View {
     var body: some View {
         List {
             Section {
+                NavigationLink(value: MoreRoute.lookup) {
+                    Label("Look Up", systemImage: "magnifyingglass")
+                }
+
                 NavigationLink(value: MoreRoute.lists) {
                     Label("Mailing Lists", systemImage: "list.bullet.rectangle")
                 }

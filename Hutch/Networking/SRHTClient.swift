@@ -98,6 +98,11 @@ final class SRHTClient: Sendable {
             }
         }
 
+        if let errorEnvelope = try? decoder.decode(GraphQLResponse<EmptyData>.self, from: data),
+           let errors = errorEnvelope.errors, !errors.isEmpty {
+            throw SRHTError.graphQLErrors(errors)
+        }
+
         // Decode GraphQL response envelope
         let graphQLResponse: GraphQLResponse<T>
         do {
@@ -246,6 +251,11 @@ final class SRHTClient: Sendable {
             if !(200...299).contains(http.statusCode) {
                 throw SRHTError.httpError(http.statusCode)
             }
+        }
+
+        if let errorEnvelope = try? decoder.decode(GraphQLResponse<EmptyData>.self, from: data),
+           let errors = errorEnvelope.errors, !errors.isEmpty {
+            throw SRHTError.graphQLErrors(errors)
         }
 
         let graphQLResponse: GraphQLResponse<T>

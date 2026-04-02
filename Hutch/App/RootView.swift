@@ -263,6 +263,7 @@ enum MoreDestination: Hashable {
 }
 
 enum MoreRoute: Hashable {
+    case lookup
     case lists
     case pastes
     case settings
@@ -275,6 +276,8 @@ private struct MoreNavigationRoot: View {
         MoreView()
             .navigationDestination(for: MoreRoute.self) { route in
                 switch route {
+                case .lookup:
+                    LookupView()
                 case .lists:
                     MailingListListView()
                 case .pastes:

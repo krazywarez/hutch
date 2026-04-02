@@ -11,6 +11,11 @@ struct RepositoryDetailView: View {
     @State private var showSettings = false
     @State private var displayName: String
 
+    private var canManageRepository: Bool {
+        guard let currentUser = appState.currentUser else { return false }
+        return normalizedUsername(currentUser.username) == normalizedUsername(repository.owner.canonicalName)
+    }
+
     init(repository: RepositorySummary, onDeleted: (() -> Void)? = nil) {
         self.repository = repository
         self.onDeleted = onDeleted
@@ -36,10 +41,12 @@ struct RepositoryDetailView: View {
                         Image(systemName: "square.and.arrow.up")
                     }
 
-                    Button {
-                        showSettings = true
-                    } label: {
-                        Image(systemName: "gear")
+                    if canManageRepository {
+                        Button {
+                            showSettings = true
+                        } label: {
+                            Image(systemName: "gear")
+                        }
                     }
                 }
             }
@@ -103,5 +110,10 @@ struct RepositoryDetailView: View {
             get: { viewModel.error },
             set: { viewModel.error = $0 }
         ))
+    }
+
+    private func normalizedUsername(_ value: String) -> String {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.hasPrefix("~") ? String(trimmed.dropFirst()) : trimmed
     }
 }
