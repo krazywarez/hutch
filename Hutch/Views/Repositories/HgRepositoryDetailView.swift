@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct HgRepositoryDetailView: View {
     let repository: RepositorySummary
@@ -8,11 +9,16 @@ struct HgRepositoryDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
 
+    @AppStorage(AppStorageKeys.wrapRepositoryFileLines) private var wrapRepositoryFileLines = false
     @State private var viewModel: HgRepositoryDetailViewModel?
     @State private var selectedTab: HgRepositoryDetailViewModel.Tab = .summary
     @State private var showSettings = false
     @State private var isShowingRepositoryDetails = false
     @State private var showBrowseRefPicker = false
+    @State private var showFileShareSheet = false
+    @State private var showShareUnavailableAlert = false
+    @State private var didCopyFileContents = false
+    @State private var copyResetTask: Task<Void, Never>?
 
     private var canManageRepository: Bool {
         guard let currentUser = appState.currentUser else { return false }
@@ -79,6 +85,9 @@ struct HgRepositoryDetailView: View {
             if let viewModel {
                 HgBrowseRefPickerSheet(viewModel: viewModel, isPresented: $showBrowseRefPicker)
             }
+        }
+        .onChange(of: viewModel?.selectedFilePath) { _, _ in
+            resetCopyConfirmation()
         }
         .task {
             if viewModel == nil {
@@ -266,39 +275,24 @@ struct HgRepositoryDetailView: View {
                 SRHTLoadingStateView(message: "Loading files…")
             } else if let selectedFilePath = viewModel.selectedFilePath, let fileContent = viewModel.fileContent {
                 VStack(spacing: 0) {
-                    HStack {
-                        Spacer()
-                        SRHTShareButton(url: shareURL, target: .file) {
-                            Label("Share File", systemImage: "square.and.arrow.up")
-                        }
-                        .buttonStyle(.bordered)
-                    }
-                    .padding(.horizontal)
-                    .padding(.top, 12)
-
-                    GeometryReader { geometry in
-                        ScrollView([.vertical, .horizontal]) {
-                            Text(fileContent)
-                                .font(.system(.body, design: .monospaced))
-                                .frame(
-                                    minWidth: geometry.size.width,
-                                    minHeight: geometry.size.height,
-                                    alignment: .topLeading
-                                )
-                                .padding()
-                        }
-                    }
+                    CodeFileTextView(
+                        text: fileContent,
+                        fileName: selectedFilePath.split(separator: "/").last.map(String.init) ?? selectedFilePath,
+                        wrapLines: wrapRepositoryFileLines
+                    )
                 }
                 .safeAreaInset(edge: .bottom) {
-                    Button("Back to directory") {
-                        viewModel.dismissFileView()
-                    }
-                    .buttonStyle(.bordered)
-                    .padding(.vertical, 8)
-                    .frame(maxWidth: .infinity)
-                    .background(.bar)
+                    fileActionToolbar(fileContent: fileContent, viewModel: viewModel)
                 }
                 .navigationTitle(selectedFilePath.split(separator: "/").last.map(String.init) ?? repository.name)
+                .sheet(isPresented: $showFileShareSheet) {
+                    FileContentShareSheet(activityItems: [shareURL ?? fileContent])
+                }
+                .alert("Share Unavailable", isPresented: $showShareUnavailableAlert) {
+                    Button("OK", role: .cancel) {}
+                } message: {
+                    Text(SRHTShareTarget.file.fallbackMessage)
+                }
             } else if let error = viewModel.error, viewModel.files.isEmpty {
                 SRHTErrorStateView(
                     title: "Couldn't Load Files",
@@ -508,6 +502,95 @@ struct HgRepositoryDetailView: View {
         name.hasSuffix("/") ? String(name.dropLast()) : name
     }
 
+    private func shareFileContents(_ text: String) {
+        if text.isEmpty {
+            showShareUnavailableAlert = true
+        } else {
+            showFileShareSheet = true
+        }
+    }
+
+    private func copyFileContents(_ text: String) {
+        UIPasteboard.general.string = text
+        didCopyFileContents = true
+        copyResetTask?.cancel()
+        copyResetTask = Task {
+            try? await Task.sleep(for: .seconds(2))
+            guard !Task.isCancelled else { return }
+            await MainActor.run {
+                didCopyFileContents = false
+            }
+        }
+    }
+
+    private func resetCopyConfirmation() {
+        copyResetTask?.cancel()
+        copyResetTask = nil
+        didCopyFileContents = false
+    }
+
+    private func fileActionToolbar(fileContent: String, viewModel: HgRepositoryDetailViewModel) -> some View {
+        HStack(spacing: 0) {
+            toolbarButton(
+                title: "Share",
+                systemImage: "square.and.arrow.up"
+            ) {
+                if shareURL != nil {
+                    showFileShareSheet = true
+                } else {
+                    shareFileContents(fileContent)
+                }
+            }
+
+            toolbarButton(
+                title: didCopyFileContents ? "Copied" : "Copy All",
+                systemImage: didCopyFileContents ? "checkmark" : "doc.on.doc"
+            ) {
+                copyFileContents(fileContent)
+            }
+
+            toolbarButton(
+                title: wrapRepositoryFileLines ? "Wrap On" : "Wrap Off",
+                systemImage: "text.word.spacing"
+            ) {
+                wrapRepositoryFileLines.toggle()
+            }
+
+            toolbarButton(
+                title: "Back",
+                systemImage: "chevron.left"
+            ) {
+                viewModel.dismissFileView()
+            }
+        }
+        .padding(.horizontal, 8)
+        .padding(.top, 10)
+        .padding(.bottom, 8)
+        .background(.bar)
+        .overlay(alignment: .top) {
+            Divider()
+        }
+    }
+
+    private func toolbarButton(
+        title: String,
+        systemImage: String,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            VStack(spacing: 4) {
+                Image(systemName: systemImage)
+                    .font(.system(size: 17, weight: .semibold))
+                Text(title)
+                    .font(.caption2)
+                    .lineLimit(1)
+            }
+            .frame(maxWidth: .infinity)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(.primary)
+    }
 }
 
 private struct HgBrowseRefPickerSheet: View {

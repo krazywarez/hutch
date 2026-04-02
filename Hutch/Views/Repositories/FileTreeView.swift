@@ -369,7 +369,7 @@ private struct FileTreeContentView: View {
     }
 }
 
-private struct CodeFileTextView: UIViewRepresentable {
+struct CodeFileTextView: UIViewRepresentable {
     let text: String
     let fileName: String
     let wrapLines: Bool
@@ -396,7 +396,7 @@ private struct CodeFileTextView: UIViewRepresentable {
     }
 }
 
-private struct FileContentShareSheet: UIViewControllerRepresentable {
+struct FileContentShareSheet: UIViewControllerRepresentable {
     let activityItems: [Any]
 
     func makeUIViewController(context _: Context) -> UIActivityViewController {
@@ -406,7 +406,7 @@ private struct FileContentShareSheet: UIViewControllerRepresentable {
     func updateUIViewController(_ : UIActivityViewController, context _: Context) {}
 }
 
-private final class CodeFileUIView: UIView {
+final class CodeFileUIView: UIView {
     private enum Layout {
         static let verticalPadding: CGFloat = 12
         static let gutterLeadingPadding: CGFloat = 12
