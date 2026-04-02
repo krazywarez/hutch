@@ -3,10 +3,6 @@ import Foundation
 // MARK: - Response types (file-private to avoid @MainActor Decodable issues)
 
 private struct TicketDetailResponse: Decodable, Sendable {
-    let user: UserTrackerTicketWrapper
-}
-
-private struct UserTrackerTicketWrapper: Decodable, Sendable {
     let tracker: TrackerTicketWrapper
 }
 
@@ -85,10 +81,6 @@ private struct CreateLabelResponse: Decodable, Sendable {
 }
 
 private struct TrackerLabelsResponse: Decodable, Sendable {
-    let user: UserTrackerLabelsWrapper
-}
-
-private struct UserTrackerLabelsWrapper: Decodable, Sendable {
     let tracker: TrackerLabelsWrapper
 }
 
@@ -155,57 +147,55 @@ final class TicketDetailViewModel {
     // MARK: - Queries
 
     private static let detailQuery = """
-    query ticket($owner: String!, $tracker: String!, $ticketId: Int!) {
-        user(username: $owner) {
-            tracker(name: $tracker) {
-                ticket(id: $ticketId) {
-                    id
-                    created
-                    updated
-                    title: subject
-                    description: body
-                    status
-                    resolution
-                    authenticity
-                    submitter { canonicalName }
-                    assignees { canonicalName }
-                    labels { id name backgroundColor foregroundColor }
-                    events {
-                        results {
-                            id
-                            created
-                            changes {
-                                eventType
-                                ... on Comment {
-                                    author { canonicalName }
-                                    text
-                                    authenticity
-                                }
-                                ... on StatusChange {
-                                    oldStatus
-                                    newStatus
-                                }
-                                ... on LabelUpdate {
-                                    labeler { canonicalName }
-                                    label { name }
-                                }
-                                ... on Assignment {
-                                    assigner { canonicalName }
-                                    assignee { canonicalName }
-                                }
-                                ... on TicketMention {
-                                    mentioned { id }
-                                }
-                                ... on UserMention {
-                                    mentioned { canonicalName }
-                                }
-                                ... on Created {
-                                    author { canonicalName }
-                                }
+    query ticket($rid: ID!, $ticketId: Int!) {
+        tracker(rid: $rid) {
+            ticket(id: $ticketId) {
+                id
+                created
+                updated
+                title: subject
+                description: body
+                status
+                resolution
+                authenticity
+                submitter { canonicalName }
+                assignees { canonicalName }
+                labels { id name backgroundColor foregroundColor }
+                events {
+                    results {
+                        id
+                        created
+                        changes {
+                            eventType
+                            ... on Comment {
+                                author { canonicalName }
+                                text
+                                authenticity
+                            }
+                            ... on StatusChange {
+                                oldStatus
+                                newStatus
+                            }
+                            ... on LabelUpdate {
+                                labeler { canonicalName }
+                                label { name }
+                            }
+                            ... on Assignment {
+                                assigner { canonicalName }
+                                assignee { canonicalName }
+                            }
+                            ... on TicketMention {
+                                mentioned { id }
+                            }
+                            ... on UserMention {
+                                mentioned { canonicalName }
+                            }
+                            ... on Created {
+                                author { canonicalName }
                             }
                         }
-                        cursor
                     }
+                    cursor
                 }
             }
         }
@@ -268,12 +258,10 @@ final class TicketDetailViewModel {
     """
 
     private static let trackerLabelsQuery = """
-    query trackerLabels($owner: String!, $tracker: String!) {
-        user(username: $owner) {
-            tracker(name: $tracker) {
-                labels {
-                    results { id name backgroundColor foregroundColor }
-                }
+    query trackerLabels($rid: ID!) {
+        tracker(rid: $rid) {
+            labels {
+                results { id name backgroundColor foregroundColor }
             }
         }
     }
@@ -302,13 +290,12 @@ final class TicketDetailViewModel {
                 service: .todo,
                 query: Self.detailQuery,
                 variables: [
-                    "owner": ownerUsername,
-                    "tracker": trackerName,
+                    "rid": trackerRid,
                     "ticketId": ticketId
                 ],
                 responseType: TicketDetailResponse.self
             )
-            let payload = result.user.tracker.ticket
+            let payload = result.tracker.ticket
             ticket = TicketDetail(
                 id: payload.id,
                 created: payload.created,
@@ -579,13 +566,10 @@ final class TicketDetailViewModel {
             let result = try await client.execute(
                 service: .todo,
                 query: Self.trackerLabelsQuery,
-                variables: [
-                    "owner": ownerUsername,
-                    "tracker": trackerName
-                ],
+                variables: ["rid": trackerRid],
                 responseType: TrackerLabelsResponse.self
             )
-            trackerLabels = result.user.tracker.labels.results
+            trackerLabels = result.tracker.labels.results
         } catch {
             self.error = error.userFacingMessage
         }

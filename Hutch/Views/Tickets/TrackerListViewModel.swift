@@ -11,6 +11,18 @@ private struct TrackersPage: Decodable, Sendable {
     let cursor: String?
 }
 
+private struct UpdateTrackerResponse: Decodable, Sendable {
+    let updateTracker: TrackerSummary
+}
+
+private struct DeleteTrackerResponse: Decodable, Sendable {
+    let deleteTracker: DeletedTracker
+}
+
+private struct DeletedTracker: Decodable, Sendable {
+    let id: Int
+}
+
 // MARK: - View Model
 
 @Observable
@@ -71,6 +83,28 @@ final class TrackerListViewModel {
             visibility
             updated
             owner { canonicalName }
+        }
+    }
+    """
+
+    private static let updateTrackerMutation = """
+    mutation updateTracker($id: Int!, $input: TrackerInput!) {
+        updateTracker(id: $id, input: $input) {
+            id
+            rid
+            name
+            description
+            visibility
+            updated
+            owner { canonicalName }
+        }
+    }
+    """
+
+    private static let deleteTrackerMutation = """
+    mutation deleteTracker($id: Int!) {
+        deleteTracker(id: $id) {
+            id
         }
     }
     """
@@ -153,6 +187,84 @@ final class TrackerListViewModel {
             self.error = trackerCreationErrorMessage(for: error)
             return nil
         }
+    }
+
+    func updateTracker(
+        _ tracker: TrackerSummary,
+        name: String,
+        description: String,
+        visibility: Visibility
+    ) async -> TrackerSummary? {
+        guard !isCreatingTracker else { return nil }
+
+        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedName.isEmpty else {
+            error = "Enter a tracker name."
+            return nil
+        }
+
+        isCreatingTracker = true
+        error = nil
+        defer { isCreatingTracker = false }
+
+        let trimmedDescription = description.trimmingCharacters(in: .whitespacesAndNewlines)
+        let input: [String: any Sendable] = [
+            "name": trimmedName,
+            "description": trimmedDescription.isEmpty ? "" : trimmedDescription,
+            "visibility": visibility.rawValue
+        ]
+
+        do {
+            let result = try await client.execute(
+                service: .todo,
+                query: Self.updateTrackerMutation,
+                variables: [
+                    "id": tracker.id,
+                    "input": input
+                ],
+                responseType: UpdateTrackerResponse.self
+            )
+            applyTrackerUpdate(result.updateTracker)
+            return result.updateTracker
+        } catch {
+            self.error = "Couldn’t update the tracker. \(error.userFacingMessage)"
+            return nil
+        }
+    }
+
+    func deleteTracker(_ tracker: TrackerSummary) async -> Bool {
+        guard !isCreatingTracker else { return false }
+
+        isCreatingTracker = true
+        error = nil
+        defer { isCreatingTracker = false }
+
+        do {
+            _ = try await client.execute(
+                service: .todo,
+                query: Self.deleteTrackerMutation,
+                variables: ["id": tracker.id],
+                responseType: DeleteTrackerResponse.self
+            )
+            trackers.removeAll { $0.id == tracker.id }
+            await loadTrackers()
+            return true
+        } catch {
+            self.error = "Couldn’t delete the tracker. \(error.userFacingMessage)"
+            return false
+        }
+    }
+
+    func applyTrackerUpdate(_ tracker: TrackerSummary) {
+        if let index = trackers.firstIndex(where: { $0.id == tracker.id }) {
+            trackers[index] = tracker
+        } else {
+            trackers.insert(tracker, at: 0)
+        }
+    }
+
+    func applyTrackerDeletion(_ tracker: TrackerSummary) {
+        trackers.removeAll { $0.id == tracker.id }
     }
 
     // MARK: - Private

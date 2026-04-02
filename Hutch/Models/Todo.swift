@@ -81,6 +81,55 @@ struct TicketLabel: Codable, Sendable, Identifiable, Hashable {
     let foregroundColor: String
 }
 
+// MARK: - Tracker ACL
+
+struct TrackerACLPermissions: Codable, Sendable, Hashable {
+    let browse: Bool
+    let submit: Bool
+    let comment: Bool
+    let edit: Bool
+    let triage: Bool
+}
+
+struct TrackerACL: Codable, Sendable, Identifiable, Hashable {
+    let id: Int
+    let created: Date
+    let entity: Entity
+    let browse: Bool
+    let submit: Bool
+    let comment: Bool
+    let edit: Bool
+    let triage: Bool
+
+    var permissions: TrackerACLPermissions {
+        TrackerACLPermissions(
+            browse: browse,
+            submit: submit,
+            comment: comment,
+            edit: edit,
+            triage: triage
+        )
+    }
+}
+
+struct DefaultTrackerACL: Codable, Sendable, Hashable {
+    let browse: Bool
+    let submit: Bool
+    let comment: Bool
+    let edit: Bool
+    let triage: Bool
+
+    var permissions: TrackerACLPermissions {
+        TrackerACLPermissions(
+            browse: browse,
+            submit: submit,
+            comment: comment,
+            edit: edit,
+            triage: triage
+        )
+    }
+}
+
 // MARK: - Tracker
 
 /// A bug tracker from todo.sr.ht.

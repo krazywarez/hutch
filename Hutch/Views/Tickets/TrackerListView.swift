@@ -5,6 +5,8 @@ struct TrackerListView: View {
     @State private var viewModel: TrackerListViewModel?
     @State private var showCreateTrackerSheet = false
     @State private var createdTracker: TrackerSummary?
+    @State private var editingTracker: TrackerSummary?
+    @State private var pendingDeletion: TrackerSummary?
 
     var body: some View {
         Group {
@@ -28,9 +30,50 @@ struct TrackerListView: View {
         }
         .sheet(isPresented: $showCreateTrackerSheet) {
             if let viewModel {
-                CreateTrackerSheet(viewModel: viewModel) { tracker in
-                    showCreateTrackerSheet = false
-                    createdTracker = tracker
+                TrackerEditorSheet(
+                    title: "New Tracker",
+                    confirmationTitle: "Create Tracker",
+                    isSaving: viewModel.isCreatingTracker,
+                    error: viewModel.error,
+                    initialName: "",
+                    initialDescription: "",
+                    initialVisibility: .public
+                ) { name, description, visibility in
+                    if let tracker = await viewModel.createTracker(
+                        name: name,
+                        description: description,
+                        visibility: visibility
+                    ) {
+                        createdTracker = tracker
+                        showCreateTrackerSheet = false
+                        return true
+                    }
+                    return false
+                }
+            }
+        }
+        .sheet(item: $editingTracker) { tracker in
+            if let viewModel {
+                TrackerEditorSheet(
+                    title: "Update Tracker",
+                    confirmationTitle: "Save",
+                    isSaving: viewModel.isCreatingTracker,
+                    error: viewModel.error,
+                    initialName: tracker.name,
+                    initialDescription: tracker.description ?? "",
+                    initialVisibility: tracker.visibility
+                ) { name, description, visibility in
+                    if let updatedTracker = await viewModel.updateTracker(
+                        tracker,
+                        name: name,
+                        description: description,
+                        visibility: visibility
+                    ) {
+                        createdTracker = createdTracker?.id == tracker.id ? updatedTracker : createdTracker
+                        editingTracker = nil
+                        return true
+                    }
+                    return false
                 }
             }
         }
@@ -43,12 +86,42 @@ struct TrackerListView: View {
             }
         )) {
             if let createdTracker {
-                TicketListView(
-                    ownerUsername: String(createdTracker.owner.canonicalName.dropFirst()),
-                    trackerName: createdTracker.name,
-                    trackerId: createdTracker.id,
-                    trackerRid: createdTracker.rid
-                )
+                TicketListView(tracker: createdTracker) { updatedTracker in
+                    viewModel?.applyTrackerUpdate(updatedTracker)
+                    self.createdTracker = updatedTracker
+                } onTrackerDeleted: { deletedTracker in
+                    viewModel?.applyTrackerDeletion(deletedTracker)
+                    if let viewModel {
+                        Task { await viewModel.loadTrackers() }
+                    }
+                    self.createdTracker = nil
+                }
+            }
+        }
+        .alert("Delete Tracker?", isPresented: Binding(
+            get: { pendingDeletion != nil },
+            set: { isPresented in
+                if !isPresented {
+                    pendingDeletion = nil
+                }
+            }
+        )) {
+            Button("Cancel", role: .cancel) {}
+            Button("Delete", role: .destructive) {
+                guard let pendingDeletion, let viewModel else { return }
+                Task {
+                    let didDelete = await viewModel.deleteTracker(pendingDeletion)
+                    if didDelete {
+                        if createdTracker?.id == pendingDeletion.id {
+                            createdTracker = nil
+                        }
+                        self.pendingDeletion = nil
+                    }
+                }
+            }
+        } message: {
+            if let pendingDeletion {
+                Text("“\(pendingDeletion.name)” will be permanently deleted.")
             }
         }
         .task {
@@ -68,6 +141,20 @@ struct TrackerListView: View {
             ForEach(viewModel.filteredTrackers) { tracker in
                 NavigationLink(value: tracker) {
                     TrackerRowView(tracker: tracker)
+                }
+                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                    Button(role: .destructive) {
+                        pendingDeletion = tracker
+                    } label: {
+                        Label("Delete", systemImage: "trash")
+                    }
+
+                    Button {
+                        editingTracker = tracker
+                    } label: {
+                        Label("Edit", systemImage: "pencil")
+                    }
+                    .tint(.blue)
                 }
                 .task {
                     await viewModel.loadMoreIfNeeded(currentItem: tracker)
@@ -116,92 +203,16 @@ struct TrackerListView: View {
             await viewModel.loadTrackers()
         }
         .navigationDestination(for: TrackerSummary.self) { tracker in
-            TicketListView(
-                ownerUsername: String(tracker.owner.canonicalName.dropFirst()),
-                trackerName: tracker.name,
-                trackerId: tracker.id,
-                trackerRid: tracker.rid
-            )
-        }
-    }
-}
-
-private struct CreateTrackerSheet: View {
-    let viewModel: TrackerListViewModel
-    let onCreated: (TrackerSummary) -> Void
-
-    @Environment(\.dismiss) private var dismiss
-    @Bindable var viewModelBindable: TrackerListViewModel
-    @State private var name = ""
-    @State private var description = ""
-    @State private var visibility: Visibility = .public
-
-    init(viewModel: TrackerListViewModel, onCreated: @escaping (TrackerSummary) -> Void) {
-        self.viewModel = viewModel
-        self._viewModelBindable = Bindable(viewModel)
-        self.onCreated = onCreated
-    }
-
-    var body: some View {
-        NavigationStack {
-            Form {
-                Section("Tracker Details") {
-                    TextField("Tracker name", text: $name)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                    TextField("Short description (optional)", text: $description, axis: .vertical)
-                        .lineLimit(2...4)
-                    Picker("Visibility", selection: $visibility) {
-                        Text("Public").tag(Visibility.public)
-                        Text("Unlisted").tag(Visibility.unlisted)
-                        Text("Private").tag(Visibility.private)
-                    }
+            TicketListView(tracker: tracker) { updatedTracker in
+                viewModel.applyTrackerUpdate(updatedTracker)
+                if createdTracker?.id == updatedTracker.id {
+                    createdTracker = updatedTracker
                 }
-
-                if let error = viewModel.error {
-                    Section {
-                        Label {
-                            Text(error)
-                        } icon: {
-                            Image(systemName: "exclamationmark.triangle.fill")
-                                .foregroundStyle(.red)
-                        }
-                        .foregroundStyle(.red)
-                    }
-                }
-            }
-            .navigationTitle("New Tracker")
-            .navigationBarTitleDisplayMode(.inline)
-            .onDisappear {
-                viewModelBindable.error = nil
-            }
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
-                        viewModelBindable.error = nil
-                        dismiss()
-                    }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button {
-                        Task {
-                            if let tracker = await viewModel.createTracker(
-                                name: name,
-                                description: description,
-                                visibility: visibility
-                            ) {
-                                onCreated(tracker)
-                            }
-                        }
-                    } label: {
-                        if viewModel.isCreatingTracker {
-                            ProgressView()
-                                .controlSize(.small)
-                        } else {
-                            Text("Create Tracker")
-                        }
-                    }
-                    .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || viewModel.isCreatingTracker)
+            } onTrackerDeleted: { deletedTracker in
+                viewModel.applyTrackerDeletion(deletedTracker)
+                Task { await viewModel.loadTrackers() }
+                if createdTracker?.id == deletedTracker.id {
+                    createdTracker = nil
                 }
             }
         }

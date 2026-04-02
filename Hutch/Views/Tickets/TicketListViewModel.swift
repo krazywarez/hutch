@@ -3,10 +3,6 @@ import Foundation
 // MARK: - Response types (file-private to avoid @MainActor Decodable issues)
 
 private struct TrackerTicketsResponse: Decodable, Sendable {
-    let user: UserTrackerWrapper
-}
-
-private struct UserTrackerWrapper: Decodable, Sendable {
     let tracker: TrackerTicketsWrapper
 }
 
@@ -38,10 +34,6 @@ private struct LabelMutationResponse: Decodable, Sendable {
 }
 
 private struct TrackerLabelsResponse: Decodable, Sendable {
-    let user: UserTrackerLabelsWrapper
-}
-
-private struct UserTrackerLabelsWrapper: Decodable, Sendable {
     let tracker: TrackerLabelsWrapper
 }
 
@@ -116,22 +108,20 @@ final class TicketListViewModel {
     // MARK: - Query
 
     private static let query = """
-    query tickets($owner: String!, $tracker: String!, $cursor: Cursor) {
-        user(username: $owner) {
-            tracker(name: $tracker) {
-                tickets(cursor: $cursor) {
-                    results {
-                        id
-                        title: subject
-                        status
-                        resolution
-                        created
-                        submitter { canonicalName }
-                        labels { id name backgroundColor foregroundColor }
-                        assignees { canonicalName }
-                    }
-                    cursor
+    query tickets($rid: ID!, $cursor: Cursor) {
+        tracker(rid: $rid) {
+            tickets(cursor: $cursor) {
+                results {
+                    id
+                    title: subject
+                    status
+                    resolution
+                    created
+                    submitter { canonicalName }
+                    labels { id name backgroundColor foregroundColor }
+                    assignees { canonicalName }
                 }
+                cursor
             }
         }
     }
@@ -185,12 +175,10 @@ final class TicketListViewModel {
     """
 
     private static let trackerLabelsQuery = """
-    query trackerLabels($owner: String!, $tracker: String!) {
-        user(username: $owner) {
-            tracker(name: $tracker) {
-                labels {
-                    results { id name backgroundColor foregroundColor }
-                }
+    query trackerLabels($rid: ID!) {
+        tracker(rid: $rid) {
+            labels {
+                results { id name backgroundColor foregroundColor }
             }
         }
     }
@@ -404,13 +392,10 @@ final class TicketListViewModel {
             let result = try await client.execute(
                 service: .todo,
                 query: Self.trackerLabelsQuery,
-                variables: [
-                    "owner": ownerUsername,
-                    "tracker": trackerName
-                ],
+                variables: ["rid": trackerRid],
                 responseType: TrackerLabelsResponse.self
             )
-            trackerLabels = result.user.tracker.labels.results
+            trackerLabels = result.tracker.labels.results
         } catch {
             self.error = error.userFacingMessage
         }
@@ -530,10 +515,7 @@ final class TicketListViewModel {
     }
 
     private func fetchPage(cursor: String?) async throws -> TicketsPage {
-        var variables: [String: any Sendable] = [
-            "owner": ownerUsername,
-            "tracker": trackerName
-        ]
+        var variables: [String: any Sendable] = ["rid": trackerRid]
         if let cursor {
             variables["cursor"] = cursor
         }
@@ -543,7 +525,7 @@ final class TicketListViewModel {
             variables: variables,
             responseType: TrackerTicketsResponse.self
         )
-        return result.user.tracker.tickets
+        return result.tracker.tickets
     }
 
     private struct SubmitTicketResponse: Decodable, Sendable {

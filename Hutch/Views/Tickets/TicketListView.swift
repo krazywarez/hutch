@@ -1,17 +1,32 @@
 import SwiftUI
 
 struct TicketListView: View {
-    let ownerUsername: String
-    let trackerName: String
-    let trackerId: Int
-    let trackerRid: String
+    let onTrackerUpdated: (TrackerSummary) -> Void
+    let onTrackerDeleted: (TrackerSummary) -> Void
 
     @AppStorage(AppStorageKeys.swipeActionsEnabled) private var swipeActionsEnabled = true
     @Environment(AppState.self) private var appState
+    @Environment(\.dismiss) private var dismiss
+    @State private var tracker: TrackerSummary
     @State private var viewModel: TicketListViewModel?
+    @State private var trackerManagementViewModel: TrackerManagementViewModel?
     @State private var showCreateTicketSheet = false
     @State private var createdTicket: TicketSummary?
     @State private var labelEditorTicket: LabelEditorTicket?
+    @State private var showTrackerEditor = false
+    @State private var showTrackerACLs = false
+    @State private var showTrackerLabels = false
+    @State private var showDeleteTrackerConfirmation = false
+
+    init(
+        tracker: TrackerSummary,
+        onTrackerUpdated: @escaping (TrackerSummary) -> Void = { _ in },
+        onTrackerDeleted: @escaping (TrackerSummary) -> Void = { _ in }
+    ) {
+        self._tracker = State(initialValue: tracker)
+        self.onTrackerUpdated = onTrackerUpdated
+        self.onTrackerDeleted = onTrackerDeleted
+    }
 
     var body: some View {
         Group {
@@ -21,11 +36,17 @@ struct TicketListView: View {
                 SRHTLoadingStateView(message: "Loading tickets…")
             }
         }
-        .navigationTitle(trackerName)
+        .navigationTitle(tracker.name)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItemGroup(placement: .topBarTrailing) {
-                SRHTShareButton(url: SRHTWebURL.tracker(ownerUsername: ownerUsername, trackerName: trackerName), target: .tracker) {
+                SRHTShareButton(
+                    url: SRHTWebURL.tracker(
+                        ownerUsername: String(tracker.owner.canonicalName.dropFirst()),
+                        trackerName: tracker.name
+                    ),
+                    target: .tracker
+                ) {
                     Image(systemName: "square.and.arrow.up")
                 }
 
@@ -36,6 +57,8 @@ struct TicketListView: View {
                         Image(systemName: "plus")
                     }
                     .accessibilityLabel("Create ticket")
+
+                    trackerActionsMenu
                 }
             }
         }
@@ -56,6 +79,57 @@ struct TicketListView: View {
                 .presentationDetents([.medium])
             }
         }
+        .sheet(isPresented: $showTrackerEditor) {
+            if let trackerManagementViewModel {
+                TrackerEditorSheet(
+                    title: "Update Tracker",
+                    confirmationTitle: "Save",
+                    isSaving: trackerManagementViewModel.isSavingTracker,
+                    error: trackerManagementViewModel.error,
+                    initialName: tracker.name,
+                    initialDescription: tracker.description ?? "",
+                    initialVisibility: tracker.visibility
+                ) { name, description, visibility in
+                    if let updatedTracker = await trackerManagementViewModel.updateTracker(
+                        name: name,
+                        description: description,
+                        visibility: visibility
+                    ) {
+                        tracker = updatedTracker
+                        onTrackerUpdated(updatedTracker)
+                        return true
+                    }
+                    return false
+                }
+            }
+        }
+        .sheet(isPresented: $showTrackerACLs) {
+            if let trackerManagementViewModel {
+                TrackerACLManagementSheet(viewModel: trackerManagementViewModel)
+                    .presentationDetents([.large])
+            }
+        }
+        .sheet(isPresented: $showTrackerLabels) {
+            if let trackerManagementViewModel {
+                TrackerLabelManagementSheet(viewModel: trackerManagementViewModel)
+                    .presentationDetents([.large])
+            }
+        }
+        .alert("Delete Tracker?", isPresented: $showDeleteTrackerConfirmation) {
+            Button("Cancel", role: .cancel) {}
+            Button("Delete", role: .destructive) {
+                guard let trackerManagementViewModel else { return }
+                Task {
+                    let didDelete = await trackerManagementViewModel.deleteTracker()
+                    if didDelete {
+                        onTrackerDeleted(tracker)
+                        dismiss()
+                    }
+                }
+            }
+        } message: {
+            Text("“\(tracker.name)” will be permanently deleted.")
+        }
         .navigationDestination(isPresented: Binding(
             get: { createdTicket != nil },
             set: { isPresented in
@@ -65,19 +139,26 @@ struct TicketListView: View {
             }
         )) {
             if let createdTicket {
-                TicketDetailView(ownerUsername: ownerUsername, trackerName: trackerName, trackerId: trackerId, trackerRid: trackerRid, ticketId: createdTicket.id)
+                TicketDetailView(
+                    ownerUsername: String(tracker.owner.canonicalName.dropFirst()),
+                    trackerName: tracker.name,
+                    trackerId: tracker.id,
+                    trackerRid: tracker.rid,
+                    ticketId: createdTicket.id
+                )
             }
         }
         .task {
             if viewModel == nil {
                 let vm = TicketListViewModel(
-                    ownerUsername: ownerUsername,
-                    trackerName: trackerName,
-                    trackerId: trackerId,
-                    trackerRid: trackerRid,
+                    ownerUsername: String(tracker.owner.canonicalName.dropFirst()),
+                    trackerName: tracker.name,
+                    trackerId: tracker.id,
+                    trackerRid: tracker.rid,
                     client: appState.client
                 )
                 viewModel = vm
+                trackerManagementViewModel = TrackerManagementViewModel(tracker: tracker, client: appState.client)
                 await vm.loadTickets()
             }
         }
@@ -163,8 +244,45 @@ struct TicketListView: View {
             await viewModel.loadTickets()
         }
         .navigationDestination(for: TicketSummary.self) { ticket in
-            TicketDetailView(ownerUsername: ownerUsername, trackerName: trackerName, trackerId: trackerId, trackerRid: trackerRid, ticketId: ticket.id)
+            TicketDetailView(
+                ownerUsername: String(tracker.owner.canonicalName.dropFirst()),
+                trackerName: tracker.name,
+                trackerId: tracker.id,
+                trackerRid: tracker.rid,
+                ticketId: ticket.id
+            )
         }
+    }
+
+    private var trackerActionsMenu: some View {
+        Menu {
+            Button {
+                showTrackerEditor = true
+            } label: {
+                Label("Update Tracker", systemImage: "pencil")
+            }
+
+            Button {
+                showTrackerACLs = true
+            } label: {
+                Label("Manage ACLs", systemImage: "person.2")
+            }
+
+            Button {
+                showTrackerLabels = true
+            } label: {
+                Label("Manage Labels", systemImage: "tag")
+            }
+
+            Button(role: .destructive) {
+                showDeleteTrackerConfirmation = true
+            } label: {
+                Label("Delete Tracker", systemImage: "trash")
+            }
+        } label: {
+            Image(systemName: "ellipsis.circle")
+        }
+        .accessibilityLabel("Tracker actions")
     }
 
     @ViewBuilder
