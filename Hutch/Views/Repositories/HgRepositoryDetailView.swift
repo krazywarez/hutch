@@ -289,7 +289,9 @@ struct HgRepositoryDetailView: View {
                     FileContentShareSheet(activityItems: [shareURL ?? fileContent])
                 }
                 .alert("Share Unavailable", isPresented: $showShareUnavailableAlert) {
-                    Button("OK", role: .cancel) {}
+                    Button("OK", role: .cancel) {
+                        // no-op: .cancel role handles alert dismissal
+                    }
                 } message: {
                     Text(SRHTShareTarget.file.fallbackMessage)
                 }

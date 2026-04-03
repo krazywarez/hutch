@@ -260,7 +260,9 @@ private struct FileTreeContentView: View {
             FileContentShareSheet(activityItems: [text])
         }
         .alert("Share Unavailable", isPresented: $showShareUnavailableAlert) {
-            Button("OK", role: .cancel) {}
+            Button("OK", role: .cancel) {
+                // no-op: .cancel role handles alert dismissal
+            }
         } message: {
             Text(SRHTShareTarget.file.fallbackMessage)
         }
@@ -403,7 +405,9 @@ struct FileContentShareSheet: UIViewControllerRepresentable {
         UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
     }
 
-    func updateUIViewController(_ : UIActivityViewController, context _: Context) {}
+    func updateUIViewController(_ : UIActivityViewController, context _: Context) {
+        // no-op: UIActivityViewController manages its own state after presentation
+    }
 }
 
 final class CodeFileUIView: UIView {

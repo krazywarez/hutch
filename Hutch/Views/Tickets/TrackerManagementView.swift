@@ -820,7 +820,9 @@ struct TrackerACLManagementSheet: View {
                     }
                 }
             )) {
-                Button("Cancel", role: .cancel) {}
+                Button("Cancel", role: .cancel) {
+                    // no-op: .cancel role handles alert dismissal
+                }
                 Button("Delete", role: .destructive) {
                     guard let pendingDeletion else { return }
                     Task {
@@ -1157,7 +1159,9 @@ struct TrackerLabelManagementSheet: View {
                     }
                 }
             )) {
-                Button("Cancel", role: .cancel) {}
+                Button("Cancel", role: .cancel) {
+                    // no-op: .cancel role handles alert dismissal
+                }
                 Button("Delete", role: .destructive) {
                     guard let pendingDeletion else { return }
                     Task {

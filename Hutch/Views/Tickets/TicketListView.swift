@@ -25,8 +25,8 @@ struct TicketListView: View {
 
     init(
         tracker: TrackerSummary,
-        onTrackerUpdated: @escaping (TrackerSummary) -> Void = { _ in },
-        onTrackerDeleted: @escaping (TrackerSummary) -> Void = { _ in }
+        onTrackerUpdated: @escaping (TrackerSummary) -> Void = { _ in /* no-op: default for callers that don't handle this event */ },
+        onTrackerDeleted: @escaping (TrackerSummary) -> Void = { _ in /* no-op: default for callers that don't handle this event */ }
     ) {
         self._tracker = State(initialValue: tracker)
         self.onTrackerUpdated = onTrackerUpdated
@@ -123,7 +123,9 @@ struct TicketListView: View {
             }
         }
         .alert("Delete Tracker?", isPresented: $showDeleteTrackerConfirmation) {
-            Button("Cancel", role: .cancel) {}
+            Button("Cancel", role: .cancel) {
+                // no-op: .cancel role handles alert dismissal
+            }
             Button("Delete", role: .destructive) {
                 guard let trackerManagementViewModel else { return }
                 Task {
