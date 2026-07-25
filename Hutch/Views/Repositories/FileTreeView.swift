@@ -1,4 +1,3 @@
-import Splash
 import SwiftUI
 import UIKit
 
@@ -739,56 +738,13 @@ private struct CodeFileLineData {
 }
 
 private enum CodeSyntaxHighlighter {
-    static func attributedText(for text: String, fileName: String, font: UIFont) -> NSAttributedString {
-        guard supportsSplashHighlighting(fileName: fileName) else {
-            return plainText(text, font: font)
-        }
-
-        var splashFont = Font(size: Double(font.pointSize))
-        splashFont.resource = .preloaded(font)
-
-        let theme = Theme(
-            font: splashFont,
-            plainTextColor: .label,
-            tokenColors: [
-                .keyword: .systemPink,
-                .string: .systemRed,
-                .type: .systemTeal,
-                .call: .systemBlue,
-                .number: .systemPurple,
-                .comment: .secondaryLabel,
-                .property: .systemGreen,
-                .dotAccess: .systemIndigo,
-                .preprocessing: .systemOrange
-            ],
-            backgroundColor: .clear
-        )
-
-        let highlighted = SyntaxHighlighter(
-            format: AttributedStringOutputFormat(theme: theme)
-        ).highlight(text)
-
-        return NSMutableAttributedString(attributedString: highlighted)
-    }
-
-    private static func plainText(_ text: String, font: UIFont) -> NSAttributedString {
+    static func attributedText(for text: String, fileName _: String, font: UIFont) -> NSAttributedString {
         NSAttributedString(
             string: text,
             attributes: [
                 .font: font,
                 .foregroundColor: UIColor.label
             ]
-        )
-    }
-
-    private static func supportsSplashHighlighting(fileName: String) -> Bool {
-        let supportedExtensions: Set<String> = [
-            "swift",
-            "swiftinterface",
-            "playground"
-        ]
-        return supportedExtensions.contains(
-            (fileName as NSString).pathExtension.lowercased()
         )
     }
 }
