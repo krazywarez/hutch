@@ -66,7 +66,7 @@ struct AboutView: View {
             }
 
             Section("Support") {
-                Link(destination: URL(string: "mailto:hello@cleberg.net")!) {
+                Link(destination: URL(string: "mailto:root@krz.sh")!) {
                     SwiftUI.Label("Email Support", systemImage: "envelope")
                 }
                 .themedRow()

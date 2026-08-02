@@ -266,7 +266,7 @@ The 3 hotspots are the part actually worth thought:
   then annotate.
 
 Query it with:
-`https://sonarcloud.io/api/issues/search?componentKeys=krz_hutch&resolved=false`
+`https://sonarcloud.io/api/issues/search?componentKeys=krazywarez_hutch&resolved=false`
 
 This was scoped as a patch on the assumption nothing executes differently — and
 that mostly held: the cosmetic fixes are comments, a merge, and a rename. The one
