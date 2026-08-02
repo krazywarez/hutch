@@ -24,5 +24,5 @@ enum HutchDeepLinkURL {
 
 /// Default Hutch Stats API base URL (mirrors `AppConfiguration` fallback).
 enum HutchStatsAPI {
-    static let defaultBaseURL = URL(string: "https://hutch-stats.krz.sh")!
+    static let defaultBaseURL = URL(string: "https://hs.krz.sh")!
 }
