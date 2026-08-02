@@ -14,7 +14,7 @@
 If you discover a security vulnerability, **do not open a public issue**.
 Instead:
 
-1. **Email** your report to [security@cleberg.net](mailto:security@cleberg.net).
+1. **Email** your report to [root@krz.sh](mailto:root@krz.sh).
   Include:
   - A detailed description of the vulnerability
   - Steps to reproduce

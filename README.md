@@ -2,8 +2,8 @@
 iOS client for SourceHut.
 
 [![builds.sr.ht status](https://builds.sr.ht/~ccleberg/Hutch.svg)](https://builds.sr.ht/~ccleberg/Hutch?)
-[![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=krz_hutch&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=krz_hutch)
-[![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=krz_hutch&metric=reliability_rating)](https://sonarcloud.io/summary/new_code?id=krz_hutch)
+[![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=krazywarez_hutch&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=krazywarez_hutch)
+[![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=krazywarez_hutch&metric=reliability_rating)](https://sonarcloud.io/summary/new_code?id=krazywarez_hutch)
 
 [![App Store Badge](https://krz.sh/storebutton.svg)](https://apps.apple.com/us/app/hutch-for-sourcehut/id6760742299)
 
@@ -96,4 +96,4 @@ This project is licensed under the GPL 3.0 or later. See [LICENSE](LICENSE).
 
 ## Contact
 
-Questions or feedback: hello@cleberg.net
+Questions or feedback: root@krz.sh
