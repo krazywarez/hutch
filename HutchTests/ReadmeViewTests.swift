@@ -169,10 +169,10 @@ struct MarkdownRenderingTests {
 
     @Test
     func markdownPlainEmailAutolinks() {
-        let html = processInline("Contact hello@cleberg.net")
+        let html = processInline("Contact root@krz.sh")
 
-        #expect(html.contains(#"href="mailto:hello@cleberg.net""#))
-        #expect(html.contains(">hello@cleberg.net</a>"))
+        #expect(html.contains(#"href="mailto:root@krz.sh""#))
+        #expect(html.contains(">root@krz.sh</a>"))
     }
 
     @Test

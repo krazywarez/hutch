@@ -272,7 +272,7 @@ struct InboxViewModelTests {
     @Test
     func segmentsPatchBodyAndTreatsSignatureAsPlainText() {
         let body = """
-        From: Christian Cleberg <hello@cleberg.net>
+        From: Christian Cleberg <root@krz.sh>
 
         ---
          test-patch.txt | 1 +
@@ -298,7 +298,7 @@ struct InboxViewModelTests {
             Issue.record("Expected first segment to be plain text")
             return
         }
-        #expect(leadingPlainText.contains("From: Christian Cleberg <hello@cleberg.net>"))
+        #expect(leadingPlainText.contains("From: Christian Cleberg <root@krz.sh>"))
         #expect(leadingPlainText.contains("---"))
         #expect(leadingPlainText.contains(" test-patch.txt | 1 +"))
         #expect(leadingPlainText.contains(" 1 file changed, 1 insertion(+)"))
