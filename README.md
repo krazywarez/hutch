@@ -2,10 +2,10 @@
 iOS client for SourceHut.
 
 [![builds.sr.ht status](https://builds.sr.ht/~ccleberg/Hutch.svg)](https://builds.sr.ht/~ccleberg/Hutch?)
-[![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=zerolabsco_hutch&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=zerolabsco_hutch)
-[![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=zerolabsco_hutch&metric=reliability_rating)](https://sonarcloud.io/summary/new_code?id=zerolabsco_hutch)
+[![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=krz_hutch&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=krz_hutch)
+[![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=krz_hutch&metric=reliability_rating)](https://sonarcloud.io/summary/new_code?id=krz_hutch)
 
-[![App Store Badge](https://zerolabs.sh/storebutton.svg)](https://apps.apple.com/us/app/hutch-for-sourcehut/id6760742299)
+[![App Store Badge](https://krz.sh/storebutton.svg)](https://apps.apple.com/us/app/hutch-for-sourcehut/id6760742299)
 
 ## Overview
 
@@ -84,7 +84,7 @@ Typical workflow:
 
 Contributions are welcome. Keep changes scoped, include tests when behavior changes, and open a pull request with a clear summary of the user-facing impact.
 
-Hutch is hosted on both [GitHub](https://github.com/zerolabsco/hutch) and [sourcehut](https://sr.ht/~ccleberg/Hutch), which are kept in sync. Report issues or send patches on whichever you prefer — GitHub issues and pull requests, or the [todo.sr.ht tracker](https://todo.sr.ht/~ccleberg/hutch) and [`git send-email`](https://git-send-email.io/).
+Hutch is hosted on both [GitHub](https://github.com/krazywarez/hutch) and [sourcehut](https://sr.ht/~ccleberg/Hutch), which are kept in sync. Report issues or send patches on whichever you prefer — GitHub issues and pull requests, or the [todo.sr.ht tracker](https://todo.sr.ht/~ccleberg/hutch) and [`git send-email`](https://git-send-email.io/).
 
 ## Security
 
