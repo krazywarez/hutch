@@ -78,7 +78,7 @@ struct AboutView: View {
                     .foregroundStyle(.secondary)
                     .themedRow()
 
-                Link(destination: URL(string: "https://zerolabs.sh/hutch/privacy-policy/")!) {
+                Link(destination: URL(string: "https://krz.sh/hutch/privacy-policy/")!) {
                     SwiftUI.Label("Privacy Policy", systemImage: "hand.raised")
                 }
                 .themedRow()
