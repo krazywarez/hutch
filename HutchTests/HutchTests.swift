@@ -7,6 +7,7 @@
 
 import Testing
 
+@MainActor
 struct HutchTests {
 
     @Test func example() async throws {

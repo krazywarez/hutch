@@ -2,6 +2,7 @@ import Foundation
 import Testing
 @testable import Hutch
 
+@MainActor
 struct ReadmeViewTests {
 
     @Test
@@ -28,6 +29,7 @@ struct ReadmeViewTests {
     }
 }
 
+@MainActor
 struct MarkdownRenderingTests {
 
     @Test
@@ -219,6 +221,7 @@ struct MarkdownRenderingTests {
     }
 }
 
+@MainActor
 struct OrgRenderingTests {
 
     @Test
@@ -376,6 +379,7 @@ struct OrgRenderingTests {
     }
 }
 
+@MainActor
 struct RepositoryAssetURLTests {
 
     @Test
@@ -391,6 +395,7 @@ struct RepositoryAssetURLTests {
     }
 }
 
+@MainActor
 struct RepositoryLinkURLTests {
 
     @Test

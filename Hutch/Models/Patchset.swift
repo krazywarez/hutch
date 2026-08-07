@@ -1,7 +1,7 @@
 import Foundation
 
 /// Review state of a patchset on lists.sr.ht.
-enum PatchsetStatus: String, Codable, Sendable, CaseIterable {
+nonisolated enum PatchsetStatus: String, Codable, Sendable, CaseIterable {
     case unknown = "UNKNOWN"
     case proposed = "PROPOSED"
     case needsRevision = "NEEDS_REVISION"
@@ -55,7 +55,7 @@ enum PatchsetStatus: String, Codable, Sendable, CaseIterable {
 /// A patchset as it appears in a mailing list listing, derived from the thread's
 /// root email rather than a dedicated patchsets query — `MailingList` exposes no
 /// such field.
-struct PatchsetSummary: Identifiable, Hashable, Sendable {
+nonisolated struct PatchsetSummary: Identifiable, Hashable, Sendable {
     let id: Int
     let subject: String
     let version: Int
@@ -70,7 +70,7 @@ struct PatchsetSummary: Identifiable, Hashable, Sendable {
 }
 
 /// One email within a patchset: either the cover letter or a single patch.
-struct PatchsetEmail: Identifiable, Hashable, Sendable {
+nonisolated struct PatchsetEmail: Identifiable, Hashable, Sendable {
     let id: Int
     let subject: String
     let date: Date?
@@ -88,13 +88,13 @@ struct PatchsetEmail: Identifiable, Hashable, Sendable {
 }
 
 /// A build or check reported against a patchset.
-struct PatchsetToolResult: Identifiable, Hashable, Sendable {
+nonisolated struct PatchsetToolResult: Identifiable, Hashable, Sendable {
     let id: Int
     let icon: PatchsetToolIcon
     let details: String
 }
 
-enum PatchsetToolIcon: String, Codable, Sendable {
+nonisolated enum PatchsetToolIcon: String, Codable, Sendable {
     case pending = "PENDING"
     case waiting = "WAITING"
     case success = "SUCCESS"
@@ -112,7 +112,7 @@ enum PatchsetToolIcon: String, Codable, Sendable {
 }
 
 /// A patchset with its cover letter, patches, and review context.
-struct PatchsetDetail: Sendable {
+nonisolated struct PatchsetDetail: Sendable {
     let id: Int
     let created: Date
     let updated: Date

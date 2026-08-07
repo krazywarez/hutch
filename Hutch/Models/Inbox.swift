@@ -1,6 +1,6 @@
 import Foundation
 
-struct InboxThreadSummary: Identifiable, Hashable, Sendable {
+nonisolated struct InboxThreadSummary: Identifiable, Hashable, Sendable {
     let rootEmailID: Int
     let rootMessageID: String
     let threadRootEmailIDs: [Int]
@@ -76,7 +76,7 @@ struct InboxThreadSummary: Identifiable, Hashable, Sendable {
     }
 }
 
-struct InboxMessage: Identifiable, Hashable, Sendable {
+nonisolated struct InboxMessage: Identifiable, Hashable, Sendable {
     let id: Int
     let author: Entity
     let date: Date
@@ -89,12 +89,12 @@ struct InboxMessage: Identifiable, Hashable, Sendable {
     let rawMessageURL: URL?
 }
 
-enum InboxMessageContentBlock: Hashable, Sendable {
+nonisolated enum InboxMessageContentBlock: Hashable, Sendable {
     case plainText(String)
     case diff(String)
 }
 
-struct InboxThreadDetail: Sendable {
+nonisolated struct InboxThreadDetail: Sendable {
     let id: String
     let rootEmailID: Int
     let rootMessageID: String
@@ -114,7 +114,7 @@ struct InboxThreadDetail: Sendable {
     }
 }
 
-extension InboxThreadDetail {
+nonisolated extension InboxThreadDetail {
     var replyRecipient: String {
         "\(listOwner.canonicalName)/\(listName)@lists.sr.ht"
     }
@@ -144,7 +144,7 @@ extension InboxThreadDetail {
     }
 }
 
-struct MailComposeDraft: Sendable {
+nonisolated struct MailComposeDraft: Sendable {
     let recipients: [String]
     let ccRecipients: [String]
     let subject: String
@@ -155,20 +155,20 @@ struct MailComposeDraft: Sendable {
     }
 }
 
-extension MailComposeDraft: Identifiable {}
+nonisolated extension MailComposeDraft: Identifiable {}
 
-struct InboxMailingListReference: Decodable, Sendable, Hashable, Identifiable {
+nonisolated struct InboxMailingListReference: Decodable, Sendable, Hashable, Identifiable {
     let id: Int
     let rid: String
     let name: String
     let owner: Entity
 }
 
-struct InboxPatchPreview: Decodable, Sendable, Hashable {
+nonisolated struct InboxPatchPreview: Decodable, Sendable, Hashable {
     let subject: String?
 }
 
-enum InboxReadStateStore {
+nonisolated enum InboxReadStateStore {
     private static let key = "InboxThreadLastViewed"
     private static let baselineKey = "InboxUnreadBaseline"
 

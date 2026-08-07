@@ -1,6 +1,6 @@
 import Foundation
 
-enum TicketBulkActionKind: String, Sendable {
+nonisolated enum TicketBulkActionKind: String, Sendable {
     case close
     case assign
 
@@ -23,7 +23,7 @@ enum TicketBulkActionKind: String, Sendable {
     }
 }
 
-struct TicketBulkActionResult: Identifiable, Sendable {
+nonisolated struct TicketBulkActionResult: Identifiable, Sendable {
     let id = UUID()
     let action: TicketBulkActionKind
     let totalCount: Int
@@ -82,7 +82,7 @@ struct TicketBulkActionResult: Identifiable, Sendable {
     }
 }
 
-struct TicketBulkActionFailure: Sendable {
+nonisolated struct TicketBulkActionFailure: Sendable {
     let ticketID: Int
     let message: String
 }

@@ -32,7 +32,9 @@ final class TipStoreViewModel {
     var errorMessage: String?
     var statusMessage: String?
 
-    private var transactionUpdatesTask: Task<Void, Never>?
+    // Internal task handle, not observable state; assigned only on the main
+    // actor and read once from the nonisolated deinit.
+    @ObservationIgnored nonisolated(unsafe) private var transactionUpdatesTask: Task<Void, Never>?
 
     init() {
         transactionUpdatesTask = Task.detached(priority: .background) {

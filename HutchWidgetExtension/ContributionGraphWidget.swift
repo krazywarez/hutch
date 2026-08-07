@@ -28,12 +28,16 @@ struct ContributionGraphTimelineProvider: TimelineProvider {
     }
 
     func getSnapshot(in _: Context, completion: @escaping (ContributionGraphEntry) -> Void) {
+        // WidgetKit's completion is safe to call from the task; rebind as
+        // nonisolated(unsafe) so it can cross into the `sending` Task closure.
+        nonisolated(unsafe) let completion = completion
         Task {
             completion(await loadEntry())
         }
     }
 
     func getTimeline(in _: Context, completion: @escaping (Timeline<ContributionGraphEntry>) -> Void) {
+        nonisolated(unsafe) let completion = completion
         Task {
             let entry = await loadEntry()
             let refreshDate = Calendar.contributionCalendar.date(byAdding: .hour, value: 1, to: Date()) ?? Date().addingTimeInterval(3600)

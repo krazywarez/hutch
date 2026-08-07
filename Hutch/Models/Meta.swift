@@ -3,7 +3,7 @@ import Foundation
 // MARK: - User Profile (full)
 
 /// Extended user profile from meta.sr.ht with all fields from the `me` query.
-struct UserProfile: Codable, Sendable {
+nonisolated struct UserProfile: Codable, Sendable {
     let username: String
     let canonicalName: String
     let email: String
@@ -20,7 +20,7 @@ struct UserProfile: Codable, Sendable {
 
 // MARK: - SSH Key
 
-struct SSHKey: Codable, Sendable, Identifiable {
+nonisolated struct SSHKey: Codable, Sendable, Identifiable {
     let id: Int
     let comment: String?
     let created: Date
@@ -34,27 +34,27 @@ struct SSHKey: Codable, Sendable, Identifiable {
     }
 }
 
-struct SSHKeyPage: Codable, Sendable {
+nonisolated struct SSHKeyPage: Codable, Sendable {
     let results: [SSHKey]
     let cursor: String?
 }
 
 // MARK: - PGP Key
 
-struct PGPKey: Codable, Sendable, Identifiable {
+nonisolated struct PGPKey: Codable, Sendable, Identifiable {
     let id: Int
     let fingerprint: String
     let created: Date
 }
 
-struct PGPKeyPage: Codable, Sendable {
+nonisolated struct PGPKeyPage: Codable, Sendable {
     let results: [PGPKey]
     let cursor: String?
 }
 
 // MARK: - Subscription
 
-struct Subscription: Codable, Sendable {
+nonisolated struct Subscription: Codable, Sendable {
     let status: String?
     let autorenew: Bool?
     let interval: String?
@@ -62,7 +62,7 @@ struct Subscription: Codable, Sendable {
 
 // MARK: - Personal Access Token
 
-struct PersonalAccessToken: Codable, Sendable, Identifiable {
+nonisolated struct PersonalAccessToken: Codable, Sendable, Identifiable {
     let id: Int
     let issued: Date
     let expires: Date?
@@ -72,7 +72,7 @@ struct PersonalAccessToken: Codable, Sendable, Identifiable {
 
 /// One entry in meta.sr.ht's audit log: a security-relevant action on the
 /// account, with the address it came from.
-struct AuditLogEntry: Codable, Sendable, Identifiable {
+nonisolated struct AuditLogEntry: Codable, Sendable, Identifiable {
     let id: Int
     let created: Date
     let ipAddress: String

@@ -1,6 +1,7 @@
 import Testing
 @testable import Hutch
 
+@MainActor
 struct TrackerManagementViewModelTests {
 
     @Test

@@ -2,6 +2,7 @@ import Foundation
 import Testing
 @testable import Hutch
 
+@MainActor
 struct ProjectTests {
     private enum Fixture {
         static let exampleWebsite = "https://example.com"
