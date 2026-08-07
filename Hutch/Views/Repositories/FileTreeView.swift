@@ -456,12 +456,19 @@ final class CodeFileUIView: UIView {
     private var wrapLines: Bool
     private var needsLineLayoutUpdate = true
     private var lastMeasuredCodeWidth: CGFloat = 0
+    private var syntaxHighlighter: SyntaxHighlighter?
+    private var syntaxHighlighterTheme: SyntaxHighlightTheme?
 
     init(text: String, fileName: String, font: UIFont, wrapLines: Bool) {
         self.currentFont = font
         self.wrapLines = wrapLines
         super.init(frame: .zero)
         setupViews()
+        registerForTraitChanges([UITraitUserInterfaceStyle.self]) { (view: CodeFileUIView, _: UITraitCollection) in
+            view.rebuildRows()
+            view.needsLineLayoutUpdate = true
+            view.setNeedsLayout()
+        }
         updateContent(text: text, fileName: fileName, font: font, wrapLines: wrapLines)
     }
 
@@ -583,11 +590,7 @@ final class CodeFileUIView: UIView {
         }
         rows.removeAll()
 
-        let attributedText = CodeSyntaxHighlighter.attributedText(
-            for: currentText,
-            fileName: currentFileName,
-            font: currentFont
-        )
+        let attributedText = highlightedAttributedText()
         let lines = makeLines(from: attributedText, font: currentFont)
 
         gutterWidthConstraint?.constant = Self.gutterWidth(lineCount: lines.count, font: currentFont)
@@ -598,6 +601,30 @@ final class CodeFileUIView: UIView {
             gutterStackView.addArrangedSubview(row.gutterRow)
             codeStackView.addArrangedSubview(row.codeRow)
         }
+    }
+
+    /// Highlighting cap: above this size, skip tokenizing to keep the main
+    /// thread responsive and render plain, label-colored text instead.
+    private static let maxHighlightableLength = 100_000
+
+    private func highlightedAttributedText() -> NSAttributedString {
+        let plain = NSAttributedString(
+            string: currentText,
+            attributes: [.font: currentFont, .foregroundColor: UIColor.label]
+        )
+
+        guard currentText.count <= Self.maxHighlightableLength,
+              let language = SyntaxHighlighter.language(forFileName: currentFileName) else {
+            return plain
+        }
+
+        let theme = SyntaxHighlightTheme(userInterfaceStyle: traitCollection.userInterfaceStyle)
+        if syntaxHighlighterTheme != theme || syntaxHighlighter == nil {
+            syntaxHighlighter = SyntaxHighlighter(theme: theme)
+            syntaxHighlighterTheme = theme
+        }
+
+        return syntaxHighlighter?.attributedText(for: currentText, language: language, font: currentFont) ?? plain
     }
 
     private func makeRow(for line: CodeFileLineData) -> LineRow {
@@ -735,18 +762,6 @@ final class CodeFileUIView: UIView {
 private struct CodeFileLineData {
     let number: String
     let text: NSAttributedString
-}
-
-private enum CodeSyntaxHighlighter {
-    static func attributedText(for text: String, fileName _: String, font: UIFont) -> NSAttributedString {
-        NSAttributedString(
-            string: text,
-            attributes: [
-                .font: font,
-                .foregroundColor: UIColor.label
-            ]
-        )
-    }
 }
 
 // MARK: - Tree Entry Row
