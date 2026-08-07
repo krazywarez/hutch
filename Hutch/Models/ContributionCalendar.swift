@@ -1,6 +1,6 @@
 import Foundation
 
-struct ContributionCalendarResponse: Decodable, Sendable, Hashable {
+nonisolated struct ContributionCalendarResponse: Decodable, Sendable, Hashable {
     let actor: String
     let from: Date
     let to: Date
@@ -9,7 +9,7 @@ struct ContributionCalendarResponse: Decodable, Sendable, Hashable {
     let indexingState: ContributionIndexingState
     let days: [ContributionDay]
 
-    enum CodingKeys: String, CodingKey {
+    nonisolated enum CodingKeys: String, CodingKey {
         case actor
         case from
         case to
@@ -59,14 +59,14 @@ struct ContributionCalendarResponse: Decodable, Sendable, Hashable {
     }
 }
 
-struct ContributionDay: Decodable, Sendable, Hashable, Identifiable {
+nonisolated struct ContributionDay: Decodable, Sendable, Hashable, Identifiable {
     var id: Date { date }
 
     let date: Date
     let count: Int
     let score: Double
 
-    enum CodingKeys: String, CodingKey {
+    nonisolated enum CodingKeys: String, CodingKey {
         case date
         case count
         case score
@@ -90,7 +90,7 @@ struct ContributionDay: Decodable, Sendable, Hashable, Identifiable {
     }
 }
 
-struct ContributionStatsResponse: Decodable, Sendable, Hashable {
+nonisolated struct ContributionStatsResponse: Decodable, Sendable, Hashable {
     let actor: String
     let from: Date
     let to: Date
@@ -103,7 +103,7 @@ struct ContributionStatsResponse: Decodable, Sendable, Hashable {
     let longestStreak: Int
     let currentStreak: Int
 
-    enum CodingKeys: String, CodingKey {
+    nonisolated enum CodingKeys: String, CodingKey {
         case actor
         case from
         case to
@@ -117,7 +117,7 @@ struct ContributionStatsResponse: Decodable, Sendable, Hashable {
         case currentStreak = "current_streak"
     }
 
-    struct StatsWindow: Sendable, Hashable {
+    nonisolated struct StatsWindow: Sendable, Hashable {
         let actor: String
         let from: Date
         let to: Date
@@ -126,7 +126,7 @@ struct ContributionStatsResponse: Decodable, Sendable, Hashable {
         let indexingState: ContributionIndexingState
     }
 
-    struct StatsTotals: Sendable, Hashable {
+    nonisolated struct StatsTotals: Sendable, Hashable {
         let totalEvents: Int
         let totalScore: Double
         let activeDays: Int
@@ -181,13 +181,13 @@ struct ContributionStatsResponse: Decodable, Sendable, Hashable {
     }
 }
 
-enum ContributionIndexingState: String, Codable, Sendable, Hashable {
+nonisolated enum ContributionIndexingState: String, Codable, Sendable, Hashable {
     case pending
     case indexed
     case error
 }
 
-enum ContributionIntensity: Int, Sendable, CaseIterable {
+nonisolated enum ContributionIntensity: Int, Sendable, CaseIterable {
     case empty = 0
     case level1 = 1
     case level2 = 2
@@ -210,12 +210,12 @@ enum ContributionIntensity: Int, Sendable, CaseIterable {
     }
 }
 
-struct ContributionWeek: Sendable, Hashable {
+nonisolated struct ContributionWeek: Sendable, Hashable {
     let startDate: Date
     let days: [ContributionDay]
 }
 
-enum ContributionCalendarLayout {
+nonisolated enum ContributionCalendarLayout {
     static func weekColumns(
         from days: [ContributionDay],
         calendar: Calendar = .contributionCalendar
@@ -241,7 +241,7 @@ enum ContributionCalendarLayout {
     }
 }
 
-enum ContributionDateParser {
+nonisolated enum ContributionDateParser {
     static func parse(_ rawValue: String) -> Date? {
         let parts = rawValue.split(separator: "-", omittingEmptySubsequences: false)
         guard
@@ -348,7 +348,7 @@ enum ContributionDateParser {
     }
 }
 
-extension Calendar {
+nonisolated extension Calendar {
     static var contributionCalendar: Calendar {
         var calendar = Calendar(identifier: .gregorian)
         calendar.firstWeekday = 1

@@ -3,7 +3,7 @@ import Foundation
 // MARK: - Enums
 
 /// Status of a build job.
-enum JobStatus: String, Codable, Sendable {
+nonisolated enum JobStatus: String, Codable, Sendable {
     case pending = "PENDING"
     case queued = "QUEUED"
     case running = "RUNNING"
@@ -30,7 +30,7 @@ enum JobStatus: String, Codable, Sendable {
 }
 
 /// Status of a single build task within a job.
-enum TaskStatus: String, Codable, Sendable {
+nonisolated enum TaskStatus: String, Codable, Sendable {
     case pending = "PENDING"
     case running = "RUNNING"
     case success = "SUCCESS"
@@ -41,7 +41,7 @@ enum TaskStatus: String, Codable, Sendable {
 // MARK: - Build Task
 
 /// A single task within a build job.
-struct BuildTask: Codable, Sendable, Identifiable, Equatable {
+nonisolated struct BuildTask: Codable, Sendable, Identifiable, Equatable {
     private(set) var ordinal: Int?
     let name: String
     let status: TaskStatus
@@ -74,7 +74,7 @@ struct BuildTask: Codable, Sendable, Identifiable, Equatable {
 // MARK: - Job Summary (for list view)
 
 /// Lightweight job model matching the fields returned by the jobs list query.
-struct JobSummary: Codable, Sendable, Identifiable, Hashable {
+nonisolated struct JobSummary: Codable, Sendable, Identifiable, Hashable {
     let id: Int
     let created: Date
     let updated: Date
@@ -103,7 +103,7 @@ struct JobSummary: Codable, Sendable, Identifiable, Hashable {
 }
 
 /// Minimal task info for the list query.
-struct JobTaskSummary: Codable, Sendable, Hashable {
+nonisolated struct JobTaskSummary: Codable, Sendable, Hashable {
     let name: String
     let status: TaskStatus
 }
@@ -111,7 +111,7 @@ struct JobTaskSummary: Codable, Sendable, Hashable {
 // MARK: - Job Detail (for detail view)
 
 /// Full job model with all fields for the detail view.
-struct JobDetail: Codable, Sendable, Equatable {
+nonisolated struct JobDetail: Codable, Sendable, Equatable {
     let id: Int
     let created: Date
     let updated: Date
@@ -128,7 +128,7 @@ struct JobDetail: Codable, Sendable, Equatable {
 }
 
 /// A downloadable artifact emitted by a build job.
-struct BuildArtifact: Codable, Sendable, Identifiable, Equatable {
+nonisolated struct BuildArtifact: Codable, Sendable, Identifiable, Equatable {
     let id: Int
     let created: Date
     let path: String
@@ -145,14 +145,14 @@ struct BuildArtifact: Codable, Sendable, Identifiable, Equatable {
 }
 
 /// The log associated with a build job.
-struct BuildLog: Codable, Sendable, Equatable {
+nonisolated struct BuildLog: Codable, Sendable, Equatable {
     let fullURL: String
 }
 
 // MARK: - Job Group
 
 /// A group of related build jobs.
-struct JobGroup: Codable, Sendable, Identifiable {
+nonisolated struct JobGroup: Codable, Sendable, Identifiable {
     let id: Int
     let created: Date
     let note: String?

@@ -158,7 +158,7 @@ so "breaking change" does not apply. These buckets track *user-visible scale*.
 | v3.11.0 | ~~Mailing list subscribe/unsubscribe toggle~~ (shipped) | Ingest-surfaced; state via the `subscriptions` query (the `subscription` field is a trap) |
 | v3.12.0 | Accessibility | Independent, device-verified |
 | v4.0.0 | Localization *with* translations | The only true re-presentation |
-| — | Swift 6 language mode; cache reads | Internal; ride along, no tag |
+| — | ~~Swift 6 language mode~~ (done); cache reads | Internal; ride along, no tag |
 
 3.9.0 was cut this session, bundling the hub.sr.ht writes with the other
 features listed. That reorders the original plan: the "What's cooking" ingest
@@ -384,21 +384,29 @@ rather than a bare `TODO`.)
   saved-search store for an intent to open. Add the intent once global
   saved-search persistence exists.
 
-### Swift 6 language mode — no release of its own
+### Swift 6 language mode — done
 
-The project builds in Swift 5 language mode with
-`SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`. Moving to Swift 6 is blocked on
-concurrency diagnostics that are warnings today and errors there:
+`SWIFT_VERSION` is now `6.0` (keeping `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`).
+The migration was mostly mechanical, in a few buckets:
 
-- `APICacheTests` and `BundleUserAgentTests` call main-actor-isolated
-  initialisers and properties from nonisolated contexts, and `await` a few
-  expressions without marking them. Roughly 20 warnings, all in tests.
-- Response types are implicitly `@MainActor` under the default isolation, so
-  their `Decodable` conformances are too. Decoding one from a nonisolated
-  context — an `async let` over a raw `client.execute`, say — warns now and
-  fails then. The pattern that avoids it is `async let` over `@MainActor`
-  methods, as in `HomeViewModel.loadDashboard` and
-  `NotificationPreferencesViewModel.load`.
+- **Models are `nonisolated`.** Under MainActor-default, every value-type model
+  was implicitly `@MainActor`; the pure data types in `Models/` (and utility
+  extensions like `Date.relativeDescription`, `DateFormatter+SRHT`, `SRHTWebURL`)
+  are now `nonisolated`, so the nonisolated networking layer can use them.
+- **App Intents statics.** `AppIntent`/`AppEntity`/`AppEnum` `static var`s were
+  "global shared mutable state"; the stored ones are now `static let`.
+- **Sendable dictionaries.** `nil as String? as Any` in `[String: any Sendable]`
+  GraphQL variable dicts became `nil as String? as any Sendable`.
+- **`UserDefaults`** gets a retroactive `@unchecked Sendable` (documented
+  thread-safe) since it threads through account sessions and stores.
+- **WidgetKit** completion handlers are rebound `nonisolated(unsafe)` to cross
+  into their `Task {}`; the `@Observable` `TipStoreViewModel` task handle is
+  `@ObservationIgnored nonisolated(unsafe)` for its nonisolated `deinit`.
+- **Tests** run on `@MainActor` (they exercise MainActor app code), with a few
+  constant fixtures marked `nonisolated` for use inside `@Sendable` stub
+  closures.
+
+Builds and the full suite are clean in Swift 6 mode with no behaviour change.
 
 ### Cache reads that bypass the client — no release of its own
 

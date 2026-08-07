@@ -2,6 +2,7 @@ import Foundation
 import Testing
 @testable import Hutch
 
+@MainActor
 struct SRHTWebURLTests {
     private enum Expected {
         static let chatOrigin = "https://chat.sr.ht"

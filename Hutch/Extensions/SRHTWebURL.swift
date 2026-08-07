@@ -1,6 +1,6 @@
 import Foundation
 
-enum SRHTWebURL {
+nonisolated enum SRHTWebURL {
     static let chat = URL(string: "https://chat.sr.ht")!
     static let status = URL(string: "https://status.sr.ht")!
     /// RSS/Atom feed for status incidents (HTML snapshot uses `status`).

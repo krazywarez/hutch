@@ -2,6 +2,7 @@ import Foundation
 import Testing
 @testable import Hutch
 
+@MainActor
 struct RepositoryDeployKeyTests {
     @Test
     func decodesDeployKey() throws {

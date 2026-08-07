@@ -10,6 +10,7 @@ private struct UpdateRepositoryInfoPayload: Decodable {
     let id: Int
 }
 
+@MainActor
 struct RepositorySettingsViewModelTests {
 
     @Test

@@ -3,7 +3,7 @@ import Foundation
 /// Lightweight repository model matching the fields returned by the
 /// repositories list query. Avoids optionalizing all fields on the full
 /// `Repository` model.
-struct RepositorySummary: Codable, Sendable, Identifiable, Hashable {
+nonisolated struct RepositorySummary: Codable, Sendable, Identifiable, Hashable {
     let id: Int
     /// GraphQL resource identifier used by `repository(rid:)` queries.
     let rid: String
@@ -15,13 +15,13 @@ struct RepositorySummary: Codable, Sendable, Identifiable, Hashable {
     let owner: Entity
     let head: Reference?
 
-    enum CodingKeys: String, CodingKey {
+    nonisolated enum CodingKeys: String, CodingKey {
         case id, rid, service, name, description, visibility, updated, owner
         case head = "HEAD"
     }
 
     /// Grouped initializer fields (single parameter keeps APIs explicit without exceeding parameter-count limits).
-    struct Fields: Sendable, Hashable {
+    nonisolated struct Fields: Sendable, Hashable {
         let id: Int
         let rid: String
         let service: SRHTService
@@ -59,7 +59,7 @@ struct RepositorySummary: Codable, Sendable, Identifiable, Hashable {
     }
 }
 
-extension RepositorySummary {
+nonisolated extension RepositorySummary {
     var defaultBranchName: String? {
         head?.name.replacingOccurrences(of: "refs/heads/", with: "")
     }

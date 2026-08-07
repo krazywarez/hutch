@@ -2,6 +2,7 @@ import Foundation
 import Testing
 @testable import Hutch
 
+@MainActor
 struct PatchsetStatusTests {
 
     @Test
@@ -46,6 +47,7 @@ struct PatchsetStatusTests {
     }
 }
 
+@MainActor
 struct PatchsetSummaryTests {
 
     @Test

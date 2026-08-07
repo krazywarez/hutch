@@ -2,6 +2,7 @@ import Foundation
 import Testing
 @testable import Hutch
 
+@MainActor
 struct ManPageCatalogTests {
     @Test
     func loadsBundledCatalog() {
