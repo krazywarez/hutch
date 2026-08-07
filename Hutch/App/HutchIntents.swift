@@ -337,7 +337,7 @@ struct CheckBuildsIntent: AppIntent {
 
 // MARK: - Search Type
 
-extension LookupType: @retroactive AppEnum {
+extension LookupType: AppEnum {
     public nonisolated static var typeDisplayRepresentation: TypeDisplayRepresentation {
         TypeDisplayRepresentation(name: "Search Type")
     }
