@@ -17,6 +17,7 @@
 		8B2FA9D12F7E211800E609E2 /* paste.json in Resources */ = {isa = PBXBuildFile; fileRef = 8B2FA9C92F7E211800E609E2 /* paste.json */; };
 		8B2FA9D22F7E211800E609E2 /* todo.json in Resources */ = {isa = PBXBuildFile; fileRef = 8B2FA9CA2F7E211800E609E2 /* todo.json */; };
 		8B2FA9D32F7E211800E609E2 /* lists.json in Resources */ = {isa = PBXBuildFile; fileRef = 8B2FA9C72F7E211800E609E2 /* lists.json */; };
+		8BAA000000000000000000B0 /* Highlightr in Frameworks */ = {isa = PBXBuildFile; productRef = 8BAA000000000000000000B2 /* Highlightr */; };
 		8BE082012F80000100000001 /* HutchWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 8BE081F62F80000100000001 /* HutchWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		8BE083012F81000100000001 /* HutchSafariExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 8BE083032F81000100000001 /* HutchSafariExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		8BF100032F9A000100000001 /* Markdown in Frameworks */ = {isa = PBXBuildFile; productRef = 8BF100022F9A000100000001 /* Markdown */; };
@@ -148,6 +149,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				8BF100032F9A000100000001 /* Markdown in Frameworks */,
+				8BAA000000000000000000B0 /* Highlightr in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -252,6 +254,7 @@
 			name = Hutch;
 			packageProductDependencies = (
 				8BF100022F9A000100000001 /* Markdown */,
+				8BAA000000000000000000B2 /* Highlightr */,
 			);
 			productName = Hutch;
 			productReference = 8B4B28D12F6704280045FA19 /* Hutch.app */;
@@ -358,6 +361,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				8BF100012F9A000100000001 /* XCRemoteSwiftPackageReference "swift-markdown" */,
+				8BAA000000000000000000B3 /* XCRemoteSwiftPackageReference "Highlightr" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 8B4B28D22F6704280045FA19 /* Products */;
@@ -871,6 +875,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		8BAA000000000000000000B3 /* XCRemoteSwiftPackageReference "Highlightr" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/raspu/Highlightr";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.1.0;
+			};
+		};
 		8BF100012F9A000100000001 /* XCRemoteSwiftPackageReference "swift-markdown" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/apple/swift-markdown";
@@ -882,6 +894,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		8BAA000000000000000000B2 /* Highlightr */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 8BAA000000000000000000B3 /* XCRemoteSwiftPackageReference "Highlightr" */;
+			productName = Highlightr;
+		};
 		8BF100022F9A000100000001 /* Markdown */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 8BF100012F9A000100000001 /* XCRemoteSwiftPackageReference "swift-markdown" */;

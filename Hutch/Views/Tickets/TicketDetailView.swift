@@ -553,13 +553,21 @@ private struct MarkdownContentView: View {
                     .frame(minHeight: 80)
             }
         }
-        .task(id: markdown) {
+        .task(id: MarkdownRenderKey(markdown: markdown, isDark: colorScheme == .dark)) {
+            let theme = SyntaxHighlightTheme(colorScheme: colorScheme)
             let html = await Task.detached(priority: .userInitiated) {
-                markdownToHTML(markdown)
+                markdownToHTML(markdown, codeTheme: theme)
             }.value
             guard !Task.isCancelled else { return }
             renderedHTML = html
         }
+    }
+
+    /// Re-renders when the markdown or the color scheme changes; highlighted
+    /// code colors are baked into the HTML, so both must key the render.
+    private struct MarkdownRenderKey: Equatable {
+        let markdown: String
+        let isDark: Bool
     }
 }
 

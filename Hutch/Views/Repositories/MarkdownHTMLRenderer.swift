@@ -2,11 +2,16 @@ import Markdown
 
 nonisolated func markdownToHTML(
     _ text: String,
+    codeTheme: SyntaxHighlightTheme = .light,
     imageURLResolver: ((String) -> String?)? = nil,
     linkURLResolver: ((String) -> String?)? = nil
 ) -> String {
     let document = Document(parsing: text)
-    var renderer = MarkdownHTMLRenderer(imageURLResolver: imageURLResolver, linkURLResolver: linkURLResolver)
+    var renderer = MarkdownHTMLRenderer(
+        imageURLResolver: imageURLResolver,
+        linkURLResolver: linkURLResolver,
+        highlighter: SyntaxHighlighter(theme: codeTheme)
+    )
     return renderer.visit(document)
 }
 
@@ -15,13 +20,19 @@ private struct MarkdownHTMLRenderer: MarkupVisitor {
 
     nonisolated(unsafe) let imageURLResolver: ((String) -> String?)?
     nonisolated(unsafe) let linkURLResolver: ((String) -> String?)?
+    nonisolated(unsafe) private let highlighter: SyntaxHighlighter
     nonisolated(unsafe) private var isRenderingTableHead = false
     nonisolated(unsafe) private var currentTableAlignments: [Markdown.Table.ColumnAlignment?] = []
     nonisolated(unsafe) private var currentTableColumnIndex = 0
 
-    nonisolated init(imageURLResolver: ((String) -> String?)?, linkURLResolver: ((String) -> String?)? = nil) {
+    nonisolated init(
+        imageURLResolver: ((String) -> String?)?,
+        linkURLResolver: ((String) -> String?)? = nil,
+        highlighter: SyntaxHighlighter
+    ) {
         self.imageURLResolver = imageURLResolver
         self.linkURLResolver = linkURLResolver
+        self.highlighter = highlighter
     }
 
     nonisolated mutating func visit(_ markup: Markup) -> String {
@@ -78,7 +89,9 @@ private struct MarkdownHTMLRenderer: MarkupVisitor {
         } else {
             classAttribute = ""
         }
-        return "<pre><code\(classAttribute)>\(escapeHTML(codeBlock.code))</code></pre>\n"
+        let inner = highlighter.highlightedHTML(for: codeBlock.code, language: codeBlock.language)
+            ?? escapeHTML(codeBlock.code)
+        return "<pre><code\(classAttribute)>\(inner)</code></pre>\n"
     }
 
     nonisolated mutating func visitInlineCode(_ inlineCode: InlineCode) -> String {
