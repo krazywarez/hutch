@@ -37,6 +37,36 @@ private struct PatchsetSummaryPayload: Decodable, Sendable {
     let status: PatchsetStatus
 }
 
+private struct ListMetaResponse: Decodable, Sendable {
+    let list: ListMetaPayload?
+}
+
+private struct ListMetaPayload: Decodable, Sendable {
+    let id: Int
+    let owner: Entity
+}
+
+private struct SubscriptionRidsResponse: Decodable, Sendable {
+    let subscriptions: SubscriptionRidsPage
+}
+
+private struct SubscriptionRidsPage: Decodable, Sendable {
+    let results: [SubscriptionRidEntry]
+    let cursor: String?
+}
+
+private struct SubscriptionRidEntry: Decodable, Sendable {
+    let list: SubscriptionRidList?
+}
+
+private struct SubscriptionRidList: Decodable, Sendable {
+    let rid: String
+}
+
+/// Toggle mutations return the subscription (nullable on unsubscribe); only
+/// success matters.
+private struct SubscriptionToggleResponse: Decodable, Sendable {}
+
 @Observable
 @MainActor
 final class MailingListDetailViewModel {
@@ -46,6 +76,13 @@ final class MailingListDetailViewModel {
     private(set) var isLoading = false
     var error: String?
     var searchText = ""
+
+    /// Subscription state. `isSubscribed` is `nil` while unknown or unavailable
+    /// (the toggle stays hidden); `isOwnList` hides it for lists you own.
+    private(set) var listNumericID: Int?
+    private(set) var isSubscribed: Bool?
+    private(set) var isOwnList = false
+    private(set) var isTogglingSubscription = false
 
     private let mailingList: InboxMailingListReference
     private let client: SRHTClient
@@ -84,6 +121,96 @@ final class MailingListDetailViewModel {
         self.client = client
         self.defaults = defaults
         self.accountID = accountID
+    }
+
+    // MARK: - Subscription
+
+    private static let listMetaQuery = """
+    query listMeta($rid: ID!) {
+        list(rid: $rid) { id owner { canonicalName } }
+    }
+    """
+
+    // `MailingList.subscription` is unreliable (see the API-traps note), so
+    // subscribe state comes from the authoritative `subscriptions` query.
+    private static let subscriptionRidsQuery = """
+    query subscriptionRids($cursor: Cursor) {
+        subscriptions(cursor: $cursor) {
+            results {
+                ... on MailingListSubscription { list { rid } }
+            }
+            cursor
+        }
+    }
+    """
+
+    private static let subscribeMutation = """
+    mutation mailingListSubscribe($id: Int!) {
+        mailingListSubscribe(listID: $id) { id }
+    }
+    """
+
+    private static let unsubscribeMutation = """
+    mutation mailingListUnsubscribe($id: Int!) {
+        mailingListUnsubscribe(listID: $id) { id }
+    }
+    """
+
+    /// Resolves the list's numeric id, whether the viewer owns it, and — for
+    /// lists they don't own — whether they're subscribed.
+    func loadSubscriptionState(currentUserCanonicalName: String?) async {
+        do {
+            let meta = try await client.execute(
+                service: .lists,
+                query: Self.listMetaQuery,
+                variables: ["rid": mailingList.rid],
+                responseType: ListMetaResponse.self
+            )
+            guard let list = meta.list else { return }
+            listNumericID = list.id
+
+            if let currentUserCanonicalName, list.owner.canonicalName == currentUserCanonicalName {
+                isOwnList = true
+                return
+            }
+            isSubscribed = try await isSubscribed(toRid: mailingList.rid)
+        } catch {
+            // Leave state unknown; the toggle stays hidden rather than lying.
+        }
+    }
+
+    private func isSubscribed(toRid rid: String) async throws -> Bool {
+        var cursor: String?
+        repeat {
+            let response = try await client.execute(
+                service: .lists,
+                query: Self.subscriptionRidsQuery,
+                variables: cursor.map { ["cursor": $0] },
+                responseType: SubscriptionRidsResponse.self
+            )
+            if response.subscriptions.results.contains(where: { $0.list?.rid == rid }) {
+                return true
+            }
+            cursor = response.subscriptions.cursor
+        } while cursor != nil
+        return false
+    }
+
+    func toggleSubscription() async {
+        guard let id = listNumericID, let subscribed = isSubscribed, !isTogglingSubscription else { return }
+        isTogglingSubscription = true
+        defer { isTogglingSubscription = false }
+        do {
+            _ = try await client.execute(
+                service: .lists,
+                query: subscribed ? Self.unsubscribeMutation : Self.subscribeMutation,
+                variables: ["id": id],
+                responseType: SubscriptionToggleResponse.self
+            )
+            isSubscribed = !subscribed
+        } catch {
+            self.error = error.userFacingMessage
+        }
     }
 
     var filteredThreads: [InboxThreadSummary] {
@@ -386,6 +513,21 @@ struct MailingListDetailView: View {
                     .accessibilityLabel(isPinnedToHome ? "Unpin from Home" : "Pin to Home")
                 }
             }
+            if let viewModel, !viewModel.isOwnList, let subscribed = viewModel.isSubscribed {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        Task { await viewModel.toggleSubscription() }
+                    } label: {
+                        if viewModel.isTogglingSubscription {
+                            ProgressView().controlSize(.small)
+                        } else {
+                            Image(systemName: subscribed ? "bell.fill" : "bell")
+                        }
+                    }
+                    .disabled(viewModel.isTogglingSubscription)
+                    .accessibilityLabel(subscribed ? "Unsubscribe from list" : "Subscribe to list")
+                }
+            }
         }
         .task {
             if viewModel == nil {
@@ -397,6 +539,7 @@ struct MailingListDetailView: View {
                 )
                 self.viewModel = viewModel
                 await viewModel.loadThreads()
+                await viewModel.loadSubscriptionState(currentUserCanonicalName: currentUserKey)
             }
         }
         .onAppear {

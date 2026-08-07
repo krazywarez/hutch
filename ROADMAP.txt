@@ -27,6 +27,15 @@ Things the schema does not tell you, each of which has already cost real time.
   `git clone --depth 1 https://git.sr.ht/~sircmpwn/<service>.sr.ht` and look at
   `api/graph/schema.graphqls`. Regenerating the dumps with a full introspection
   query would remove the trap.
+- **`MailingList.subscription` does not report your subscription.** The field
+  exists and is typed `MailingListSubscription`, but it returns null even
+  immediately after a `mailingListSubscribe` that hands you back a real
+  subscription id — verified live against `~hutch`, for both owned and
+  non-owned lists. Do not gate subscribe-state on it. The authoritative source
+  is membership in the `subscriptions` query (correct: true after subscribe,
+  false after unsubscribe); the mutations take `listID: Int!`, read from
+  `list(rid:){ id }`. Cost the v3.11.0 subscribe toggle a full afternoon of the
+  "looks right, isn't" variety.
 
 ## Phase 0: Unblock CI — done (v3.5.0)
 
@@ -79,14 +88,14 @@ were never called. Each removes a "why can't I do this here?" moment.
 - ~~`updatePreferences`~~ (todo.sr.ht and lists.sr.ht) — `notifySelf` and
   `copySelf`, surfaced as an Email section in Settings.
 
-`mailingListSubscribe` was left unwired here because `MailingList` had no
-`subscription` field, unlike `Ticket` and `Tracker`, so per-list state was only
-knowable from the `subscriptions` query — which by definition lists what the
-user is already subscribed to. **That has since changed:** live introspection
-during the ingest shows `MailingList.subscription` now exists (type
-`MailingListSubscription`, present when subscribed), so per-list state is
-readable and the `mailingListSubscribe` / `mailingListUnsubscribe` toggle can
-reflect it. Now buildable — see "mailing list subscribe" below.
+`mailingListSubscribe` was left unwired here on the view that per-list state was
+only knowable from the `subscriptions` query, and subscribing needs a list you
+are *not* subscribed to. **Shipped in v3.11.0** once live testing clarified two
+things: a specific list is reachable without a discovery API (Lookup, a project's
+lists, patchsets), and the `subscriptions` query *is* the reliable state source —
+membership in it answers "am I subscribed to this rid?". `MailingList.subscription`
+looked like a shortcut but is a trap (see API traps); it is not used. See
+"mailing list subscribe" below.
 
 ### Refactors folded in
 
@@ -146,7 +155,7 @@ so "breaking change" does not apply. These buckets track *user-visible scale*.
 | v3.8.2 | Home system status moved to a title-bar status badge | Small UI relocation, no new surface |
 | v3.9.0 | ~~hub.sr.ht project writes + discovery (#12–#15); multi-language highlighting (#16); App Intents expansion (#17); man-page catalog sync (#7); checklist / recent-activity / pull-to-refresh fixes (#18, #11, #9)~~ | Shipped — the cut this session |
 | v3.10.0 | ~~git.sr.ht deploy keys~~ (shipped); ~~"What's cooking" ingest + doc truth-up~~ (done) | Ships one feature, corrects the map |
-| v3.11.0 | Mailing list subscribe/unsubscribe toggle | Ingest-surfaced; `MailingList.subscription` now exists |
+| v3.11.0 | ~~Mailing list subscribe/unsubscribe toggle~~ (shipped) | Ingest-surfaced; state via the `subscriptions` query (the `subscription` field is a trap) |
 | v3.12.0 | Accessibility | Independent, device-verified |
 | v4.0.0 | Localization *with* translations | The only true re-presentation |
 | — | Swift 6 language mode; cache reads | Internal; ride along, no tag |
@@ -316,16 +325,22 @@ Planned-but-not-yet-shipped upstream, so nothing to build: anonymous API access
 and "standardized / connections-spec" GraphQL (Q2 named both as future work).
 The one *new* opening the introspection turned up is below.
 
-### Mailing list subscribe — buildable
+### Mailing list subscribe — done (v3.11.0)
 
-`MailingList` gained a `subscription` field (type `MailingListSubscription`,
-present when the viewer is subscribed) — confirmed live. That removes the exact
-blocker Phase 1 named: per-list state is now readable, so a subscribe /
-unsubscribe toggle can reflect real server state using the existing
-`mailingListSubscribe` / `mailingListUnsubscribe` mutations (unsubscribe already
-shipped in Phase 1). Surface it wherever a list is shown — Lookup results,
-`ProjectMailingListView`, the inbox list header. Small, self-contained write
-feature; its own minor.
+A subscribe / unsubscribe toggle now sits in the mailing-list detail toolbar
+(`MailingListDetailView`, which backs both Lookup results and
+`ProjectMailingListView`). It is hidden for lists you own and while state is
+unknown.
+
+Live testing rewrote the plan. `MailingList.subscription` looked like the state
+source but is a trap — it returns null even right after a successful
+`mailingListSubscribe` that hands back a subscription id (see API traps). So
+state comes from membership in the `subscriptions` query, which *is* reliable,
+and the numeric `listID` the mutations require comes from `list(rid:){ id }`.
+The mutations themselves (`mailingListSubscribe` / `mailingListUnsubscribe`,
+`listID: Int!`) work as expected. Phase 1's "no discovery API" worry was moot:
+a specific list is reachable via Lookup, a project's lists, or patchsets, and
+that is all subscribing needs.
 
 ### hub.sr.ht writes — projects and discovery done
 
