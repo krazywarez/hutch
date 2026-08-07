@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ProjectDetailView: View {
     let project: Project
+    var canManage: Bool = false
 
     @Environment(AppState.self) private var appState
     @Environment(\.dismiss) private var dismiss
@@ -10,6 +11,14 @@ struct ProjectDetailView: View {
     @State private var isLoading = false
     @State private var error: String?
     @State private var pinChangeCount = 0
+    @State private var isPresentingEdit = false
+    @State private var isPresentingManage = false
+    @State private var isSavingEdit = false
+    @State private var editError: String?
+
+    private var projectService: ProjectService {
+        ProjectService(client: appState.client)
+    }
 
     private var displayedProject: Project {
         detailProject ?? project
@@ -59,6 +68,46 @@ struct ProjectDetailView: View {
                     .accessibilityLabel(isPinnedToHome ? "Unpin from Home" : "Pin to Home")
                 }
             }
+            if canManage {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Menu {
+                        Button {
+                            editError = nil
+                            isPresentingEdit = true
+                        } label: {
+                            Label("Edit Project", systemImage: "pencil")
+                        }
+                        Button {
+                            isPresentingManage = true
+                        } label: {
+                            Label("Manage Resources", systemImage: "link")
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis.circle")
+                    }
+                    .accessibilityLabel("Manage project")
+                }
+            }
+        }
+        .sheet(isPresented: $isPresentingEdit) {
+            ProjectFormSheet(
+                title: "Edit Project",
+                confirmationTitle: "Save",
+                isSaving: isSavingEdit,
+                error: editError,
+                includeWebsite: true,
+                initialName: displayedProject.name,
+                initialDescription: displayedProject.description ?? "",
+                initialWebsite: displayedProject.website ?? "",
+                initialTags: displayedProject.tags,
+                initialVisibility: displayedProject.visibility,
+                onSave: { await saveEdits($0) }
+            )
+        }
+        .sheet(isPresented: $isPresentingManage) {
+            ManageProjectResourcesView(project: displayedProject) {
+                await loadProjectIfNeeded(forceRefresh: true)
+            }
         }
         .task {
             await loadProjectIfNeeded()
@@ -67,6 +116,47 @@ struct ProjectDetailView: View {
             await loadProjectIfNeeded(forceRefresh: true)
         }
         .srhtErrorBanner(error: $error)
+    }
+
+    private func saveEdits(_ values: ProjectFormValues) async -> Bool {
+        guard !isSavingEdit else { return false }
+        isSavingEdit = true
+        editError = nil
+        defer { isSavingEdit = false }
+
+        do {
+            let updated = try await projectService.updateProject(
+                rid: displayedProject.id,
+                name: values.name,
+                description: values.description,
+                website: values.website,
+                visibility: values.visibility,
+                tags: values.tags
+            )
+            // Preserve already-loaded linked resources; the mutation returns metadata only.
+            detailProject = Project(
+                metadata: .init(
+                    id: updated.id,
+                    name: updated.name,
+                    description: updated.description,
+                    website: updated.website,
+                    visibility: updated.visibility,
+                    tags: updated.tags,
+                    updated: updated.updated
+                ),
+                resources: .init(
+                    mailingLists: displayedProject.mailingLists,
+                    sources: displayedProject.sources,
+                    trackers: displayedProject.trackers,
+                    isFullyLoaded: displayedProject.isFullyLoaded
+                )
+            )
+            await loadProjectIfNeeded(forceRefresh: true)
+            return true
+        } catch {
+            editError = error.userFacingMessage
+            return false
+        }
     }
 
     @ViewBuilder
