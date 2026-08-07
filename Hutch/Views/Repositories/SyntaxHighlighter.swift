@@ -3,7 +3,7 @@ import Highlightr
 import SwiftUI
 import UIKit
 
-enum SyntaxHighlightTheme {
+nonisolated enum SyntaxHighlightTheme {
     case light
     case dark
 
@@ -31,7 +31,7 @@ enum SyntaxHighlightTheme {
 /// instance must stay on the thread/task that created it. Callers that fail to
 /// resolve a language — or hit an unavailable engine — get `nil` and should
 /// fall back to plain, escaped text.
-final class SyntaxHighlighter {
+nonisolated final class SyntaxHighlighter {
     private let highlightr: Highlightr?
     private let supportedLanguages: Set<String>
 
