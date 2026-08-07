@@ -144,6 +144,21 @@ enum HomePinStore {
         saveAll(pinsByUser, defaults: defaults)
     }
 
+    static func removePin(
+        id: String,
+        for userKey: String,
+        defaults: UserDefaults = .standard
+    ) {
+        let normalizedUserKey = normalizedUserKey(userKey)
+        guard !normalizedUserKey.isEmpty else { return }
+
+        var pinsByUser = loadAll(defaults: defaults)
+        var pins = normalizedPins(pinsByUser[normalizedUserKey] ?? loadPins(for: normalizedUserKey, defaults: defaults))
+        pins.removeAll { $0.id == id }
+        pinsByUser[normalizedUserKey] = pins
+        saveAll(pinsByUser, defaults: defaults)
+    }
+
     static func pinnedProjectIDs(
         for userKey: String,
         defaults: UserDefaults = .standard

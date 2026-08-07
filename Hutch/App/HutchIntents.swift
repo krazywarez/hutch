@@ -132,11 +132,14 @@ struct SearchHutchIntent: AppIntent {
     @Parameter(title: "Query")
     var query: String
 
+    @Parameter(title: "Search Type", default: .user)
+    var searchType: LookupType
+
     var route: HutchRoute {
         let normalized = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        // Routes to Lookup for now; repoint at a global content search when Hutch
-        // gains one — tracked in ROADMAP.md § "App Intent gaps".
-        return normalized.isEmpty ? .lookup : .search(query: normalized)
+        // Routes to Lookup, pre-selecting the search type, until Hutch gains a
+        // global content search.
+        return normalized.isEmpty ? .lookup : .search(query: normalized, type: searchType)
     }
 
     @MainActor
@@ -147,7 +150,7 @@ struct SearchHutchIntent: AppIntent {
 }
 
 // An OpenSavedSearchIntent belongs here once Hutch has global saved-search
-// persistence — tracked in ROADMAP.md § "App Intent gaps".
+// persistence.
 
 // MARK: - App Entities
 
@@ -201,7 +204,7 @@ struct ProjectEntityQuery: EntityQuery {
     }
 }
 
-private enum HutchIntentEntityStore {
+enum HutchIntentEntityStore {
     static func pinnedResources() -> [PinnedResourceEntity] {
         pins().compactMap { makePinnedResource(from: $0) }
     }
@@ -213,20 +216,25 @@ private enum HutchIntentEntityStore {
         }
     }
 
-    private static func pins() -> [HomePinRecord] {
+    /// The active account's key, or `nil` when no account is signed in.
+    static func currentUserKey() -> String? {
         guard let userKey = ContributionWidgetContextStore.loadActor(),
               !userKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         else {
-            return []
+            return nil
         }
-
-        return HomePinStore.loadPins(for: userKey, defaults: activeAccountDefaults)
+        return userKey
     }
 
-    private static var activeAccountDefaults: UserDefaults {
+    static var accountDefaults: UserDefaults {
         let activeID = UserDefaults.standard.string(forKey: AppStorageKeys.activeAccountID) ?? ""
         guard !activeID.isEmpty else { return .standard }
         return AccountDefaultsStore.userDefaults(for: activeID)
+    }
+
+    private static func pins() -> [HomePinRecord] {
+        guard let userKey = currentUserKey() else { return [] }
+        return HomePinStore.loadPins(for: userKey, defaults: accountDefaults)
     }
 
     private static func makePinnedResource(from pin: HomePinRecord) -> PinnedResourceEntity? {
@@ -274,20 +282,22 @@ struct CheckSystemStatusIntent: AppIntent {
     static var description = IntentDescription("Returns the current SourceHut system status.")
 
     @MainActor
-    func perform() async throws -> some IntentResult & ReturnsValue<String> {
-        guard let snapshot = SystemStatusWidgetSnapshotStore.load() else {
-            return .result(value: "System status is unavailable. Open Hutch to refresh.")
+    func perform() async throws -> some IntentResult & ReturnsValue<String> & ProvidesDialog {
+        let message: String
+        if let snapshot = SystemStatusWidgetSnapshotStore.load() {
+            if snapshot.hasDisruption {
+                let disrupted = snapshot.services
+                    .filter { $0.requiresAttention }
+                    .map { "\($0.name): \($0.status)" }
+                    .joined(separator: ", ")
+                message = "SourceHut disruption detected: \(disrupted)"
+            } else {
+                message = "All SourceHut services operational."
+            }
+        } else {
+            message = "System status is unavailable. Open Hutch to refresh."
         }
-
-        if snapshot.hasDisruption {
-            let disrupted = snapshot.services
-                .filter { $0.requiresAttention }
-                .map { "\($0.name): \($0.status)" }
-                .joined(separator: ", ")
-            return .result(value: "SourceHut disruption detected: \(disrupted)")
-        }
-
-        return .result(value: "All SourceHut services operational.")
+        return .result(value: message, dialog: IntentDialog(stringLiteral: message))
     }
 }
 
@@ -296,34 +306,85 @@ struct CheckBuildsIntent: AppIntent {
     static var description = IntentDescription("Returns a summary of your recent build status.")
 
     @MainActor
-    func perform() async throws -> some IntentResult & ReturnsValue<String> {
-        guard let snapshot = NeedsAttentionSnapshotStore.load() else {
-            return .result(value: "Build status unavailable. Open Hutch to refresh.")
-        }
+    func perform() async throws -> some IntentResult & ReturnsValue<String> & ProvidesDialog {
+        let message: String
+        if let snapshot = NeedsAttentionSnapshotStore.load() {
+            var parts: [String] = []
 
-        var parts: [String] = []
-
-        if let failed = snapshot.failedBuilds {
-            if failed > 0 {
-                parts.append("\(failed) failed build\(failed == 1 ? "" : "s")")
-            } else {
-                parts.append("No failed builds")
+            if let failed = snapshot.failedBuilds {
+                if failed > 0 {
+                    parts.append("\(failed) failed build\(failed == 1 ? "" : "s")")
+                } else {
+                    parts.append("No failed builds")
+                }
             }
-        }
 
-        if let unread = snapshot.unreadInboxThreads, unread > 0 {
-            parts.append("\(unread) unread thread\(unread == 1 ? "" : "s")")
-        }
+            if let unread = snapshot.unreadInboxThreads, unread > 0 {
+                parts.append("\(unread) unread thread\(unread == 1 ? "" : "s")")
+            }
 
-        if let assigned = snapshot.assignedOpenTickets, assigned > 0 {
-            parts.append("\(assigned) assigned ticket\(assigned == 1 ? "" : "s")")
-        }
+            if let assigned = snapshot.assignedOpenTickets, assigned > 0 {
+                parts.append("\(assigned) assigned ticket\(assigned == 1 ? "" : "s")")
+            }
 
-        if parts.isEmpty {
-            return .result(value: "No recent data. Open Hutch to refresh.")
+            message = parts.isEmpty ? "No recent data. Open Hutch to refresh." : parts.joined(separator: ". ") + "."
+        } else {
+            message = "Build status unavailable. Open Hutch to refresh."
         }
+        return .result(value: message, dialog: IntentDialog(stringLiteral: message))
+    }
+}
 
-        return .result(value: parts.joined(separator: ". ") + ".")
+// MARK: - Search Type
+
+extension LookupType: @retroactive AppEnum {
+    public nonisolated static var typeDisplayRepresentation: TypeDisplayRepresentation {
+        TypeDisplayRepresentation(name: "Search Type")
+    }
+
+    public nonisolated static var caseDisplayRepresentations: [LookupType: DisplayRepresentation] {
+        [
+            .user: "User",
+            .gitRepo: "Git Repository",
+            .hgRepo: "Mercurial Repository",
+            .mailingList: "Mailing List",
+            .tracker: "Tracker",
+            .buildJob: "Build Job"
+        ]
+    }
+}
+
+// MARK: - Mutating Intents
+
+struct ClearRecentActivityIntent: AppIntent {
+    static var title: LocalizedStringResource = "Clear Recent Activity"
+    static var description = IntentDescription("Clears the Recent list on the Hutch Home tab.")
+
+    @MainActor
+    func perform() async throws -> some IntentResult & ProvidesDialog {
+        RecentActivityStore.clear(defaults: HutchIntentEntityStore.accountDefaults)
+        return .result(dialog: "Cleared recent activity.")
+    }
+}
+
+struct UnpinResourceIntent: AppIntent {
+    static var title: LocalizedStringResource = "Unpin Resource"
+    static var description = IntentDescription("Removes a pinned resource from the Hutch Home tab.")
+
+    @Parameter(title: "Pinned Resource")
+    var pinnedResource: PinnedResourceEntity
+
+    @MainActor
+    func perform() async throws -> some IntentResult & ProvidesDialog {
+        guard let userKey = HutchIntentEntityStore.currentUserKey() else {
+            return .result(dialog: "No active Hutch account.")
+        }
+        HomePinStore.removePin(
+            id: pinnedResource.id,
+            for: userKey,
+            defaults: HutchIntentEntityStore.accountDefaults
+        )
+        return .result(dialog: "Unpinned \(pinnedResource.name).")
     }
 }
 

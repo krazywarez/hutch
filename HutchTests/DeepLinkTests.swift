@@ -92,7 +92,8 @@ struct DeepLinkTests {
     func parsesRouteBackedNavigationLinks() {
         #expect(DeepLink(url: HutchRoute.workQueue(scope: .assigned).url) == .workQueue(scope: .assigned))
         #expect(DeepLink(url: HutchRoute.failedBuilds.url) == .failedBuilds)
-        #expect(DeepLink(url: HutchRoute.search(query: "patch queue").url) == .search(query: "patch queue"))
+        #expect(DeepLink(url: HutchRoute.search(query: "patch queue", type: nil).url) == .search(query: "patch queue", type: nil))
+        #expect(DeepLink(url: HutchRoute.search(query: "~alice", type: .user).url) == .search(query: "~alice", type: .user))
         #expect(DeepLink(url: HutchRoute.projectDashboard(id: "project-1", title: "Hutch").url) == .projectDashboard(id: "project-1", title: "Hutch"))
     }
 

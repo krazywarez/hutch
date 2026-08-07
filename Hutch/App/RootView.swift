@@ -247,12 +247,12 @@ struct RootView: View {
             appState.pendingBuildListFilter = .failed
             appState.selectedTab = .builds
 
-        case .search(let query):
+        case .search(let query, let type):
             morePath = NavigationPath()
             appState.selectedTab = .more
             Task {
                 await settleNavigationTransition()
-                morePath.append(MoreRoute.lookup(query: query))
+                morePath.append(MoreRoute.lookup(query: query, type: type))
             }
 
         case .lookup:
@@ -260,7 +260,7 @@ struct RootView: View {
             appState.selectedTab = .more
             Task {
                 await settleNavigationTransition()
-                morePath.append(MoreRoute.lookup(query: nil))
+                morePath.append(MoreRoute.lookup(query: nil, type: nil))
             }
 
         case .buildsTab:
@@ -431,7 +431,7 @@ enum MoreDestination: Hashable {
 }
 
 enum MoreRoute: Hashable {
-    case lookup(query: String?)
+    case lookup(query: String?, type: LookupType?)
     case projects
     case lists
     case pastes
@@ -454,8 +454,8 @@ private struct MoreNavigationRoot: View {
         MoreView()
             .navigationDestination(for: MoreRoute.self) { route in
                 switch route {
-                case .lookup(let query):
-                    LookupView(initialQuery: query ?? "")
+                case .lookup(let query, let type):
+                    LookupView(initialQuery: query ?? "", initialType: type)
                 case .projects:
                     ProjectsListView()
                 case .lists:
