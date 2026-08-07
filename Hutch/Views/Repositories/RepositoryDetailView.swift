@@ -12,6 +12,7 @@ struct RepositoryDetailView: View {
     @State private var selectedTab: RepositoryDetailViewModel.Tab = .summary
     @State private var showSettings = false
     @State private var showACLs = false
+    @State private var showDeployKeys = false
     @State private var currentRepository: RepositorySummary
     @State private var pinChangeCount = 0
 
@@ -76,6 +77,15 @@ struct RepositoryDetailView: View {
             .sheet(isPresented: $showACLs) {
                 NavigationStack {
                     RepositoryACLView(
+                        repository: currentRepository,
+                        client: appState.client,
+                        showsDoneButton: true
+                    )
+                }
+            }
+            .sheet(isPresented: $showDeployKeys) {
+                NavigationStack {
+                    RepositoryDeployKeysView(
                         repository: currentRepository,
                         client: appState.client,
                         showsDoneButton: true
@@ -198,6 +208,12 @@ struct RepositoryDetailView: View {
                     showACLs = true
                 } label: {
                     Label("Manage ACLs", systemImage: "person.2")
+                }
+
+                Button {
+                    showDeployKeys = true
+                } label: {
+                    Label("Deploy Keys", systemImage: "key")
                 }
 
                 Button {
