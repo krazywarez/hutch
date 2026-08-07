@@ -1,6 +1,6 @@
 import Foundation
 
-struct PasteFile: Codable, Sendable, Hashable, Identifiable {
+nonisolated struct PasteFile: Codable, Sendable, Hashable, Identifiable {
     let filename: String?
     let hash: String
     let contents: URL?
@@ -8,7 +8,7 @@ struct PasteFile: Codable, Sendable, Hashable, Identifiable {
     var id: String { hash }
 }
 
-struct Paste: Codable, Sendable, Identifiable, Hashable {
+nonisolated struct Paste: Codable, Sendable, Identifiable, Hashable {
     let id: String
     let created: Date
     let visibility: Visibility
@@ -16,7 +16,7 @@ struct Paste: Codable, Sendable, Identifiable, Hashable {
     let user: Entity
 }
 
-struct PasteUploadDraft: Identifiable, Equatable, Sendable {
+nonisolated struct PasteUploadDraft: Identifiable, Equatable, Sendable {
     let id: UUID
     var filename: String
     var contents: String

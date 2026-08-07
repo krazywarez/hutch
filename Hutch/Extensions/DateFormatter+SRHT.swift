@@ -1,6 +1,6 @@
 import Foundation
 
-extension DateFormatter {
+nonisolated extension DateFormatter {
     /// Formatter for the sr.ht `Time` scalar: `%Y-%m-%dT%H:%M:%SZ` (UTC).
     static let srht: DateFormatter = {
         let formatter = DateFormatter()

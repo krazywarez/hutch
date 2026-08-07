@@ -100,7 +100,7 @@ final class MailingListListViewModel {
                 query: Self.createMailingListMutation,
                 variables: [
                     "name": trimmedName,
-                    "description": trimmedDescription.isEmpty ? nil as String? as Any : trimmedDescription,
+                    "description": trimmedDescription.isEmpty ? nil as String? as any Sendable : trimmedDescription,
                     "visibility": visibility.rawValue
                 ],
                 responseType: Response.self

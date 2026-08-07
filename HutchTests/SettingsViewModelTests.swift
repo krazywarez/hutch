@@ -64,6 +64,7 @@ private struct DeleteResultPayload: Decodable {
 }
 
 @Suite(.serialized)
+@MainActor
 struct SettingsViewModelTests {
 
     @Test

@@ -3,6 +3,7 @@ import Testing
 @testable import Hutch
 
 @Suite(.serialized)
+@MainActor
 struct APICacheTests {
     private struct Payload: Codable, Sendable, Equatable {
         let value: String

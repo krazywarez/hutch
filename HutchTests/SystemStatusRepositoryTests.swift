@@ -2,6 +2,7 @@ import Foundation
 import Testing
 @testable import Hutch
 
+@MainActor
 struct SystemStatusRepositoryTests {
 
     @Test
@@ -111,21 +112,21 @@ private struct TestSystemStatusService: SystemStatusServing {
 }
 
 private extension SystemStatusRepositoryTests {
-    static let cachedSnapshotHTML = #"""
+    nonisolated static let cachedSnapshotHTML = #"""
     <div class="component" data-status="disrupted">
       <a href="/affected/git.sr.ht/">git.sr.ht</a>
       <span class="component-status">Disrupted</span>
     </div>
     """#
 
-    static let cachedOperationalHTML = #"""
+    nonisolated static let cachedOperationalHTML = #"""
     <div class="component" data-status="ok">
       <a href="/affected/meta.sr.ht/">meta.sr.ht</a>
       <span class="component-status">Operational</span>
     </div>
     """#
 
-    static let cachedIncidentRSS = #"""
+    nonisolated static let cachedIncidentRSS = #"""
     <rss version="2.0">
       <channel>
         <item>
@@ -139,7 +140,7 @@ private extension SystemStatusRepositoryTests {
     </rss>
     """#
 
-    static let emptyRSS = #"""
+    nonisolated static let emptyRSS = #"""
     <rss version="2.0">
       <channel></channel>
     </rss>

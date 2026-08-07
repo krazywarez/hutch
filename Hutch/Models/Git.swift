@@ -3,14 +3,14 @@ import Foundation
 // MARK: - Enums
 
 /// Repository visibility level.
-enum Visibility: String, Codable, Sendable {
+nonisolated enum Visibility: String, Codable, Sendable {
     case publicVisibility = "PUBLIC"
     case unlisted = "UNLISTED"
     case privateVisibility = "PRIVATE"
 }
 
 /// Repository access mode.
-enum AccessMode: String, Codable, Sendable, CaseIterable {
+nonisolated enum AccessMode: String, Codable, Sendable, CaseIterable {
     case ro = "RO"
     case rw = "RW"
 }
@@ -19,14 +19,14 @@ enum AccessMode: String, Codable, Sendable, CaseIterable {
 
 /// The `Entity` GraphQL interface from git.sr.ht. Represents the owner of a
 /// resource (typically a user).
-struct Entity: Codable, Sendable, Hashable {
+nonisolated struct Entity: Codable, Sendable, Hashable {
     let canonicalName: String
 }
 
 // MARK: - Repository
 
 /// A git repository from git.sr.ht.
-struct Repository: Codable, Sendable, Identifiable {
+nonisolated struct Repository: Codable, Sendable, Identifiable {
     let id: Int
     let created: Date
     let updated: Date
@@ -37,7 +37,7 @@ struct Repository: Codable, Sendable, Identifiable {
     let accessMode: AccessMode
     let owner: Entity
 
-    enum CodingKeys: String, CodingKey {
+    nonisolated enum CodingKeys: String, CodingKey {
         case id, created, updated, name, description, visibility, readme
         case accessMode = "access"
         case owner
@@ -47,7 +47,7 @@ struct Repository: Codable, Sendable, Identifiable {
 // MARK: - Signature
 
 /// A Git commit/tag signature (author or committer).
-struct Signature: Codable, Sendable {
+nonisolated struct Signature: Codable, Sendable {
     let name: String
     let email: String
     let time: Date
@@ -56,7 +56,7 @@ struct Signature: Codable, Sendable {
 // MARK: - Trailer
 
 /// A Git commit trailer (e.g. "Signed-off-by", "Co-authored-by").
-struct Trailer: Codable, Sendable {
+nonisolated struct Trailer: Codable, Sendable {
     let name: String
     let value: String
 }
@@ -64,7 +64,7 @@ struct Trailer: Codable, Sendable {
 // MARK: - Commit
 
 /// A Git commit from git.sr.ht.
-struct Commit: Codable, Sendable, Identifiable {
+nonisolated struct Commit: Codable, Sendable, Identifiable {
     let id: String
     let shortId: String
     let author: Signature
@@ -77,13 +77,13 @@ struct Commit: Codable, Sendable, Identifiable {
 // MARK: - Reference
 
 /// A Git reference (branch or tag name).
-struct Reference: Codable, Sendable, Hashable {
+nonisolated struct Reference: Codable, Sendable, Hashable {
     let name: String
     let target: String?
 }
 
 /// A Git reference enriched with the date of its tip commit or tag, for display in the Refs tab.
-struct ReferenceDetail: Sendable, Hashable {
+nonisolated struct ReferenceDetail: Sendable, Hashable {
     let name: String
     let target: String?
     let date: Date?
@@ -92,7 +92,7 @@ struct ReferenceDetail: Sendable, Hashable {
 // MARK: - TreeEntry
 
 /// An entry in a Git tree (file or directory).
-struct TreeEntry: Codable, Sendable, Identifiable {
+nonisolated struct TreeEntry: Codable, Sendable, Identifiable {
     let id: String
     let name: String
     let mode: Int?
@@ -104,41 +104,41 @@ struct TreeEntry: Codable, Sendable, Identifiable {
 /// Both TextBlob and BinaryBlob have type == "BLOB"; they are
 /// distinguished by the presence of the "text" key (TextBlob) vs
 /// the "content" key (BinaryBlob).
-enum GitObject: Sendable {
+nonisolated enum GitObject: Sendable {
     case tree(GitTree)
     case textBlob(GitTextBlob)
     case binaryBlob(GitBinaryBlob)
     case unknown
 }
 
-struct GitTree: Codable, Sendable {
+nonisolated struct GitTree: Codable, Sendable {
     let id: String?
     let shortId: String?
     let entries: GitTreeEntryPage?
 }
 
-struct GitTextBlob: Codable, Sendable {
+nonisolated struct GitTextBlob: Codable, Sendable {
     let id: String?
     let shortId: String?
     let text: String?
     let size: Int?
 }
 
-struct GitBinaryBlob: Codable, Sendable {
+nonisolated struct GitBinaryBlob: Codable, Sendable {
     let id: String?
     let shortId: String?
     let size: Int?
     let content: String?
 }
 
-struct GitTreeEntryPage: Codable, Sendable {
+nonisolated struct GitTreeEntryPage: Codable, Sendable {
     let results: [TreeEntry]
     let cursor: String?
 }
 
 // MARK: - GitObject Codable
 
-extension GitObject: Codable {
+nonisolated extension GitObject: Codable {
     private enum CodingKeys: String, CodingKey {
         case type, id, shortId, entries, text, size, content
         case typename = "__typename"
@@ -211,7 +211,7 @@ extension GitObject: Codable {
 }
 
 /// Convenience helpers for checking object type.
-extension GitObject {
+nonisolated extension GitObject {
     var isTree: Bool {
         if case .tree = self { return true }
         return false
@@ -230,7 +230,7 @@ extension GitObject {
 // MARK: - Tag
 
 /// An annotated Git tag from git.sr.ht.
-struct Tag: Codable, Sendable, Identifiable {
+nonisolated struct Tag: Codable, Sendable, Identifiable {
     let id: String
     let shortId: String
     let name: String
@@ -241,7 +241,7 @@ struct Tag: Codable, Sendable, Identifiable {
 // MARK: - Artifact
 
 /// A release artifact attached to a Git tag.
-struct Artifact: Codable, Sendable, Identifiable {
+nonisolated struct Artifact: Codable, Sendable, Identifiable {
     let id: Int
     let created: Date
     let filename: String

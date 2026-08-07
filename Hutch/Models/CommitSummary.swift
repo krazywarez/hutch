@@ -2,7 +2,7 @@ import Foundation
 
 /// Lightweight commit model for list views. Matches the subset of fields
 /// returned by the repository log query.
-struct CommitSummary: Codable, Sendable, Identifiable, Hashable {
+nonisolated struct CommitSummary: Codable, Sendable, Identifiable, Hashable {
     let id: String
     let shortId: String
     let author: CommitAuthor
@@ -15,7 +15,7 @@ struct CommitSummary: Codable, Sendable, Identifiable, Hashable {
 }
 
 /// A compact author representation used in commit list responses.
-struct CommitAuthor: Codable, Sendable, Hashable {
+nonisolated struct CommitAuthor: Codable, Sendable, Hashable {
     let name: String
     let email: String?
     let time: Date

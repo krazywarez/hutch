@@ -2,6 +2,7 @@ import Foundation
 import Testing
 @testable import Hutch
 
+@MainActor
 struct SystemStatusServiceTests {
     private enum Fixture {
         static let ddosIssueURL = "https://status.sr.ht/issues/2026-04-06-ddos-attack/"
