@@ -144,7 +144,7 @@ so "breaking change" does not apply. These buckets track *user-visible scale*.
 | v3.8.1 | SonarCloud triage; housekeeping | No behaviour change at all |
 | v3.8.2 | Home system status moved to a title-bar status badge | Small UI relocation, no new surface |
 | v3.9.0 | ~~hub.sr.ht project writes + discovery (#12–#15); multi-language highlighting (#16); App Intents expansion (#17); man-page catalog sync (#7); checklist / recent-activity / pull-to-refresh fixes (#18, #11, #9)~~ | Shipped — the cut this session |
-| v3.10.0 | "What's cooking" ingest; doc truth-up; deploy keys; revisit `mailingListSubscribe` | Ships one feature, corrects the map |
+| v3.10.0 | ~~git.sr.ht deploy keys~~ (shipped); "What's cooking" ingest; doc truth-up; revisit `mailingListSubscribe` | Ships one feature, corrects the map |
 | v3.11.0 | Accessibility | Independent, device-verified |
 | v4.0.0 | Localization *with* translations | The only true re-presentation |
 | — | Swift 6 language mode; cache reads | Internal; ride along, no tag |
@@ -276,7 +276,7 @@ exception earns the release its own line: the `forceRefresh` fix changes what
 pull-to-refresh does, so it needs a manual pass on a device before v3.8.1 ships,
 not just a green suite.
 
-### Ingest "What's cooking on SourceHut?" — v3.9.0
+### Ingest "What's cooking on SourceHut?" — v3.10.0
 
 sr.ht posts a quarterly update to `~sircmpwn/sr.ht-announce`, mirrored at
 <https://sourcehut.org/blog/>. Nothing in Hutch tracks it, so the API grows and
@@ -294,19 +294,20 @@ flags two openings:
 - **hub.sr.ht gained a writable GraphQL API** for managing projects and project
   resources. ~~Rechecked and shipped~~: project create/edit, resource
   link/unlink, and public discovery landed (#12–#15) — see "hub.sr.ht writes"
-  below. `SCOPE.txt` still needs its "hub has no public API / no discovery"
-  claim corrected. `mailingListSubscribe` was *not* unblocked — that needs a
+  below. `SCOPE.txt`'s "hub has no public API / no discovery" claim has since
+  been corrected. `mailingListSubscribe` was *not* unblocked — that needs a
   per-list subscription field lists.sr.ht still lacks.
-- **git.sr.ht deploy keys are complete** (`createDeployKey` / `deleteDeployKey`
-  are in the SDL). Hutch never calls them.
+- ~~git.sr.ht deploy keys are complete~~ — **shipped** (v3.10.0).
+  `createDeployKey` / `deleteDeployKey` (and `Repository.deployKeys`) are wired
+  into the repository actions menu, owner-only, alongside ACLs.
 
 Start from Q1 2026 forward — that is roughly when the current `Docs/API` dumps
 were captured.
 
-Research does not ship, so v3.9.0 pairs the ingest with **deploy keys** — the one
-self-contained feature it has already surfaced and that the SDL confirms exists.
-That gives the release something a user can see. Everything else the ingest turns
-up gets filed, not built, and hub.sr.ht gets its own bucket below.
+Deploy keys — the one self-contained feature the ingest had already surfaced and
+that the SDL confirmed — shipped in v3.10.0, so this bucket is now the ingest
+itself: research that files what changed rather than building. Everything else it
+turns up gets filed, not built.
 
 ### hub.sr.ht writes — projects and discovery done
 
