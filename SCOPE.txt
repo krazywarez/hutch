@@ -4,7 +4,11 @@
   file)
 - Push notifications for builds and tickets (requires a backend relay server)
   - ref: https://git.sr.ht/~ccleberg/hutch-notify
-- Explore / search (hub.sr.ht) (no public discovery API)
+- ~~Explore / search (hub.sr.ht) (no public discovery API)~~ — **stale**.
+  hub.sr.ht added a public `projects` query ("List all public projects"), and
+  Hutch ships it as project discovery (#12, `DiscoverProjectsView`). Left struck
+  through as more evidence for the ingestion task in ROADMAP.txt: this entry ruled
+  out a feature the API had come to support.
 - ~~Pronouns on profile (not in GraphQL schema)~~ — **stale**. sr.ht added
   pronouns (see the Q1 2026 "What's cooking"), and Hutch already queries them in
   `AppState` and shows them in `UserProfileView`. Left here struck through as
@@ -28,8 +32,9 @@
   work. Nothing a client can do fixes this; revisit only if sr.ht changes the
   resolver.
 - Subscribe to a mailing list (`mailingListSubscribe` exists, but `MailingList`
-  has no `subscription` field and sr.ht has no discovery API, so there is no way
-  to find a list you are not already subscribed to — see hub.sr.ht above)
+  has no `subscription` field, and hub.sr.ht's new discovery lists *projects*,
+  not mailing lists, so there is still no way to find a list you are not already
+  subscribed to)
 - Submitting patches (a `git send-email` flow, not a GraphQL mutation; Hutch
   reviews patchsets but cannot send them)
 
