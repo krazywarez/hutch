@@ -1,7 +1,7 @@
 import Foundation
 
-struct Project: Identifiable, Hashable, Sendable {
-    struct MailingList: Identifiable, Hashable, Sendable {
+nonisolated struct Project: Identifiable, Hashable, Sendable {
+    nonisolated struct MailingList: Identifiable, Hashable, Sendable {
         let id: String
         let name: String
         let description: String?
@@ -22,8 +22,8 @@ struct Project: Identifiable, Hashable, Sendable {
         }
     }
 
-    struct SourceRepo: Identifiable, Hashable, Sendable {
-        enum RepoType: String, Decodable, Sendable {
+    nonisolated struct SourceRepo: Identifiable, Hashable, Sendable {
+        nonisolated enum RepoType: String, Decodable, Sendable {
             case git = "GIT"
             case hg = "HG"
 
@@ -47,7 +47,7 @@ struct Project: Identifiable, Hashable, Sendable {
         }
     }
 
-    struct Tracker: Identifiable, Hashable, Sendable {
+    nonisolated struct Tracker: Identifiable, Hashable, Sendable {
         let id: String
         let name: String
         let description: String?
@@ -72,7 +72,7 @@ struct Project: Identifiable, Hashable, Sendable {
     let isFullyLoaded: Bool
 
     /// Identity and display fields for a project.
-    struct Metadata: Sendable, Hashable {
+    nonisolated struct Metadata: Sendable, Hashable {
         let id: String
         let name: String
         let description: String?
@@ -82,7 +82,7 @@ struct Project: Identifiable, Hashable, Sendable {
         let updated: Date
     }
 
-    struct Resources: Sendable, Hashable {
+    nonisolated struct Resources: Sendable, Hashable {
         let mailingLists: [MailingList]
         let sources: [SourceRepo]
         let trackers: [Tracker]
@@ -171,7 +171,7 @@ struct Project: Identifiable, Hashable, Sendable {
     }
 }
 
-extension Project.MailingList {
+nonisolated extension Project.MailingList {
     var displayName: String {
         Project.normalizedText(name) ?? "Untitled Mailing List"
     }
@@ -185,7 +185,7 @@ extension Project.MailingList {
     }
 }
 
-extension Project.SourceRepo {
+nonisolated extension Project.SourceRepo {
     var displayName: String {
         Project.normalizedText(name) ?? "Untitled Repository"
     }
@@ -203,7 +203,7 @@ extension Project.SourceRepo {
     }
 }
 
-extension Project.Tracker {
+nonisolated extension Project.Tracker {
     var displayName: String {
         Project.normalizedText(name) ?? "Untitled Tracker"
     }
@@ -221,13 +221,13 @@ extension Project.Tracker {
     }
 }
 
-extension String {
+nonisolated extension String {
     var srhtUsername: String {
         hasPrefix("~") ? String(dropFirst()) : self
     }
 }
 
-extension Visibility {
+nonisolated extension Visibility {
     var displayName: String {
         switch self {
         case .publicVisibility:

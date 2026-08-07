@@ -198,9 +198,9 @@ final class SettingsViewModel {
         do {
             let input: [String: any Sendable] = [
                 "email": email,
-                "url": url.isEmpty ? nil as String? as Any : url,
-                "location": location.isEmpty ? nil as String? as Any : location,
-                "bio": bio.isEmpty ? nil as String? as Any : bio
+                "url": url.isEmpty ? nil as String? as any Sendable : url,
+                "location": location.isEmpty ? nil as String? as any Sendable : location,
+                "bio": bio.isEmpty ? nil as String? as any Sendable : bio
             ]
             let result = try await client.execute(
                 service: .meta,
@@ -243,7 +243,7 @@ final class SettingsViewModel {
         do {
             // The input variable has avatar set to null; the actual file
             // is sent as a separate multipart part per graphql-multipart-request-spec.
-            let input: [String: any Sendable] = ["avatar": nil as String? as Any]
+            let input: [String: any Sendable] = ["avatar": nil as String? as any Sendable]
             let result = try await client.executeMultipart(
                 service: .meta,
                 query: Self.updateUserMutation,
@@ -286,7 +286,7 @@ final class SettingsViewModel {
         error = nil
 
         do {
-            let input: [String: any Sendable] = ["avatar": nil as String? as Any]
+            let input: [String: any Sendable] = ["avatar": nil as String? as any Sendable]
             let result = try await client.execute(
                 service: .meta,
                 query: Self.updateUserMutation,

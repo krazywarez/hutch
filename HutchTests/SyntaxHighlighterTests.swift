@@ -3,6 +3,7 @@ import Testing
 import UIKit
 @testable import Hutch
 
+@MainActor
 struct SyntaxHighlighterTests {
     @Test
     func mapsFileNamesToLanguages() {
@@ -24,9 +25,8 @@ struct SyntaxHighlighterTests {
         let highlighter = SyntaxHighlighter(theme: .light)
         let html = highlighter.highlightedHTML(for: "let answer = 42", language: "swift")
 
-        let unwrapped = try? #require(html)
-        #expect(unwrapped?.contains("<span style=\"color:") == true)
-        #expect(unwrapped?.contains("answer") == true)
+        #expect(html?.contains("<span style=\"color:") == true)
+        #expect(html?.contains("answer") == true)
     }
 
     @Test
@@ -42,7 +42,6 @@ struct SyntaxHighlighterTests {
         let font = UIFont.monospacedSystemFont(ofSize: 12, weight: .regular)
         let attributed = highlighter.attributedText(for: "print(\"hi\")", language: "python", font: font)
 
-        let unwrapped = try? #require(attributed)
-        #expect(unwrapped?.string.contains("print") == true)
+        #expect(attributed?.string.contains("print") == true)
     }
 }

@@ -4,9 +4,9 @@ import Foundation
 // MARK: - Navigation Intents
 
 struct OpenWorkQueueIntent: AppIntent {
-    static var title: LocalizedStringResource = "Open Work Queue"
-    static var description = IntentDescription("Opens Hutch to your Work Queue.")
-    static var openAppWhenRun = true
+    static let title: LocalizedStringResource = "Open Work Queue"
+    static let description = IntentDescription("Opens Hutch to your Work Queue.")
+    static let openAppWhenRun = true
 
     var route: HutchRoute { .workQueue(scope: .all) }
 
@@ -18,9 +18,9 @@ struct OpenWorkQueueIntent: AppIntent {
 }
 
 struct OpenRecentActivityIntent: AppIntent {
-    static var title: LocalizedStringResource = "Open Recent Activity"
-    static var description = IntentDescription("Opens Hutch to recent activity.")
-    static var openAppWhenRun = true
+    static let title: LocalizedStringResource = "Open Recent Activity"
+    static let description = IntentDescription("Opens Hutch to recent activity.")
+    static let openAppWhenRun = true
 
     var route: HutchRoute { .recentActivity }
 
@@ -32,9 +32,9 @@ struct OpenRecentActivityIntent: AppIntent {
 }
 
 struct OpenSystemStatusIntent: AppIntent {
-    static var title: LocalizedStringResource = "Open System Status"
-    static var description = IntentDescription("Opens Hutch to SourceHut system status.")
-    static var openAppWhenRun = true
+    static let title: LocalizedStringResource = "Open System Status"
+    static let description = IntentDescription("Opens Hutch to SourceHut system status.")
+    static let openAppWhenRun = true
 
     var route: HutchRoute { .systemStatus }
 
@@ -46,9 +46,9 @@ struct OpenSystemStatusIntent: AppIntent {
 }
 
 struct OpenPinnedResourceIntent: AppIntent {
-    static var title: LocalizedStringResource = "Open Pinned Resource"
-    static var description = IntentDescription("Opens a pinned Hutch resource.")
-    static var openAppWhenRun = true
+    static let title: LocalizedStringResource = "Open Pinned Resource"
+    static let description = IntentDescription("Opens a pinned Hutch resource.")
+    static let openAppWhenRun = true
 
     @Parameter(title: "Pinned Resource")
     var pinnedResource: PinnedResourceEntity
@@ -63,9 +63,9 @@ struct OpenPinnedResourceIntent: AppIntent {
 }
 
 struct OpenProjectDashboardIntent: AppIntent {
-    static var title: LocalizedStringResource = "Open Project Dashboard"
-    static var description = IntentDescription("Opens a pinned project dashboard in Hutch.")
-    static var openAppWhenRun = true
+    static let title: LocalizedStringResource = "Open Project Dashboard"
+    static let description = IntentDescription("Opens a pinned project dashboard in Hutch.")
+    static let openAppWhenRun = true
 
     @Parameter(title: "Project")
     var project: ProjectEntity
@@ -84,16 +84,16 @@ struct OpenProjectDashboardIntent: AppIntent {
 enum HutchShortcutScope: String, AppEnum {
     case all
 
-    static var typeDisplayRepresentation = TypeDisplayRepresentation(name: "Scope")
-    static var caseDisplayRepresentations: [HutchShortcutScope: DisplayRepresentation] = [
+    static let typeDisplayRepresentation = TypeDisplayRepresentation(name: "Scope")
+    static let caseDisplayRepresentations: [HutchShortcutScope: DisplayRepresentation] = [
         .all: "All"
     ]
 }
 
 struct OpenFailedBuildsIntent: AppIntent {
-    static var title: LocalizedStringResource = "Open Failed Builds"
-    static var description = IntentDescription("Opens Hutch to failed builds.")
-    static var openAppWhenRun = true
+    static let title: LocalizedStringResource = "Open Failed Builds"
+    static let description = IntentDescription("Opens Hutch to failed builds.")
+    static let openAppWhenRun = true
 
     @Parameter(title: "Scope", default: .all)
     var scope: HutchShortcutScope
@@ -108,9 +108,9 @@ struct OpenFailedBuildsIntent: AppIntent {
 }
 
 struct OpenAssignedTicketsIntent: AppIntent {
-    static var title: LocalizedStringResource = "Open Assigned Tickets"
-    static var description = IntentDescription("Opens Hutch to tickets assigned to you.")
-    static var openAppWhenRun = true
+    static let title: LocalizedStringResource = "Open Assigned Tickets"
+    static let description = IntentDescription("Opens Hutch to tickets assigned to you.")
+    static let openAppWhenRun = true
 
     @Parameter(title: "Scope", default: .all)
     var scope: HutchShortcutScope
@@ -125,9 +125,9 @@ struct OpenAssignedTicketsIntent: AppIntent {
 }
 
 struct SearchHutchIntent: AppIntent {
-    static var title: LocalizedStringResource = "Search Hutch"
-    static var description = IntentDescription("Opens Hutch lookup with a search query.")
-    static var openAppWhenRun = true
+    static let title: LocalizedStringResource = "Search Hutch"
+    static let description = IntentDescription("Opens Hutch lookup with a search query.")
+    static let openAppWhenRun = true
 
     @Parameter(title: "Query")
     var query: String
@@ -155,8 +155,8 @@ struct SearchHutchIntent: AppIntent {
 // MARK: - App Entities
 
 struct PinnedResourceEntity: AppEntity, Identifiable {
-    static var typeDisplayRepresentation = TypeDisplayRepresentation(name: "Pinned Resource")
-    static var defaultQuery = PinnedResourceQuery()
+    static let typeDisplayRepresentation = TypeDisplayRepresentation(name: "Pinned Resource")
+    static let defaultQuery = PinnedResourceQuery()
 
     let id: String
     let name: String
@@ -181,8 +181,8 @@ struct PinnedResourceQuery: EntityQuery {
 }
 
 struct ProjectEntity: AppEntity, Identifiable {
-    static var typeDisplayRepresentation = TypeDisplayRepresentation(name: "Project")
-    static var defaultQuery = ProjectEntityQuery()
+    static let typeDisplayRepresentation = TypeDisplayRepresentation(name: "Project")
+    static let defaultQuery = ProjectEntityQuery()
 
     let id: String
     let name: String
@@ -278,8 +278,8 @@ enum HutchIntentEntityStore {
 // MARK: - Existing Read-Only Summary Intents
 
 struct CheckSystemStatusIntent: AppIntent {
-    static var title: LocalizedStringResource = "Check SourceHut Status"
-    static var description = IntentDescription("Returns the current SourceHut system status.")
+    static let title: LocalizedStringResource = "Check SourceHut Status"
+    static let description = IntentDescription("Returns the current SourceHut system status.")
 
     @MainActor
     func perform() async throws -> some IntentResult & ReturnsValue<String> & ProvidesDialog {
@@ -302,8 +302,8 @@ struct CheckSystemStatusIntent: AppIntent {
 }
 
 struct CheckBuildsIntent: AppIntent {
-    static var title: LocalizedStringResource = "Check Hutch Builds"
-    static var description = IntentDescription("Returns a summary of your recent build status.")
+    static let title: LocalizedStringResource = "Check Hutch Builds"
+    static let description = IntentDescription("Returns a summary of your recent build status.")
 
     @MainActor
     func perform() async throws -> some IntentResult & ReturnsValue<String> & ProvidesDialog {
@@ -357,8 +357,8 @@ extension LookupType: AppEnum {
 // MARK: - Mutating Intents
 
 struct ClearRecentActivityIntent: AppIntent {
-    static var title: LocalizedStringResource = "Clear Recent Activity"
-    static var description = IntentDescription("Clears the Recent list on the Hutch Home tab.")
+    static let title: LocalizedStringResource = "Clear Recent Activity"
+    static let description = IntentDescription("Clears the Recent list on the Hutch Home tab.")
 
     @MainActor
     func perform() async throws -> some IntentResult & ProvidesDialog {
@@ -368,8 +368,8 @@ struct ClearRecentActivityIntent: AppIntent {
 }
 
 struct UnpinResourceIntent: AppIntent {
-    static var title: LocalizedStringResource = "Unpin Resource"
-    static var description = IntentDescription("Removes a pinned resource from the Hutch Home tab.")
+    static let title: LocalizedStringResource = "Unpin Resource"
+    static let description = IntentDescription("Removes a pinned resource from the Hutch Home tab.")
 
     @Parameter(title: "Pinned Resource")
     var pinnedResource: PinnedResourceEntity

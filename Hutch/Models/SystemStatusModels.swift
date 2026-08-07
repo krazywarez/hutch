@@ -1,6 +1,6 @@
 import Foundation
 
-enum StatusLevel: String, Codable, Sendable {
+nonisolated enum StatusLevel: String, Codable, Sendable {
     case operational
     case degraded
     case majorOutage
@@ -32,7 +32,7 @@ enum StatusLevel: String, Codable, Sendable {
     }
 }
 
-struct StatusServiceState: Identifiable, Hashable, Codable, Sendable {
+nonisolated struct StatusServiceState: Identifiable, Hashable, Codable, Sendable {
     let id: String
     let name: String
     let slug: String?
@@ -40,7 +40,7 @@ struct StatusServiceState: Identifiable, Hashable, Codable, Sendable {
     let description: String?
 }
 
-struct StatusIncident: Identifiable, Hashable, Codable, Sendable {
+nonisolated struct StatusIncident: Identifiable, Hashable, Codable, Sendable {
     let id: String
     let title: String
     let summary: String?
@@ -50,7 +50,7 @@ struct StatusIncident: Identifiable, Hashable, Codable, Sendable {
     let isActive: Bool?
 }
 
-struct SystemStatusSnapshot: Hashable, Codable, Sendable {
+nonisolated struct SystemStatusSnapshot: Hashable, Codable, Sendable {
     let services: [StatusServiceState]
     let activeIncidents: [StatusIncident]
     let lastUpdated: Date
@@ -78,7 +78,7 @@ struct SystemStatusSnapshot: Hashable, Codable, Sendable {
     }
 }
 
-struct SystemStatusPageData: Sendable {
+nonisolated struct SystemStatusPageData: Sendable {
     let snapshot: SystemStatusSnapshot
     let recentIncidents: [StatusIncident]
 }

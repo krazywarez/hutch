@@ -208,7 +208,7 @@ nonisolated final class SyntaxHighlighter {
     ]
 }
 
-private extension UIColor {
+nonisolated private extension UIColor {
     /// `#rrggbb` for HTML inline styles, or `nil` if the color isn't RGB-convertible.
     var hexRGBString: String? {
         var red: CGFloat = 0

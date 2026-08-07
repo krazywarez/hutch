@@ -40,6 +40,7 @@ private final class CapturingURLProtocol: URLProtocol, @unchecked Sendable {
 
 /// Tests are serialized because CapturingURLProtocol uses shared static state.
 @Suite(.serialized)
+@MainActor
 struct BundleUserAgentTests {
 
     // MARK: Bundle extension

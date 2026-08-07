@@ -3,7 +3,7 @@ import Foundation
 // MARK: - Enums
 
 /// Status of a ticket.
-enum TicketStatus: String, Codable, Sendable, CaseIterable {
+nonisolated enum TicketStatus: String, Codable, Sendable, CaseIterable {
     case reported = "REPORTED"
     case confirmed = "CONFIRMED"
     case inProgress = "IN_PROGRESS"
@@ -30,7 +30,7 @@ enum TicketStatus: String, Codable, Sendable, CaseIterable {
 }
 
 /// Resolution of a ticket.
-enum TicketResolution: String, Codable, Sendable {
+nonisolated enum TicketResolution: String, Codable, Sendable {
     case unresolved = "UNRESOLVED"
     case fixed = "FIXED"
     case implemented = "IMPLEMENTED"
@@ -64,7 +64,7 @@ enum TicketResolution: String, Codable, Sendable {
 }
 
 /// Authenticity of a ticket or comment.
-enum Authenticity: String, Codable, Sendable {
+nonisolated enum Authenticity: String, Codable, Sendable {
     case authentic = "AUTHENTIC"
     case tampered = "TAMPERED"
     case unauthenticated = "UNAUTHENTICATED"
@@ -74,7 +74,7 @@ enum Authenticity: String, Codable, Sendable {
 
 /// A label that can be applied to tickets.
 /// Named `TicketLabel` to avoid collision with `SwiftUI.Label`.
-struct TicketLabel: Codable, Sendable, Identifiable, Hashable {
+nonisolated struct TicketLabel: Codable, Sendable, Identifiable, Hashable {
     let id: Int
     let name: String
     let backgroundColor: String
@@ -83,7 +83,7 @@ struct TicketLabel: Codable, Sendable, Identifiable, Hashable {
 
 // MARK: - Tracker ACL
 
-struct TrackerACLPermissions: Codable, Sendable, Hashable {
+nonisolated struct TrackerACLPermissions: Codable, Sendable, Hashable {
     let browse: Bool
     let submit: Bool
     let comment: Bool
@@ -91,7 +91,7 @@ struct TrackerACLPermissions: Codable, Sendable, Hashable {
     let triage: Bool
 }
 
-struct TrackerACL: Codable, Sendable, Identifiable, Hashable {
+nonisolated struct TrackerACL: Codable, Sendable, Identifiable, Hashable {
     let id: Int
     let created: Date
     let entity: Entity
@@ -112,7 +112,7 @@ struct TrackerACL: Codable, Sendable, Identifiable, Hashable {
     }
 }
 
-struct DefaultTrackerACL: Codable, Sendable, Hashable {
+nonisolated struct DefaultTrackerACL: Codable, Sendable, Hashable {
     let browse: Bool
     let submit: Bool
     let comment: Bool
@@ -133,7 +133,7 @@ struct DefaultTrackerACL: Codable, Sendable, Hashable {
 // MARK: - Tracker
 
 /// A bug tracker from todo.sr.ht.
-struct Tracker: Codable, Sendable, Identifiable, Hashable {
+nonisolated struct Tracker: Codable, Sendable, Identifiable, Hashable {
     let id: Int
     let created: Date
     let updated: Date
@@ -154,7 +154,7 @@ struct Tracker: Codable, Sendable, Identifiable, Hashable {
 // MARK: - Tracker Summary (for list view)
 
 /// Lightweight tracker model matching the fields returned by the trackers list query.
-struct TrackerSummary: Codable, Sendable, Identifiable, Hashable {
+nonisolated struct TrackerSummary: Codable, Sendable, Identifiable, Hashable {
     let id: Int
     /// GraphQL resource identifier used by `tracker(id:)` queries.
     let rid: String
@@ -168,7 +168,7 @@ struct TrackerSummary: Codable, Sendable, Identifiable, Hashable {
 // MARK: - Ticket Summary (for list view)
 
 /// Lightweight ticket model for the list query.
-struct TicketSummary: Codable, Sendable, Identifiable, Hashable {
+nonisolated struct TicketSummary: Codable, Sendable, Identifiable, Hashable {
     let id: Int
     let title: String
     let status: TicketStatus
@@ -190,7 +190,7 @@ struct TicketSummary: Codable, Sendable, Identifiable, Hashable {
 // MARK: - Ticket Detail
 
 /// Full ticket model for the detail view.
-struct TicketDetail: Codable, Sendable {
+nonisolated struct TicketDetail: Codable, Sendable {
     let id: Int
     let created: Date
     let updated: Date
@@ -207,7 +207,7 @@ struct TicketDetail: Codable, Sendable {
 // MARK: - Event
 
 /// A timeline event on a ticket. Each event contains one or more changes.
-struct TicketEvent: Codable, Sendable, Identifiable {
+nonisolated struct TicketEvent: Codable, Sendable, Identifiable {
     let id: Int
     let created: Date
     var changes: [EventChange]
@@ -215,7 +215,7 @@ struct TicketEvent: Codable, Sendable, Identifiable {
 
 /// A single change within an event, decoded from the polymorphic EventDetail
 /// interface using inline fragments.
-struct EventChange: Codable, Sendable, Identifiable {
+nonisolated struct EventChange: Codable, Sendable, Identifiable {
     let id: UUID
 
     let eventType: String
@@ -272,12 +272,12 @@ struct EventChange: Codable, Sendable, Identifiable {
 
 /// Decoded from the `mentioned` field which may be a Ticket (with `id`) or
 /// an Entity (with `canonicalName`) depending on the event type.
-struct MentionTarget: Codable, Sendable {
+nonisolated struct MentionTarget: Codable, Sendable {
     let id: Int?
     let canonicalName: String?
 }
 
 /// Label info as returned within a LabelUpdate event change.
-struct EventLabel: Codable, Sendable {
+nonisolated struct EventLabel: Codable, Sendable {
     let name: String
 }

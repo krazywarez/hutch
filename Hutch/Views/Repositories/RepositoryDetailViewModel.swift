@@ -557,7 +557,7 @@ final class RepositoryDetailViewModel {
                 variables: [
                     "repoId": repository.id,
                     "revspec": revspec,
-                    "file": nil as String? as Any
+                    "file": nil as String? as any Sendable
                 ],
                 file: MultipartUploadFile(
                     variablePath: "file",
