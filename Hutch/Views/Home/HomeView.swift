@@ -5,6 +5,8 @@ struct HomeView: View {
     @Environment(\.scenePhase) private var scenePhase
     @AppStorage(AppStorageKeys.homeFailedBuildLookbackDays, store: .standard)
     private var failedBuildLookbackDays = HomeViewModel.defaultFailedBuildLookbackDays
+    @AppStorage(AppStorageKeys.swipeActionsEnabled, store: .standard)
+    private var swipeActionsEnabled = true
     @State private var viewModel: HomeViewModel?
     @State private var recentItems: [RecentActivityEntry] = []
     @State private var isOpeningRecentItem = false
@@ -118,7 +120,7 @@ struct HomeView: View {
     @ViewBuilder
     private var recentSection: some View {
         if !recentItems.isEmpty {
-            Section("Recent") {
+            Section {
                 ForEach(recentItems.prefix(3)) { item in
                     Button {
                         openRecentItem(item)
@@ -128,10 +130,39 @@ struct HomeView: View {
                     .buttonStyle(.plain)
                     .disabled(isOpeningRecentItem)
                     .listRowSeparator(.hidden)
+                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                        if swipeActionsEnabled {
+                            Button(role: .destructive) {
+                                removeRecentItem(item)
+                            } label: {
+                                Label("Remove", systemImage: "trash")
+                            }
+                        }
+                    }
                 }
                 .themedRow()
+            } header: {
+                HStack {
+                    Text("Recent")
+                    Spacer()
+                    Button("Clear") {
+                        clearRecentActivity()
+                    }
+                    .font(.caption)
+                    .textCase(nil)
+                }
             }
         }
+    }
+
+    private func removeRecentItem(_ item: RecentActivityEntry) {
+        RecentActivityStore.remove(id: item.id, defaults: appState.accountDefaults)
+        loadRecentActivity()
+    }
+
+    private func clearRecentActivity() {
+        RecentActivityStore.clear(defaults: appState.accountDefaults)
+        loadRecentActivity()
     }
 
     private func buildsSection(_ viewModel: HomeViewModel) -> some View {

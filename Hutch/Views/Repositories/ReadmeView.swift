@@ -1809,9 +1809,7 @@ private struct HTMLWebViewRepresentable: UIViewRepresentable {
                 vertical-align: middle;
             }
             .task-list-item {
-                display: inline-flex;
-                align-items: center;
-                gap: 0.1rem;
+                display: inline;
             }
             a { color: \(linkColor); }
             table { border-collapse: collapse; width: 100%; }
