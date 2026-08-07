@@ -143,17 +143,19 @@ so "breaking change" does not apply. These buckets track *user-visible scale*.
 | --- | --- | --- |
 | v3.8.1 | SonarCloud triage; housekeeping | No behaviour change at all |
 | v3.8.2 | Home system status moved to a title-bar status badge | Small UI relocation, no new surface |
-| v3.9.0 | "What's cooking" ingest; doc truth-up; deploy keys | Ships one feature, corrects the map |
-| v3.10.0 | hub.sr.ht writes: projects, discovery, `mailingListSubscribe` | Provisional — gated on what v3.9.0 finds |
+| v3.9.0 | ~~hub.sr.ht project writes + discovery (#12–#15); multi-language highlighting (#16); App Intents expansion (#17); man-page catalog sync (#7); checklist / recent-activity / pull-to-refresh fixes (#18, #11, #9)~~ | Shipped — the cut this session |
+| v3.10.0 | "What's cooking" ingest; doc truth-up; deploy keys; revisit `mailingListSubscribe` | Ships one feature, corrects the map |
 | v3.11.0 | Accessibility | Independent, device-verified |
 | v4.0.0 | Localization *with* translations | The only true re-presentation |
 | — | Swift 6 language mode; cache reads | Internal; ride along, no tag |
 
-Ordering is by dependency, not size. v3.9.0 leads because it is the only item
-that corrects the others' inputs: the ingest's real output is a `SCOPE.txt` that
-is true, and v3.10.0 rests entirely on one unverified sentence in a blog post.
-Do not commit v3.10.0's number until the SDL has been read — the bucket may turn
-out to be empty, which is the point of sequencing it second.
+3.9.0 was cut this session, bundling the hub.sr.ht writes with the other
+features listed. That reorders the original plan: the "What's cooking" ingest
+and deploy keys — once slated for 3.9.0 — move to 3.10.0, and the hub.sr.ht
+writes that were provisionally 3.10.0 landed early, because the SDL, once
+actually read, turned out to have the mutations (it was not the empty bucket the
+sequencing had guarded against). The ingest still leads 3.10.0: its real output
+is a `SCOPE.txt` that is true.
 
 `KeychainHelper` is deliberately unbucketed; see the SonarCloud hotspots below.
 
@@ -290,10 +292,11 @@ and it has been discouraging work that is in fact already done.
 flags two openings:
 
 - **hub.sr.ht gained a writable GraphQL API** for managing projects and project
-  resources. Hutch's projects are read-only, and `SCOPE.txt` still rules out
-  discovery on the grounds that hub has no public API. Both claims need
-  rechecking — this may also unblock `mailingListSubscribe`, which Phase 1 left
-  out for exactly that reason.
+  resources. ~~Rechecked and shipped~~: project create/edit, resource
+  link/unlink, and public discovery landed (#12–#15) — see "hub.sr.ht writes"
+  below. `SCOPE.txt` still needs its "hub has no public API / no discovery"
+  claim corrected. `mailingListSubscribe` was *not* unblocked — that needs a
+  per-list subscription field lists.sr.ht still lacks.
 - **git.sr.ht deploy keys are complete** (`createDeployKey` / `deleteDeployKey`
   are in the SDL). Hutch never calls them.
 
@@ -305,18 +308,28 @@ self-contained feature it has already surfaced and that the SDL confirms exists.
 That gives the release something a user can see. Everything else the ingest turns
 up gets filed, not built, and hub.sr.ht gets its own bucket below.
 
-### hub.sr.ht writes — v3.10.0, provisional
+### hub.sr.ht writes — projects and discovery done
 
-Everything here rests on a single sentence in the Q2 2026 post: that hub.sr.ht
-gained a writable GraphQL API. If true, three things unblock at once —
-project writes (Hutch's projects are read-only), discovery (which `SCOPE.txt`
-rules out on the grounds hub has no public API), and `mailingListSubscribe`,
-which Phase 1 declined for exactly that reason.
+Reading `api/graph/schema.graphqls` in `hub.sr.ht` settled the Q2 2026 claim:
+the master schema does expose the project write API — `createProject`,
+`updateProject`, `deleteProject`, the `link*` / `unlink*` resource mutations,
+and a public `projects` discovery query. Two of the three items this bucket
+tracked shipped against it:
 
-All three live or die on the same unverified claim, which is why this is
-sequenced after the ingest rather than planned now. Read
-`api/graph/schema.graphqls` in `hub.sr.ht` before committing the version number.
-The bucket may be empty.
+- ~~Project writes~~ — create (#13), edit (#14), and manage linked
+  repositories, trackers, and mailing lists (#15).
+- ~~Discovery~~ — a browsable directory of public projects (#12).
+
+Built against the master SDL; live deployment on `sr.ht/query` could not be
+confirmed without a token (introspection there is auth-gated), so the mutations
+degrade to a visible error rather than a crash if a field is not yet deployed.
+Verify on a signed-in device.
+
+`mailingListSubscribe` stays out. `MailingList` still has no `subscription`
+field, and public *project* discovery does not help find a mailing list the user
+is *not* subscribed to — the reason Phase 1 declined it. Revisit only if
+lists.sr.ht gains per-list subscription state. `SCOPE.txt` still needs its
+"hub has no public API / no discovery" claim corrected.
 
 ### App Intent gaps — unscheduled
 
@@ -326,11 +339,13 @@ search/persistence layer — so neither is schedulable until that lands. (These
 were the two `swift:S1135` TODOs; promoted here so the code carries a reference
 rather than a bare `TODO`.)
 
-- **Global content search.** `SearchHutchIntent` accepts a query but routes to
-  the Lookup screen — sourcehut entity resolution — because Hutch has no
-  full-text search across tickets, repos, and lists. Its own description says
-  "Opens Hutch lookup with a search query." When a real search exists, repoint
-  the `.search` route in `SearchHutchIntent.route`.
+- **Global content search.** `SearchHutchIntent` accepts a query — and now a
+  search *type* (#17) — but still routes to the Lookup screen, sourcehut entity
+  resolution, because Hutch has no full-text search across tickets, repos, and
+  lists. When a real search exists, repoint the `.search` route in
+  `SearchHutchIntent.route`. (#17 also completed Check Status / Check Builds
+  dialogs and added the Clear Recent Activity and Unpin Resource mutating
+  intents; those were shipped, not gaps.)
 - **`OpenSavedSearchIntent`.** Saved searches are per-tracker only
   (`TicketSavedFilterStore`, `ScopedSearchHistoryStore`); there is no global
   saved-search store for an intent to open. Add the intent once global
