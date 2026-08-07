@@ -25,7 +25,7 @@ enum HutchRoute: Equatable, Sendable {
     case trackers
     case systemStatus
     case lookup
-    case search(query: String)
+    case search(query: String, type: LookupType?)
     case projectDashboard(id: String, title: String?)
 
     init?(url: URL) {
@@ -103,7 +103,8 @@ enum HutchRoute: Equatable, Sendable {
 
         case "lookup":
             if let query = queryValue("q"), !query.isEmpty {
-                self = .search(query: query)
+                let type = queryValue("type").flatMap(LookupType.init(rawValue:))
+                self = .search(query: query, type: type)
             } else {
                 self = .lookup
             }
@@ -148,8 +149,12 @@ enum HutchRoute: Equatable, Sendable {
             return Self.makeURL(host: "status")
         case .lookup:
             return Self.makeURL(host: "lookup")
-        case .search(let query):
-            return Self.makeURL(host: "lookup", queryItems: [URLQueryItem(name: "q", value: query)])
+        case .search(let query, let type):
+            var items = [URLQueryItem(name: "q", value: query)]
+            if let type {
+                items.append(URLQueryItem(name: "type", value: type.rawValue))
+            }
+            return Self.makeURL(host: "lookup", queryItems: items)
         case .projectDashboard(let id, let title):
             return Self.makeURL(
                 host: "projects",
@@ -205,8 +210,8 @@ enum DeepLink: Equatable {
     case systemStatus
     /// hutch://lookup
     case lookup
-    /// hutch://lookup?q=<query>
-    case search(query: String)
+    /// hutch://lookup?q=<query>&type=<type>
+    case search(query: String, type: LookupType?)
     /// hutch://builds?filter=failed
     case failedBuilds
     /// hutch://projects/<rid>
@@ -253,8 +258,8 @@ enum DeepLink: Equatable {
             self = .systemStatus
         case .lookup:
             self = .lookup
-        case .search(let query):
-            self = .search(query: query)
+        case .search(let query, let type):
+            self = .search(query: query, type: type)
         case .projectDashboard(let id, let title):
             self = .projectDashboard(id: id, title: title)
         }

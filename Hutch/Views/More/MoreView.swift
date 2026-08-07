@@ -13,7 +13,7 @@ struct MoreView: View {
     var body: some View {
         List {
             Section("Search") {
-                NavigationLink(value: MoreRoute.lookup(query: nil)) {
+                NavigationLink(value: MoreRoute.lookup(query: nil, type: nil)) {
                     Label("Look Up", systemImage: "magnifyingglass")
                 }
                 .themedRow()
