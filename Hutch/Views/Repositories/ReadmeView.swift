@@ -234,15 +234,18 @@ struct RenderedMarkupContentView: View {
     @State private var renderedHTML: String?
 
     private var cacheKey: String {
+        // Highlighted code colors are baked into the HTML, so the theme is part
+        // of the cache identity — light and dark must not share an entry.
+        let theme = colorScheme == .dark ? "dark" : "light"
         switch content {
         case .html(let html):
-            "html:\(readmePath ?? "custom"):\(html)"
+            return "html:\(readmePath ?? "custom"):\(html)"
         case .markdown(let text):
-            "markdown:\(readmePath ?? ""):\(text)"
+            return "markdown:\(theme):\(readmePath ?? ""):\(text)"
         case .org(let text):
-            "org:\(readmePath ?? ""):\(text)"
+            return "org:\(theme):\(readmePath ?? ""):\(text)"
         case .plainText(let text):
-            "plain:\(readmePath ?? ""):\(text)"
+            return "plain:\(readmePath ?? ""):\(text)"
         }
     }
 
@@ -277,9 +280,11 @@ struct RenderedMarkupContentView: View {
                 renderedHTML = cached
                 return
             }
+            let theme = SyntaxHighlightTheme(colorScheme: colorScheme)
             let html = await Task.detached(priority: .userInitiated) {
                 markdownToHTML(
                     text,
+                    codeTheme: theme,
                     imageURLResolver: { source in
                         resolveRepositoryAssetURL(
                             source,
@@ -308,9 +313,11 @@ struct RenderedMarkupContentView: View {
                 renderedHTML = cached
                 return
             }
+            let theme = SyntaxHighlightTheme(colorScheme: colorScheme)
             let html = await Task.detached(priority: .userInitiated) {
                 orgToHTML(
                     text,
+                    codeTheme: theme,
                     imageURLResolver: { source in
                         resolveRepositoryAssetURL(
                             source,
@@ -462,9 +469,11 @@ nonisolated func processInline(
 
 nonisolated func orgToHTML(
     _ text: String,
+    codeTheme: SyntaxHighlightTheme = .light,
     imageURLResolver: ((String) -> String?)? = nil,
     linkURLResolver: ((String) -> String?)? = nil
 ) -> String {
+    let highlighter = SyntaxHighlighter(theme: codeTheme)
     let normalizedText = text
         .replacingOccurrences(of: "\r\n", with: "\n")
         .replacingOccurrences(of: "\r", with: "\n")
@@ -496,6 +505,7 @@ nonisolated func orgToHTML(
     var inQuoteBlock = false
     var inPropertyDrawer = false
     var srcLanguage: String?
+    var srcLines: [String] = []
     var inExampleBlock = false
     var inCenterBlock = false
     var inVerseBlock = false
@@ -593,9 +603,14 @@ nonisolated func orgToHTML(
     }
 
     func closeSourceBlock() {
-        if srcLanguage != nil {
+        if let language = srcLanguage {
+            let code = srcLines.joined(separator: "\n")
+            if !code.isEmpty {
+                html += (highlighter.highlightedHTML(for: code, language: language) ?? escapeHTML(code)) + "\n"
+            }
             html += "</code></pre>\n"
             srcLanguage = nil
+            srcLines = []
             closePendingBlockWrapper()
         }
     }
@@ -659,7 +674,7 @@ nonisolated func orgToHTML(
             if trimmed.lowercased() == "#+end_src" {
                 closeSourceBlock()
             } else {
-                html += escapeHTML(line) + "\n"
+                srcLines.append(line)
             }
             continue
         }
@@ -730,6 +745,7 @@ nonisolated func orgToHTML(
             let classAttribute = language.map { " class=\"language-\(escapeHTMLAttribute($0))\"" } ?? ""
             html += "<pre><code\(classAttribute)>"
             srcLanguage = language ?? ""
+            srcLines = []
             continue
         }
 
