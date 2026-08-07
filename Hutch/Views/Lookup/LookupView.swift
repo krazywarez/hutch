@@ -96,13 +96,17 @@ final class LookupViewModel {
         client: SRHTClient,
         appState: AppState,
         defaults: UserDefaults = .standard,
-        initialQuery: String = ""
+        initialQuery: String = "",
+        initialType: LookupType? = nil
     ) {
         self.client = client
         self.appState = appState
         self.defaults = defaults
         self.history = LookupHistoryStore.load(defaults: defaults)
         self.inputText = initialQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let initialType {
+            self.selectedType = initialType
+        }
     }
 
     func lookup() async {
@@ -336,9 +340,11 @@ struct LookupView: View {
     @Environment(AppState.self) private var appState
     @State private var viewModel: LookupViewModel?
     private let initialQuery: String
+    private let initialType: LookupType?
 
-    init(initialQuery: String = "") {
+    init(initialQuery: String = "", initialType: LookupType? = nil) {
         self.initialQuery = initialQuery
+        self.initialType = initialType
     }
 
     var body: some View {
@@ -356,7 +362,8 @@ struct LookupView: View {
                     client: appState.client,
                     appState: appState,
                     defaults: appState.accountDefaults,
-                    initialQuery: initialQuery
+                    initialQuery: initialQuery,
+                    initialType: initialType
                 )
             }
         }
@@ -443,8 +450,8 @@ struct LookupView: View {
             }
             .navigationDestination(for: MoreRoute.self) { route in
                 switch route {
-                case .lookup(let query):
-                    LookupView(initialQuery: query ?? "")
+                case .lookup(let query, let type):
+                    LookupView(initialQuery: query ?? "", initialType: type)
                 case .projects:
                     ProjectsListView()
                 case .lists:

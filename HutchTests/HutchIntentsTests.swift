@@ -110,4 +110,37 @@ struct HutchIntentsTests {
         ActiveAccountContextStore.save("account-a", defaults: defaults)
         #expect(NeedsAttentionSnapshotStore.load(defaults: defaults)?.failedBuilds == 3)
     }
+
+    @Test
+    func searchIntentCarriesQueryAndType() {
+        let intent = SearchHutchIntent()
+        intent.query = "~alice/hutch"
+        intent.searchType = .tracker
+        #expect(intent.route == .search(query: "~alice/hutch", type: .tracker))
+    }
+
+    @Test
+    func searchIntentWithBlankQueryFallsBackToLookup() {
+        let intent = SearchHutchIntent()
+        intent.query = "   "
+        intent.searchType = .user
+        #expect(intent.route == .lookup)
+    }
+
+    @Test
+    func removePinDropsMatchingResource() {
+        let defaultsName = "HutchIntentsTests-unpin-\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: defaultsName)!
+        defer { defaults.removePersistentDomain(forName: defaultsName) }
+
+        let alice = HomePinRecord(kind: .user, value: "~alice", title: "~alice", subtitle: "User", ownerUsername: "~alice", service: nil)
+        let bob = HomePinRecord(kind: .user, value: "~bob", title: "~bob", subtitle: "User", ownerUsername: "~bob", service: nil)
+        HomePinStore.togglePin(alice, for: "~me", defaults: defaults)
+        HomePinStore.togglePin(bob, for: "~me", defaults: defaults)
+
+        HomePinStore.removePin(id: alice.id, for: "~me", defaults: defaults)
+
+        let remaining = HomePinStore.loadPins(for: "~me", defaults: defaults)
+        #expect(remaining.map(\.id) == [bob.id])
+    }
 }
