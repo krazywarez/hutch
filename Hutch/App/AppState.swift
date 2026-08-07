@@ -623,7 +623,7 @@ final class AppState {
             defaults: accountDefaults,
             accountID: activeAccountID
         )
-        await viewModel.loadDashboard()
+        await viewModel.loadDashboard(awaitInboxUnread: true)
     }
 
     private func clearWebData() async {

@@ -199,6 +199,7 @@ final class HomeViewModel {
     private let projectService: ProjectService
     private let ticketFetchConcurrencyLimit = 6
     private let inboxUnreadConcurrencyLimit = 4
+    private var inboxRefreshTask: Task<Void, Never>?
 
     private var currentUserKey: String {
         currentUser.canonicalName
@@ -348,7 +349,19 @@ final class HomeViewModel {
     /// `forceRefresh` bypasses the cache. Without it, a pull to refresh returns
     /// whatever is already cached and only schedules a background fetch, so new
     /// mail cannot show up on the first pull.
-    func loadDashboard(forceRefresh: Bool = false) async {
+    ///
+    /// The inbox unread count is deliberately kept off this method's critical
+    /// path: it paginates every thread of every subscribed list and costs
+    /// ~25s, which — because `.refreshable` binds the spinner to this method
+    /// returning — would hold the pull-to-refresh spinner for the whole time.
+    /// Instead it refreshes in a detached background task and updates the badge
+    /// when it lands, so the spinner returns as soon as the fast branches settle.
+    ///
+    /// Callers that build a persisted snapshot from a throwaway view model —
+    /// the widget / App Intents needs-attention refresh — cannot let the inbox
+    /// fetch outlive them, so they pass `awaitInboxUnread: true` to fold it back
+    /// onto the critical path and get an accurate count before this returns.
+    func loadDashboard(forceRefresh: Bool = false, awaitInboxUnread: Bool = false) async {
         isLoadingProjects = true
         isLoadingAssignedTickets = true
         isLoadingRecentBuilds = true
@@ -362,7 +375,6 @@ final class HomeViewModel {
         async let projectsTask = loadProjects(forceRefresh: forceRefresh)
         async let jobsTask = loadRecentJobs(forceRefresh: forceRefresh)
         async let assignedTicketsTask = loadAssignedTickets(forceRefresh: forceRefresh)
-        async let inboxUnreadTask = loadInboxUnreadSnapshot(forceRefresh: forceRefresh)
         async let systemStatusTask = loadSystemStatusSnapshot(forceRefresh: forceRefresh)
 
         // Resolve system status first so the Home title-bar status badge can
@@ -413,13 +425,40 @@ final class HomeViewModel {
         }
         isLoadingAssignedTickets = false
 
-        let inboxUnreadSnapshot = await inboxUnreadTask
-        unreadInboxThreadCount = inboxUnreadSnapshot?.unreadCount
-        unreadInboxThreads = inboxUnreadSnapshot?.threads ?? []
-        hasUnreadInboxThreads = (unreadInboxThreadCount ?? 0) > 0
         lastRefreshed = Date()
         persistNeedsAttentionSnapshot()
         persistSystemStatusWidgetSnapshot()
+
+        if awaitInboxUnread {
+            inboxRefreshTask?.cancel()
+            inboxRefreshTask = nil
+            applyInboxUnreadSnapshot(await loadInboxUnreadSnapshot(forceRefresh: forceRefresh))
+        } else {
+            refreshInboxUnreadInBackground(forceRefresh: forceRefresh)
+        }
+    }
+
+    /// Refreshes the inbox unread badge without blocking `loadDashboard`.
+    ///
+    /// Any in-flight refresh is cancelled so overlapping pulls don't stack
+    /// ~25s fetches. On cancellation the snapshot loader returns `nil`; the
+    /// early `Task.isCancelled` check then leaves the existing badge untouched
+    /// rather than wiping it, so a superseding refresh owns the final value.
+    private func refreshInboxUnreadInBackground(forceRefresh: Bool) {
+        inboxRefreshTask?.cancel()
+        inboxRefreshTask = Task { [weak self] in
+            guard let self else { return }
+            let snapshot = await self.loadInboxUnreadSnapshot(forceRefresh: forceRefresh)
+            guard !Task.isCancelled else { return }
+            self.applyInboxUnreadSnapshot(snapshot)
+        }
+    }
+
+    private func applyInboxUnreadSnapshot(_ snapshot: HomeInboxUnreadSnapshot?) {
+        unreadInboxThreadCount = snapshot?.unreadCount
+        unreadInboxThreads = snapshot?.threads ?? []
+        hasUnreadInboxThreads = (unreadInboxThreadCount ?? 0) > 0
+        persistNeedsAttentionSnapshot()
     }
 
     /// Returns true if sufficient time has elapsed since the last dashboard refresh.
