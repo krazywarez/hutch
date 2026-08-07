@@ -5,13 +5,36 @@ import SwiftUI
 final class ProjectsListViewModel {
     private(set) var projects: [Project] = []
     private(set) var isLoading = false
+    private(set) var isSaving = false
     var error: String?
+    var saveError: String?
     var searchText = ""
 
-    private let service: ProjectService
+    let service: ProjectService
 
     init(service: ProjectService) {
         self.service = service
+    }
+
+    func createProject(_ values: ProjectFormValues) async -> Bool {
+        guard !isSaving else { return false }
+        isSaving = true
+        saveError = nil
+        defer { isSaving = false }
+
+        do {
+            _ = try await service.createProject(
+                name: values.name,
+                visibility: values.visibility,
+                description: values.description.isEmpty ? nil : values.description,
+                tags: values.tags
+            )
+            await loadProjects(forceRefresh: true)
+            return true
+        } catch {
+            saveError = error.userFacingMessage
+            return false
+        }
     }
 
     var filteredProjects: [Project] {
@@ -46,11 +69,42 @@ final class ProjectsListViewModel {
 struct ProjectsListView: View {
     @Environment(AppState.self) private var appState
     @State private var viewModel: ProjectsListViewModel?
+    @State private var isPresentingCreate = false
 
     var body: some View {
         Group {
             if let viewModel {
                 content(viewModel)
+                    .toolbar {
+                        ToolbarItem(placement: .topBarTrailing) {
+                            NavigationLink {
+                                DiscoverProjectsView()
+                            } label: {
+                                Image(systemName: "sparkle.magnifyingglass")
+                            }
+                            .accessibilityLabel("Discover public projects")
+                        }
+                        if appState.currentUser != nil {
+                            ToolbarItem(placement: .topBarTrailing) {
+                                Button {
+                                    isPresentingCreate = true
+                                } label: {
+                                    Image(systemName: "plus")
+                                }
+                                .accessibilityLabel("Create project")
+                            }
+                        }
+                    }
+                    .sheet(isPresented: $isPresentingCreate) {
+                        ProjectFormSheet(
+                            title: "New Project",
+                            confirmationTitle: "Create",
+                            isSaving: viewModel.isSaving,
+                            error: viewModel.saveError,
+                            includeWebsite: false,
+                            onSave: { await viewModel.createProject($0) }
+                        )
+                    }
             } else {
                 SRHTLoadingStateView(message: "Loading projects…")
             }
@@ -70,7 +124,7 @@ struct ProjectsListView: View {
         List {
             ForEach(viewModel.filteredProjects) { project in
                 NavigationLink {
-                    ProjectDetailView(project: project)
+                    ProjectDetailView(project: project, canManage: true)
                 } label: {
                     ProjectListRow(project: project)
                 }
