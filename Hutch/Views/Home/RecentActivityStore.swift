@@ -129,6 +129,16 @@ enum RecentActivityStore {
         )
     }
 
+    static func remove(id: String, defaults: UserDefaults) {
+        var entries = load(defaults: defaults)
+        entries.removeAll { $0.id == id }
+        save(entries, defaults: defaults)
+    }
+
+    static func clear(defaults: UserDefaults) {
+        defaults.removeObject(forKey: AppStorageKeys.recentActivity)
+    }
+
     private static func record(_ entry: RecentActivityEntry, defaults: UserDefaults) {
         var entries = load(defaults: defaults)
         entries.removeAll { $0.id == entry.id }
