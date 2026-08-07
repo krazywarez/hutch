@@ -31,10 +31,11 @@
   unaffected because it filters on `ev.ticket_id`, which is why ticket timelines
   work. Nothing a client can do fixes this; revisit only if sr.ht changes the
   resolver.
-- ~~Subscribe to a mailing list~~ — **now buildable**. `MailingList` gained a
-  `subscription` field (confirmed live during the Q1–Q2 2026 ingest), so per-list
-  subscribe state is readable and `mailingListSubscribe` / `mailingListUnsubscribe`
-  can drive a real toggle. Moved to ROADMAP.txt ("mailing list subscribe").
+- ~~Subscribe to a mailing list~~ — **shipped** (v3.11.0). A subscribe/unsubscribe
+  toggle on the mailing-list detail view. State comes from the `subscriptions`
+  query (`MailingList.subscription` is a trap — it never reports your state; see
+  ROADMAP.txt API traps), and a list is reachable to subscribe to via Lookup or a
+  project's lists — no discovery API needed.
 - Submitting patches (a `git send-email` flow, not a GraphQL mutation; Hutch
   reviews patchsets but cannot send them)
 
