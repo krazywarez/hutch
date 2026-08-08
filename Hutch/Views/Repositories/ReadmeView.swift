@@ -1028,7 +1028,7 @@ nonisolated func isAllowedReadmeNavigationURL(_ url: URL) -> Bool {
     guard let scheme = url.scheme?.lowercased() else {
         return false
     }
-    if scheme == "about" || scheme == "data" {
+    if scheme == "about" {
         return true
     }
     guard let sanitizedURL = sanitizedReadmeLinkURLString(url.absoluteString) else {
