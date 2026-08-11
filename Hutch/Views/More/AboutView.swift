@@ -59,7 +59,7 @@ struct AboutView: View {
                     SwiftUI.Label("SourceHut Manuals", systemImage: "book")
                 }
                 .themedRow()
-                Link(destination: URL(string: "https://sr.ht/~ccleberg/Hutch")!) {
+                Link(destination: URL(string: "https://github.com/krazywarez/hutch")!) {
                     SwiftUI.Label("Project Repository", systemImage: "folder")
                 }
                 .themedRow()
@@ -78,7 +78,7 @@ struct AboutView: View {
                     .foregroundStyle(.secondary)
                     .themedRow()
 
-                Link(destination: URL(string: "https://krz.sh/hutch/privacy-policy/")!) {
+                Link(destination: URL(string: "https://krz.sh/privacy/hutch")!) {
                     SwiftUI.Label("Privacy Policy", systemImage: "hand.raised")
                 }
                 .themedRow()

@@ -32,7 +32,7 @@ REQUIRES
   account, and a personal access token.
 
 BUILD
-      git clone https://git.sr.ht/~ccleberg/Hutch
+      git clone https://github.com/krazywarez/hutch
 
   open in xcode, build and run. on first launch paste a token. create
   one at https://meta.sr.ht/oauth2/personal-token.
@@ -43,11 +43,11 @@ BUILD
 
 DEVELOP
   xcode app with tests under HutchTests. run the test plan in
-  Hutch/HutchTests.xctestplan.
+  HutchTests.xctestplan.
 
 MIRRORS
   github:    https://github.com/krazywarez/hutch
-  sourcehut: https://sr.ht/~ccleberg/Hutch
+  krz.sh:    https://git.krz.sh/krz/hutch
   kept in sync. issues or patches on either.
 
 SECURITY
