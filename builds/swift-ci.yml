@@ -15,7 +15,7 @@ packages:
   - zlib1g-dev
 
 sources:
-  - https://git.sr.ht/~ccleberg/Hutch
+  - https://github.com/krazywarez/hutch
 
 environment:
   SWIFT_VERSION: 6.2.4
@@ -63,18 +63,18 @@ tasks:
 
       export PATH="$HOME/.local/bin:$PATH"
 
-      cd "$HOME/Hutch"
+      cd "$HOME/hutch"
       gitleaks git --redact --verbose .
 
   - repo-structure-check: |
       set -euo pipefail
-      cd "$HOME/Hutch"
+      cd "$HOME/hutch"
 
       test -f "Hutch.xcodeproj/project.pbxproj"
-      test -f "README.md"
+      test -f "README.nfo"
 
   - xcode-project-check: |
       set -euo pipefail
-      cd "$HOME/Hutch"
+      cd "$HOME/hutch"
 
       grep -q "PBXProject" Hutch.xcodeproj/project.pbxproj
