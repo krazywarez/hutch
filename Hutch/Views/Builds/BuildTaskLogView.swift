@@ -164,6 +164,7 @@ private struct BuildTaskLogContentView: View {
                         Image(systemName: "chevron.up")
                     }
                     .disabled(matches.isEmpty)
+                    .accessibilityLabel("Previous match")
 
                     Button {
                         moveSelection(step: 1)
@@ -171,6 +172,7 @@ private struct BuildTaskLogContentView: View {
                         Image(systemName: "chevron.down")
                     }
                     .disabled(matches.isEmpty)
+                    .accessibilityLabel("Next match")
                 }
                 .buttonStyle(.borderless)
                 .labelStyle(.iconOnly)

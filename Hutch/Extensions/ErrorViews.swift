@@ -37,6 +37,7 @@ struct SRHTErrorBanner: ViewModifier {
                 Image(systemName: "xmark.circle.fill")
                     .foregroundStyle(.white.opacity(0.8))
             }
+            .accessibilityLabel("Dismiss error")
         }
         .padding(12)
         .background(Color.red.gradient, in: RoundedRectangle(cornerRadius: 12))

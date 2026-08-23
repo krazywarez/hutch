@@ -96,6 +96,7 @@ struct MoreView: View {
                 } label: {
                     Image(systemName: "person.crop.circle.badge.plus")
                 }
+                .accessibilityLabel("Switch account")
             }
         }
         .sheet(isPresented: $showAccountSwitcher) {

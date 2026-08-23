@@ -295,6 +295,7 @@ private struct InboxMessageRow: View {
                 }
             }
             .buttonStyle(.plain)
+            .accessibilityHint(isCollapsed ? "Expands this message" : "Collapses this message")
 
             if !isCollapsed {
                 ForEach(Array(message.contentBlocks.enumerated()), id: \.offset) { _, block in

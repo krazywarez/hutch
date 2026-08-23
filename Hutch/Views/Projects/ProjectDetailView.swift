@@ -217,6 +217,7 @@ struct ProjectDetailView: View {
                         }
                     }
                     .buttonStyle(.plain)
+                    .accessibilityHint("Opens in your browser")
                 }
                 .themedRow()
             }

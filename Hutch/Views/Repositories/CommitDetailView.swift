@@ -153,6 +153,7 @@ struct CommitDetailView: View {
                 }
                 .foregroundStyle(.secondary)
             }
+            .accessibilityHint("Copies the commit SHA")
 
             // Author
             HStack {

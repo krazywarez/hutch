@@ -25,6 +25,7 @@ struct TrackerListView: View {
                     } label: {
                         Image(systemName: "plus")
                     }
+                    .accessibilityLabel("Create tracker")
                 }
             }
         }
