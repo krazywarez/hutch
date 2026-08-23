@@ -206,6 +206,7 @@ private struct ArtifactRow: View {
                 Image(systemName: "arrow.down.circle")
                     .imageScale(.large)
             }
+            .accessibilityLabel("Download artifact")
         }
     }
 }

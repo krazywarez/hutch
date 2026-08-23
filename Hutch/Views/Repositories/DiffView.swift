@@ -58,6 +58,7 @@ private struct DiffFileSectionView: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .accessibilityHint(isExpanded ? "Collapses this file" : "Expands this file")
             .background(Color(.tertiarySystemBackground))
 
             if isExpanded {
@@ -169,6 +170,7 @@ private struct DiffHunkView: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .accessibilityHint(isExpanded ? "Collapses this hunk" : "Expands this hunk")
             .background(Color(.systemBackground).opacity(0.5))
 
             if isExpanded {
