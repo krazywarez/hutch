@@ -46,6 +46,17 @@
                ReferencedContainer = "container:Hutch.xcodeproj">
             </BuildableReference>
          </TestableReference>
+         <TestableReference
+            skipped = "NO"
+            parallelizable = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "55C58E61B9D46807C2524ABE"
+               BuildableName = "HutchUITests.xctest"
+               BlueprintName = "HutchUITests"
+               ReferencedContainer = "container:Hutch.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
       </Testables>
    </TestAction>
    <LaunchAction

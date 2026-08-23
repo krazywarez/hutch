@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		5BCB2F8D3CB7523D13629488 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 81B757B59FDC52273ADF0569 /* Foundation.framework */; };
+		85EF08B88008A7861BC573CD /* AccessibilityUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36512CB22293FDA01F42B239 /* AccessibilityUITests.swift */; };
 		8B2F89662F69DEB900FC0253 /* LICENSE in Resources */ = {isa = PBXBuildFile; fileRef = 8B2F89632F69DEB900FC0253 /* LICENSE */; };
 		8B2F89672F69DEB900FC0253 /* README.nfo in Resources */ = {isa = PBXBuildFile; fileRef = 8B2F89642F69DEB900FC0253 /* README.nfo */; };
 		8B2F89682F69DEB900FC0253 /* SECURITY.txt in Resources */ = {isa = PBXBuildFile; fileRef = 8B2F89652F69DEB900FC0253 /* SECURITY.txt */; };
@@ -24,6 +26,13 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		104E023C02864EA3BCC1B924 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 8B4B28C92F6704280045FA19 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 8B4B28D02F6704280045FA19;
+			remoteInfo = Hutch;
+		};
 		8B8182BB2F6B73F3000AE049 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 8B4B28C92F6704280045FA19 /* Project object */;
@@ -63,6 +72,8 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		36512CB22293FDA01F42B239 /* AccessibilityUITests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AccessibilityUITests.swift; sourceTree = "<group>"; };
+		81B757B59FDC52273ADF0569 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 		8B01C8012F955ACC00FCFB9A /* SyncedProducts.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = SyncedProducts.storekit; sourceTree = "<group>"; };
 		8B2F89632F69DEB900FC0253 /* LICENSE */ = {isa = PBXFileReference; lastKnownFileType = text; path = LICENSE; sourceTree = "<group>"; };
 		8B2F89642F69DEB900FC0253 /* README.nfo */ = {isa = PBXFileReference; lastKnownFileType = text; path = README.nfo; sourceTree = "<group>"; };
@@ -80,6 +91,7 @@
 		8BDCA5272F6B76B20066AA29 /* HutchTests.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = HutchTests.xctestplan; sourceTree = "<group>"; };
 		8BE081F62F80000100000001 /* HutchWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = HutchWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		8BE083032F81000100000001 /* HutchSafariExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = HutchSafariExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		E53BD5EFA4A8857C8E76E77C /* HutchUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = HutchUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -117,11 +129,15 @@
 		};
 		8B8182B82F6B73F3000AE049 /* HutchTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
 			path = HutchTests;
 			sourceTree = "<group>";
 		};
 		8BE081F42F80000100000001 /* Shared */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
 			path = Shared;
 			sourceTree = "<group>";
 		};
@@ -144,6 +160,14 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		45764517796ACFDF6884B202 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5BCB2F8D3CB7523D13629488 /* Foundation.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		8B4B28CE2F6704280045FA19 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -177,6 +201,22 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		53CE95BE8B13B8E6B57E4BBB /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				7631E8C6830506A8C2FD3DAF /* iOS */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		7631E8C6830506A8C2FD3DAF /* iOS */ = {
+			isa = PBXGroup;
+			children = (
+				81B757B59FDC52273ADF0569 /* Foundation.framework */,
+			);
+			name = iOS;
+			sourceTree = "<group>";
+		};
 		8B2FA9CB2F7E211800E609E2 /* API */ = {
 			isa = PBXGroup;
 			children = (
@@ -215,6 +255,8 @@
 				8BE083052F81000100000001 /* HutchSafariExtension */,
 				8B8182B82F6B73F3000AE049 /* HutchTests */,
 				8B4B28D22F6704280045FA19 /* Products */,
+				53CE95BE8B13B8E6B57E4BBB /* Frameworks */,
+				CF2D242564EB2748C4FE43C7 /* HutchUITests */,
 			);
 			sourceTree = "<group>";
 		};
@@ -225,13 +267,41 @@
 				8B8182B72F6B73F3000AE049 /* HutchTests.xctest */,
 				8BE081F62F80000100000001 /* HutchWidgetExtension.appex */,
 				8BE083032F81000100000001 /* HutchSafariExtension.appex */,
+				E53BD5EFA4A8857C8E76E77C /* HutchUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
 		};
+		CF2D242564EB2748C4FE43C7 /* HutchUITests */ = {
+			isa = PBXGroup;
+			children = (
+				36512CB22293FDA01F42B239 /* AccessibilityUITests.swift */,
+			);
+			name = HutchUITests;
+			path = HutchUITests;
+			sourceTree = SOURCE_ROOT;
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		55C58E61B9D46807C2524ABE /* HutchUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 17E0153B64F83AB0AB28E4EC /* Build configuration list for PBXNativeTarget "HutchUITests" */;
+			buildPhases = (
+				7D4FCDD80891AAAA803FF5A8 /* Sources */,
+				45764517796ACFDF6884B202 /* Frameworks */,
+				6693997E5CA01B62C500224F /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				425D21A6305B6A50B714F42D /* PBXTargetDependency */,
+			);
+			name = HutchUITests;
+			productName = HutchUITests;
+			productReference = E53BD5EFA4A8857C8E76E77C /* HutchUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 		8B4B28D02F6704280045FA19 /* Hutch */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 8B4B28DC2F6704290045FA19 /* Build configuration list for PBXNativeTarget "Hutch" */;
@@ -277,8 +347,6 @@
 				8B8182B82F6B73F3000AE049 /* HutchTests */,
 			);
 			name = HutchTests;
-			packageProductDependencies = (
-			);
 			productName = HutchTests;
 			productReference = 8B8182B72F6B73F3000AE049 /* HutchTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
@@ -300,8 +368,6 @@
 				8BE081F52F80000100000001 /* HutchWidgetExtension */,
 			);
 			name = HutchWidgetExtension;
-			packageProductDependencies = (
-			);
 			productName = HutchWidgetExtension;
 			productReference = 8BE081F62F80000100000001 /* HutchWidgetExtension.appex */;
 			productType = "com.apple.product-type.app-extension";
@@ -322,8 +388,6 @@
 				8BE083052F81000100000001 /* HutchSafariExtension */,
 			);
 			name = HutchSafariExtension;
-			packageProductDependencies = (
-			);
 			productName = HutchSafariExtension;
 			productReference = 8BE083032F81000100000001 /* HutchSafariExtension.appex */;
 			productType = "com.apple.product-type.app-extension";
@@ -372,11 +436,19 @@
 				8BE081F72F80000100000001 /* HutchWidgetExtension */,
 				8BE083092F81000100000001 /* HutchSafariExtension */,
 				8B8182B62F6B73F3000AE049 /* HutchTests */,
+				55C58E61B9D46807C2524ABE /* HutchUITests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		6693997E5CA01B62C500224F /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		8B4B28CF2F6704280045FA19 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -418,6 +490,14 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		7D4FCDD80891AAAA803FF5A8 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				85EF08B88008A7861BC573CD /* AccessibilityUITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		8B4B28CD2F6704280045FA19 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -449,6 +529,12 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		425D21A6305B6A50B714F42D /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = Hutch;
+			target = 8B4B28D02F6704280045FA19 /* Hutch */;
+			targetProxy = 104E023C02864EA3BCC1B924 /* PBXContainerItemProxy */;
+		};
 		8B8182BC2F6B73F3000AE049 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 8B4B28D02F6704280045FA19 /* Hutch */;
@@ -467,6 +553,23 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
+		0695DD4B2F10503E9E898572 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGNING_ALLOWED = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
+				PRODUCT_BUNDLE_IDENTIFIER = net.cleberg.HutchUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = Hutch;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
 		8B4B28DA2F6704290045FA19 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -824,9 +927,34 @@
 			};
 			name = Release;
 		};
+		CFEEB56B9E52A6AA5A030489 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGNING_ALLOWED = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
+				PRODUCT_BUNDLE_IDENTIFIER = net.cleberg.HutchUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = Hutch;
+			};
+			name = Debug;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		17E0153B64F83AB0AB28E4EC /* Build configuration list for PBXNativeTarget "HutchUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				0695DD4B2F10503E9E898572 /* Release */,
+				CFEEB56B9E52A6AA5A030489 /* Debug */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		8B4B28CC2F6704280045FA19 /* Build configuration list for PBXProject "Hutch" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
