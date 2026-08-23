@@ -606,6 +606,7 @@ private struct EventRow: View {
                                             .foregroundStyle(.gray)
                                     }
                                     .buttonStyle(.plain)
+                                    .accessibilityLabel("About this status change")
                                 }
                             } else {
                                 Text(descriptionText)
@@ -948,6 +949,7 @@ private struct AssignSheet: View {
                                         .foregroundStyle(.red)
                                 }
                                 .buttonStyle(.plain)
+                                .accessibilityLabel("Unassign \(assignee.canonicalName)")
                             }
                         }
                         .themedRow()
@@ -1152,5 +1154,6 @@ private struct LabelToggleRow: View {
             }
         }
         .disabled(isLoading)
+        .accessibilityAddTraits(isApplied ? [.isSelected] : [])
     }
 }

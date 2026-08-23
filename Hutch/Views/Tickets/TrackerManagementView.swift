@@ -785,6 +785,7 @@ struct TrackerACLManagementSheet: View {
                         Image(systemName: "plus")
                     }
                     .disabled(viewModel.isSavingACL)
+                    .accessibilityLabel("Add ACL")
                 }
             }
             .task {
@@ -1155,6 +1156,7 @@ struct TrackerLabelManagementSheet: View {
                         Image(systemName: "plus")
                     }
                     .disabled(viewModel.isSavingLabel)
+                    .accessibilityLabel("Create label")
                 }
             }
             .task {

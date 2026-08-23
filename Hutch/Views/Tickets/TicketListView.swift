@@ -857,6 +857,9 @@ private struct TicketQuickFilterBar: View {
                                     in: Capsule()
                                 )
                             }
+                            .accessibilityAddTraits(
+                                activeSavedFilterID == savedFilter.id ? [.isSelected] : []
+                            )
                             .contextMenu {
                                 Button(role: .destructive) {
                                     onDeleteSavedFilter(savedFilter)
@@ -964,6 +967,9 @@ private struct TicketFilterLabelsSheet: View {
                                     }
                                 }
                                 .buttonStyle(.plain)
+                                .accessibilityAddTraits(
+                                    viewModel.selectedLabelIDs.contains(label.id) ? [.isSelected] : []
+                                )
                             }
                             .themedRow()
                         }
@@ -1051,6 +1057,7 @@ private struct TicketListLabelToggleRow: View {
             }
         }
         .disabled(isLoading)
+        .accessibilityAddTraits(isApplied ? [.isSelected] : [])
     }
 }
 

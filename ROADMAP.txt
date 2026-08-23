@@ -156,7 +156,7 @@ so "breaking change" does not apply. These buckets track *user-visible scale*.
 | v3.9.0 | ~~hub.sr.ht project writes + discovery (#12–#15); multi-language highlighting (#16); App Intents expansion (#17); man-page catalog sync (#7); checklist / recent-activity / pull-to-refresh fixes (#18, #11, #9)~~ | Shipped — the cut this session |
 | v3.10.0 | ~~git.sr.ht deploy keys~~ (shipped); ~~"What's cooking" ingest + doc truth-up~~ (done) | Ships one feature, corrects the map |
 | v3.11.0 | ~~Mailing list subscribe/unsubscribe toggle~~ (shipped) | Ingest-surfaced; state via the `subscriptions` query (the `subscription` field is a trap) |
-| v3.12.0 | Accessibility | Independent, device-verified |
+| v3.12.0 | ~~Accessibility~~ (done in code) | Still wants a VoiceOver pass on a device |
 | v4.0.0 | Localization *with* translations | The only true re-presentation |
 | — | ~~Swift 6 language mode~~ (done); cache reads | Internal; ride along, no tag |
 
@@ -206,11 +206,36 @@ the major number on regression risk while delivering nothing — the wrong trade
 Hold the catalog until a translation lands. If it ever ships unbundled, it is
 groundwork and belongs in a quiet minor, not a 4.0.
 
-### Accessibility — v3.11.0
+### Accessibility — done in code (v3.12.0)
 
-Labels and hints appear in 17 of 89 view files. Mechanical and low-risk, but it
-cannot be verified from a build — it needs VoiceOver driven on a device.
-Independent of every other bucket, so it can move if a device pass is convenient.
+The earlier count here (17 of 89 view files) was wrong on both numbers: 22 of 95
+carried a modifier, and of those, labels were the whole story — one hint in the
+whole app, no traits at all. Counting files also hid the shape of the gap, which
+was not spread evenly but concentrated in three kinds of control:
+
+- **Icon-only controls**, which VoiceOver reaches with nothing to announce.
+  Eleven of them: the error banner's dismiss, log search next/previous match,
+  account switching, four `plus` creates (paste, tracker, ACL, label), artifact
+  download, the system-status info button, and assignee unassign.
+- **Selection state carried only by a checkmark or a tint.** Five: applied
+  ticket labels in two views, the label filter, the saved-filter chip, and the
+  paste visibility picker. These now carry `.isSelected` rather than relying on
+  an icon VoiceOver does not read.
+- **Disclosure state carried only by a chevron.** Three: diff file, diff hunk,
+  and inbox message. `PatchsetDetailView` already had the hint; the others now
+  match it.
+
+Two more: the project external-link row says it leaves the app, and the commit
+SHA button says it copies — both read as bare text before.
+
+Decorative chevrons inside a control that already carries text were left alone.
+An unlabelled SF Symbol contributes nothing to a combined label, so hiding them
+would be churn with no announced difference.
+
+Still open: **this is not device-verified.** It builds and the suite is green,
+but neither proves a VoiceOver pass. What is verified is that no icon-only
+control is left unlabelled — a static check over the enclosing control's brace
+span, not a guess at line proximity.
 
 ### SonarCloud backlog — done in code (v3.8.1)
 

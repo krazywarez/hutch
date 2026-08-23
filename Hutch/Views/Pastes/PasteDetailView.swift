@@ -413,6 +413,7 @@ private struct PasteVisibilitySheet: View {
                         .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
+                    .accessibilityAddTraits(visibility == option ? [.isSelected] : [])
                 }
                 .themedRow()
             }
