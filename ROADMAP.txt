@@ -232,10 +232,27 @@ Decorative chevrons inside a control that already carries text were left alone.
 An unlabelled SF Symbol contributes nothing to a combined label, so hiding them
 would be churn with no announced difference.
 
-Still open: **this is not device-verified.** It builds and the suite is green,
-but neither proves a VoiceOver pass. What is verified is that no icon-only
-control is left unlabelled — a static check over the enclosing control's brace
-span, not a guess at line proximity.
+Two checks now hold this, because either alone is insufficient:
+
+- `scripts/check_accessibility.py` reads every view file and fails on an
+  icon-only control with no label. It runs on Linux in seconds, needs no
+  simulator and no credentials, and covers screens no test navigates to. What it
+  cannot see is whether a label survives to the accessibility tree.
+- `HutchUITests/AccessibilityUITests.swift` walks the controls actually on
+  screen and fails on one that announces nothing, or that announces an SF Symbol
+  name. Both checks were confirmed against a deliberately unlabelled button; the
+  first draft of the UI sweep passed it, which is why the check now compares the
+  label against the identifier rather than guessing at symbol-name shape.
+
+The UI sweep covers the auth screen unconditionally. The signed-in tabs need a
+real token — the app has no stub session, so there is no way to reach them
+offline — and that test skips unless `HUTCH_TEST_TOKEN` is set. Adding a launch
+argument that fakes the API would remove that gap and is worth doing before the
+next accessibility pass.
+
+Still open: **this is not device-verified.** Neither check is VoiceOver. They
+prove a control has something to announce, not that the announcement is
+sensible in order, with rotor navigation, at Dynamic Type sizes.
 
 ### SonarCloud backlog — done in code (v3.8.1)
 
