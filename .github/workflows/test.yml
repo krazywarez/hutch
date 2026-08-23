@@ -38,6 +38,18 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Runs on Linux because it only reads source. Accessibility labels cannot be
+  # checked from a build — the app compiles either way — and a UI test only sees
+  # screens it can reach. This sees every view file, in seconds, with no
+  # simulator and no credentials.
+  accessibility:
+    name: accessibility labels
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+      - run: python3 scripts/check_accessibility.py
+
   test:
     name: xcodebuild test
     # macos-latest still points at macOS 15, which lacks the iOS 26 SDK.
