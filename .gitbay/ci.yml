@@ -3,6 +3,12 @@
 # write a suspiciously short list, so an upstream markup change can't
 # silently gut the catalog.
 jobs:
+  # Reads every view file for icon-only controls without accessibility
+  # labels — no build, no simulator. The xcodebuild test plan is not
+  # ported: it needs a macOS runner this instance does not have.
+  accessibility:
+    steps:
+      - python3 scripts/check_accessibility.py
   sync-man-pages:
     schedule: "0 6 * * 1"
     steps:
