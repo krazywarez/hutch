@@ -1,0 +1,21 @@
+# Weekly man-page catalog sync, ported from the GitHub workflow. The change
+# lands as an MR for review, never straight on main. The script refuses to
+# write a suspiciously short list, so an upstream markup change can't
+# silently gut the catalog.
+jobs:
+  sync-man-pages:
+    schedule: "0 6 * * 1"
+    steps:
+      - python3 scripts/sync_man_pages.py
+      - |
+        set -e
+        if git diff --quiet -- Hutch/Resources/man-pages.json; then
+          echo "catalog unchanged"
+          exit 0
+        fi
+        git -c user.name=ci -c user.email=ci@gitbay.org checkout -q -B automated/man-page-catalog
+        git -c user.name=ci -c user.email=ci@gitbay.org commit -qam "Sync bundled man page catalog with man.sr.ht"
+        git push -qf origin automated/man-page-catalog
+        if ! ssh git@127.0.0.1 mr list krz/hutch --json | grep -q "automated/man-page-catalog"; then
+          ssh git@127.0.0.1 "mr create krz/hutch --source automated/man-page-catalog --target main --title 'Sync bundled man page catalog' --body 'Automated update from scripts/sync_man_pages.py. Review the diff to Hutch/Resources/man-pages.json before merging.'"
+        fi
