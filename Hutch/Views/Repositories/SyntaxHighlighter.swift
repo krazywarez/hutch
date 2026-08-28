@@ -1,5 +1,6 @@
 import Foundation
 import Highlightr
+import OrgSwift
 import SwiftUI
 import UIKit
 
@@ -31,7 +32,7 @@ nonisolated enum SyntaxHighlightTheme {
 /// instance must stay on the thread/task that created it. Callers that fail to
 /// resolve a language — or hit an unavailable engine — get `nil` and should
 /// fall back to plain, escaped text.
-nonisolated final class SyntaxHighlighter {
+nonisolated final class SyntaxHighlighter: CodeHighlighter {
     private let highlightr: Highlightr?
     private let supportedLanguages: Set<String>
 
@@ -58,6 +59,11 @@ nonisolated final class SyntaxHighlighter {
             return nil
         }
         return Self.html(from: attributed)
+    }
+
+    /// `OrgSwift.CodeHighlighter` conformance — delegates to the existing method.
+    func highlightedHTML(code: String, language: String?) -> String? {
+        highlightedHTML(for: code, language: language)
     }
 
     private static let htmlMeasurementFont = UIFont.monospacedSystemFont(ofSize: 12, weight: .regular)

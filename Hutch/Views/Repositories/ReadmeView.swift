@@ -1,3 +1,4 @@
+import OrgSwift
 import SwiftUI
 import WebKit
 
@@ -314,29 +315,19 @@ struct RenderedMarkupContentView: View {
                 return
             }
             let theme = SyntaxHighlightTheme(colorScheme: colorScheme)
+            let host = repositoryHost
+            let owner = ownerCanonicalName
+            let repo = repositoryName
+            let path = readmePath
             let html = await Task.detached(priority: .userInitiated) {
-                orgToHTML(
-                    text,
-                    codeTheme: theme,
-                    imageURLResolver: { source in
-                        resolveRepositoryAssetURL(
-                            source,
-                            owner: ownerCanonicalName,
-                            repositoryName: repositoryName,
-                            readmePath: readmePath
-                        )?
-                        .replacingOccurrences(of: "git.sr.ht", with: repositoryHost)
-                    },
-                    linkURLResolver: { source in
-                        resolveRepositoryLinkURL(
-                            source,
-                            owner: ownerCanonicalName,
-                            repositoryName: repositoryName,
-                            readmePath: readmePath
-                        )?
-                        .replacingOccurrences(of: "git.sr.ht", with: repositoryHost)
-                    }
+                let options = OrgRenderOptions(
+                    host: host,
+                    owner: owner,
+                    repositoryName: repo,
+                    ref: "HEAD",
+                    readmePath: path
                 )
+                return OrgRenderer.renderToHTML(text, options: options, highlighter: SyntaxHighlighter(theme: theme))
             }.value
             RenderedReadmeHTMLCache.shared.setHTML(html, forKey: cacheKey)
             guard !Task.isCancelled else { return }
