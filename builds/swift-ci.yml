@@ -71,7 +71,7 @@ tasks:
       cd "$HOME/hutch"
 
       test -f "Hutch.xcodeproj/project.pbxproj"
-      test -f "README.nfo"
+      test -f "README.org"
 
   - xcode-project-check: |
       set -euo pipefail
