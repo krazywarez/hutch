@@ -1,4 +1,5 @@
 import OrgSwift
+import OrgSwiftUI
 import SwiftUI
 import WebKit
 
@@ -244,7 +245,7 @@ struct RenderedMarkupContentView: View {
         case .markdown(let text):
             return "markdown:\(theme):\(readmePath ?? ""):\(text)"
         case .org(let text):
-            return "org:\(theme):\(readmePath ?? ""):\(text)"
+            return "org:\(readmePath ?? ""):\(text)"
         case .plainText(let text):
             return "plain:\(readmePath ?? ""):\(text)"
         }
@@ -255,12 +256,26 @@ struct RenderedMarkupContentView: View {
             switch content {
             case .html(let html):
                 HTMLWebView(html: html, colorScheme: colorScheme, onInterceptURL: onInterceptURL)
-            case .markdown, .org:
+            case .markdown:
                 if let renderedHTML {
                     HTMLWebView(html: renderedHTML, colorScheme: colorScheme, onInterceptURL: onInterceptURL)
                 } else {
                     SRHTLoadingStateView(message: "Preparing README…")
                 }
+            case .org(let text):
+                OrgView(
+                    text,
+                    options: orgOptions,
+                    styler: SyntaxHighlighter(theme: SyntaxHighlightTheme(colorScheme: colorScheme)),
+                    // Matches how tickets are colored: pending amber, resolved green.
+                    keywords: OrgKeywordStyle(todo: .orange, done: .green)
+                )
+                .environment(\.openURL, OpenURLAction { url in
+                    // Links to files in this repository open in-app, as they did
+                    // when the web view intercepted its own navigation.
+                    if onInterceptURL?(url) == true { return .handled }
+                    return .systemAction
+                })
             case .plainText(let text):
                 Text(text)
                     .font(.system(.body, design: .monospaced))
@@ -274,7 +289,7 @@ struct RenderedMarkupContentView: View {
 
     private func prepareHTMLIfNeeded() async {
         switch content {
-        case .html, .plainText:
+        case .html, .plainText, .org:
             renderedHTML = nil
         case .markdown(let text):
             if let cached = RenderedReadmeHTMLCache.shared.html(forKey: cacheKey) {
@@ -309,30 +324,19 @@ struct RenderedMarkupContentView: View {
             RenderedReadmeHTMLCache.shared.setHTML(html, forKey: cacheKey)
             guard !Task.isCancelled else { return }
             renderedHTML = html
-        case .org(let text):
-            if let cached = RenderedReadmeHTMLCache.shared.html(forKey: cacheKey) {
-                renderedHTML = cached
-                return
-            }
-            let theme = SyntaxHighlightTheme(colorScheme: colorScheme)
-            let host = repositoryHost
-            let owner = ownerCanonicalName
-            let repo = repositoryName
-            let path = readmePath
-            let html = await Task.detached(priority: .userInitiated) {
-                let options = OrgRenderOptions(
-                    host: host,
-                    owner: owner,
-                    repositoryName: repo,
-                    ref: "HEAD",
-                    readmePath: path
-                )
-                return OrgRenderer.renderToHTML(text, options: options, highlighter: SyntaxHighlighter(theme: theme))
-            }.value
-            RenderedReadmeHTMLCache.shared.setHTML(html, forKey: cacheKey)
-            guard !Task.isCancelled else { return }
-            renderedHTML = html
         }
+    }
+
+    /// Same resolution the HTML renderer used, so relative links and images
+    /// still point at this repository on this instance.
+    private var orgOptions: OrgRenderOptions {
+        OrgRenderOptions(
+            host: repositoryHost,
+            owner: ownerCanonicalName,
+            repositoryName: repositoryName,
+            ref: "HEAD",
+            readmePath: readmePath
+        )
     }
 }
 

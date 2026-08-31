@@ -15,8 +15,8 @@
       "kind" : "remoteSourceControl",
       "location" : "ssh://git@gitbay.org/krz/org-swift.git",
       "state" : {
-        "branch" : "main",
-        "revision" : "47ac630c479b79dbfa8944c91b22b7bb6974cadc"
+        "revision" : "1873fef70216e46ea03a1e72575fd83dd8b40cf2",
+        "version" : "0.3.0"
       }
     },
     {

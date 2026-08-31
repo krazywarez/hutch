@@ -24,6 +24,7 @@
 		8BE083012F81000100000001 /* HutchSafariExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 8BE083032F81000100000001 /* HutchSafariExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		8BF100032F9A000100000001 /* Markdown in Frameworks */ = {isa = PBXBuildFile; productRef = 8BF100022F9A000100000001 /* Markdown */; };
 		0F0F0F0F0F0F0F0F000000A3 /* OrgSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 0F0F0F0F0F0F0F0F000000A2 /* OrgSwift */; };
+		0F0F0F0F0F0F0F0F000000A5 /* OrgSwiftUI in Frameworks */ = {isa = PBXBuildFile; productRef = 0F0F0F0F0F0F0F0F000000A4 /* OrgSwiftUI */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -176,6 +177,7 @@
 				8BF100032F9A000100000001 /* Markdown in Frameworks */,
 				8BAA000000000000000000B0 /* Highlightr in Frameworks */,
 				0F0F0F0F0F0F0F0F000000A3 /* OrgSwift in Frameworks */,
+				0F0F0F0F0F0F0F0F000000A5 /* OrgSwiftUI in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -328,6 +330,7 @@
 				8BF100022F9A000100000001 /* Markdown */,
 				8BAA000000000000000000B2 /* Highlightr */,
 				0F0F0F0F0F0F0F0F000000A2 /* OrgSwift */,
+				0F0F0F0F0F0F0F0F000000A4 /* OrgSwiftUI */,
 			);
 			productName = Hutch;
 			productReference = 8B4B28D12F6704280045FA19 /* Hutch.app */;
@@ -1027,8 +1030,8 @@
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "ssh://git@gitbay.org/krz/org-swift.git";
 			requirement = {
-				branch = main;
-				kind = branch;
+				kind = upToNextMinorVersion;
+				minimumVersion = 0.3.0;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
@@ -1048,6 +1051,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 0F0F0F0F0F0F0F0F000000A1 /* XCRemoteSwiftPackageReference "org-swift" */;
 			productName = OrgSwift;
+		};
+		0F0F0F0F0F0F0F0F000000A4 /* OrgSwiftUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 0F0F0F0F0F0F0F0F000000A1 /* XCRemoteSwiftPackageReference "org-swift" */;
+			productName = OrgSwiftUI;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

@@ -1,6 +1,7 @@
 import Foundation
 import Highlightr
 import OrgSwift
+import OrgSwiftUI
 import SwiftUI
 import UIKit
 
@@ -224,5 +225,44 @@ nonisolated private extension UIColor {
         guard getRed(&red, green: &green, blue: &blue, alpha: &alpha) else { return nil }
         let clamp: (CGFloat) -> Int = { Int((max(0, min(1, $0)) * 255).rounded()) }
         return String(format: "#%02x%02x%02x", clamp(red), clamp(green), clamp(blue))
+    }
+}
+
+// MARK: - Native rendering
+
+extension SyntaxHighlighter: OrgCodeStyler {
+    /// `OrgSwiftUI.OrgCodeStyler` conformance: the native counterpart to
+    /// `highlightedHTML(code:language:)`. Highlightr already produces an
+    /// `NSAttributedString`, so the native path skips the round-trip through
+    /// color-styled `<span>`s entirely.
+    nonisolated func highlighted(code: String, language: String?) -> AttributedString? {
+        guard let attributed = attributedText(
+            for: code, language: language, font: Self.nativeMeasurementFont
+        ) else {
+            return nil
+        }
+        return Self.attributedString(from: attributed)
+    }
+
+    nonisolated private static var nativeMeasurementFont: UIFont {
+        .monospacedSystemFont(ofSize: 13, weight: .regular)
+    }
+
+    /// Carry Highlightr's colors across, in a monospaced font that scales with
+    /// Dynamic Type — which the fixed-size HTML never did.
+    nonisolated private static func attributedString(from attributed: NSAttributedString) -> AttributedString {
+        var result = AttributedString()
+        let range = NSRange(location: 0, length: attributed.length)
+        attributed.enumerateAttribute(.foregroundColor, in: range, options: []) { value, subrange, _ in
+            var fragment = AttributedString(
+                (attributed.string as NSString).substring(with: subrange)
+            )
+            fragment.font = .system(.footnote, design: .monospaced)
+            if let color = value as? UIColor {
+                fragment.foregroundColor = Color(uiColor: color)
+            }
+            result += fragment
+        }
+        return result
     }
 }
