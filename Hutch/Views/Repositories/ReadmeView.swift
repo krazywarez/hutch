@@ -265,7 +265,7 @@ struct RenderedMarkupContentView: View {
             case .org(let text):
                 OrgView(
                     text,
-                    options: orgOptions,
+                    options: renderOptions,
                     styler: SyntaxHighlighter(theme: SyntaxHighlightTheme(colorScheme: colorScheme)),
                     // Matches how tickets are colored: pending amber, resolved green.
                     keywords: OrgKeywordStyle(todo: .orange, done: .green)
@@ -297,28 +297,13 @@ struct RenderedMarkupContentView: View {
                 return
             }
             let theme = SyntaxHighlightTheme(colorScheme: colorScheme)
+            let options = renderOptions
             let html = await Task.detached(priority: .userInitiated) {
                 markdownToHTML(
                     text,
                     codeTheme: theme,
-                    imageURLResolver: { source in
-                        resolveRepositoryAssetURL(
-                            source,
-                            owner: ownerCanonicalName,
-                            repositoryName: repositoryName,
-                            readmePath: readmePath
-                        )?
-                        .replacingOccurrences(of: "git.sr.ht", with: repositoryHost)
-                    },
-                    linkURLResolver: { source in
-                        resolveRepositoryLinkURL(
-                            source,
-                            owner: ownerCanonicalName,
-                            repositoryName: repositoryName,
-                            readmePath: readmePath
-                        )?
-                        .replacingOccurrences(of: "git.sr.ht", with: repositoryHost)
-                    }
+                    imageURLResolver: { options.resolvedImageURL($0) },
+                    linkURLResolver: { options.resolvedLinkURL($0) }
                 )
             }.value
             RenderedReadmeHTMLCache.shared.setHTML(html, forKey: cacheKey)
@@ -327,9 +312,9 @@ struct RenderedMarkupContentView: View {
         }
     }
 
-    /// Same resolution the HTML renderer used, so relative links and images
-    /// still point at this repository on this instance.
-    private var orgOptions: OrgRenderOptions {
+    /// One resolution for both formats: a relative link in a Markdown README points at the
+    /// same file page an Org one does, on whichever instance is being browsed.
+    private var renderOptions: OrgRenderOptions {
         OrgRenderOptions(
             host: repositoryHost,
             owner: ownerCanonicalName,
@@ -675,86 +660,6 @@ nonisolated private func replaceMatches(
     }
 
     return result
-}
-
-nonisolated func resolveRepositoryLinkURL(
-    _ source: String,
-    owner: String,
-    repositoryName: String,
-    readmePath: String?
-) -> String? {
-    let trimmedSource = source.trimmingCharacters(in: .whitespacesAndNewlines)
-    guard !trimmedSource.isEmpty else { return nil }
-
-    if trimmedSource.hasPrefix("http://") || trimmedSource.hasPrefix("https://")
-        || trimmedSource.hasPrefix("mailto:") || trimmedSource.hasPrefix("#") {
-        return trimmedSource
-    }
-
-    return resolveRepositoryAssetURL(
-        trimmedSource,
-        owner: owner,
-        repositoryName: repositoryName,
-        readmePath: readmePath
-    )
-}
-
-nonisolated func resolveRepositoryAssetURL(
-    _ source: String,
-    owner: String,
-    repositoryName: String,
-    readmePath: String?
-) -> String? {
-    let trimmedSource = source.trimmingCharacters(in: .whitespacesAndNewlines)
-    guard !trimmedSource.isEmpty else { return nil }
-
-    if trimmedSource.hasPrefix("http://") || trimmedSource.hasPrefix("https://") || trimmedSource.hasPrefix("data:") {
-        return trimmedSource
-    }
-
-    let relativePath: String
-    if trimmedSource.hasPrefix("/") {
-        relativePath = String(trimmedSource.dropFirst())
-    } else {
-        let readmeDirectory = (readmePath as NSString?)?.deletingLastPathComponent ?? ""
-        relativePath = normalizeRepositoryPath(
-            (readmeDirectory as NSString).appendingPathComponent(trimmedSource)
-        )
-    }
-
-    guard !relativePath.isEmpty else { return nil }
-    var components = URLComponents()
-    components.scheme = "https"
-    components.host = "git.sr.ht"
-    let encodedOwner = owner.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? owner
-    let encodedRepository = repositoryName.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? repositoryName
-    let encodedRelativePath = relativePath
-        .split(separator: "/", omittingEmptySubsequences: false)
-        .map { segment in
-            String(segment).addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? String(segment)
-        }
-        .joined(separator: "/")
-    components.percentEncodedPath = "/\(encodedOwner)/\(encodedRepository)/blob/HEAD/\(encodedRelativePath)"
-    return components.string
-}
-
-nonisolated private func normalizeRepositoryPath(_ path: String) -> String {
-    var components: [String] = []
-
-    for part in path.split(separator: "/") {
-        switch part {
-        case ".":
-            continue
-        case "..":
-            if !components.isEmpty {
-                components.removeLast()
-            }
-        default:
-            components.append(String(part))
-        }
-    }
-
-    return components.joined(separator: "/")
 }
 
 // MARK: - WKWebView Wrapper

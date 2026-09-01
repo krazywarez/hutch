@@ -1,4 +1,5 @@
 import Foundation
+import OrgSwift
 import Testing
 @testable import Hutch
 
@@ -130,14 +131,7 @@ struct MarkdownRenderingTests {
     func markdownFragmentLinkWithResolverPreservesFragment() {
         let html = markdownToHTML(
             "[section](#install)",
-            linkURLResolver: { source in
-                resolveRepositoryLinkURL(
-                    source,
-                    owner: "~ccleberg",
-                    repositoryName: "Hutch",
-                    readmePath: "README.md"
-                )
-            }
+            linkURLResolver: { hutchOptions.resolvedLinkURL($0) }
         )
 
         #expect(html.contains("href=\"#install\""))
@@ -221,19 +215,24 @@ struct MarkdownRenderingTests {
     }
 }
 
+/// The repository context a README on git.sr.ht resolves against.
+private let hutchOptions = OrgRenderOptions(
+    host: "git.sr.ht",
+    owner: "~ccleberg",
+    repositoryName: "Hutch",
+    ref: "HEAD",
+    readmePath: "README.md"
+)
+
+/// Resolution lives in OrgSwift and is shared by both README formats, so a relative target
+/// in a Markdown README lands where the same target in an Org one does.
 @MainActor
 struct RepositoryAssetURLTests {
 
     @Test
     func repositoryAssetURLPercentEncodesImagePaths() {
-        let url = resolveRepositoryAssetURL(
-            "images/My Logo.png",
-            owner: "~ccleberg",
-            repositoryName: "Hutch",
-            readmePath: "README.md"
-        )
-
-        #expect(url == "https://git.sr.ht/~ccleberg/Hutch/blob/HEAD/images/My%20Logo.png")
+        #expect(hutchOptions.resolvedImageURL("images/My Logo.png")
+            == "https://git.sr.ht/~ccleberg/Hutch/blob/HEAD/images/My%20Logo.png")
     }
 }
 
@@ -242,61 +241,40 @@ struct RepositoryLinkURLTests {
 
     @Test
     func repositoryLinkURLResolvesRelativePath() {
-        let url = resolveRepositoryLinkURL(
-            "LICENSE",
-            owner: "~ccleberg",
-            repositoryName: "Hutch",
-            readmePath: "README.md"
-        )
-
-        #expect(url == "https://git.sr.ht/~ccleberg/Hutch/blob/HEAD/LICENSE")
-    }
-
-    @Test
-    func repositoryLinkURLPassesThroughAbsoluteURL() {
-        let url = resolveRepositoryLinkURL(
-            "https://example.com/page",
-            owner: "~ccleberg",
-            repositoryName: "Hutch",
-            readmePath: "README.md"
-        )
-
-        #expect(url == "https://example.com/page")
-    }
-
-    @Test
-    func repositoryLinkURLPassesThroughFragment() {
-        let url = resolveRepositoryLinkURL(
-            "#install",
-            owner: "~ccleberg",
-            repositoryName: "Hutch",
-            readmePath: "README.md"
-        )
-
-        #expect(url == "#install")
-    }
-
-    @Test
-    func repositoryLinkURLPassesThroughMailto() {
-        let url = resolveRepositoryLinkURL(
-            "mailto:hello@example.com",
-            owner: "~ccleberg",
-            repositoryName: "Hutch",
-            readmePath: "README.md"
-        )
-
-        #expect(url == "mailto:hello@example.com")
+        #expect(hutchOptions.resolvedLinkURL("LICENSE")
+            == "https://git.sr.ht/~ccleberg/Hutch/blob/HEAD/LICENSE")
     }
 
     @Test
     func repositoryLinkURLResolvesSubdirectoryRelativePath() {
-        let url = resolveRepositoryLinkURL(
-            "docs/SECURITY.md",
-            owner: "~ccleberg",
-            repositoryName: "Hutch",
-            readmePath: "README.md"
-        )
+        #expect(hutchOptions.resolvedLinkURL("docs/SECURITY.md")
+            == "https://git.sr.ht/~ccleberg/Hutch/blob/HEAD/docs/SECURITY.md")
+    }
 
-        #expect(url == "https://git.sr.ht/~ccleberg/Hutch/blob/HEAD/docs/SECURITY.md")
+    @Test
+    func repositoryLinkURLPassesThroughAbsoluteURL() {
+        #expect(hutchOptions.resolvedLinkURL("https://example.com/page")
+            == "https://example.com/page")
+    }
+
+    @Test
+    func repositoryLinkURLPassesThroughFragment() {
+        #expect(hutchOptions.resolvedLinkURL("#install") == "#install")
+    }
+
+    @Test
+    func repositoryLinkURLPassesThroughMailto() {
+        #expect(hutchOptions.resolvedLinkURL("mailto:hello@example.com")
+            == "mailto:hello@example.com")
+    }
+
+    /// The host is carried by the options rather than patched into a finished URL, so a
+    /// self-hosted instance resolves without string-replacing "git.sr.ht" out of the result.
+    @Test
+    func repositoryLinkURLUsesTheConfiguredHost() {
+        var options = hutchOptions
+        options.host = "git.example.org"
+        #expect(options.resolvedLinkURL("LICENSE")
+            == "https://git.example.org/~ccleberg/Hutch/blob/HEAD/LICENSE")
     }
 }
