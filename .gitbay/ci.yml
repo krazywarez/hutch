@@ -2,6 +2,14 @@
 # lands as an MR for review, never straight on main. The script refuses to
 # write a suspiciously short list, so an upstream markup change can't
 # silently gut the catalog.
+#
+# The build runs in a container on the instance's runner, which holds no
+# key of its own inside the container. The push and the merge request go
+# over SSH as the hutch-ci account (write on this repository): its private
+# key arrives as the BOT_SSH_KEY build secret and is written into the
+# workspace beside an ssh config every ssh and git call is pointed at
+# with -F. GITBAY_SSH, set by the runner, is the instance as this build
+# reaches it.
 jobs:
   # Reads every view file for icon-only controls without accessibility
   # labels — no build, no simulator. The xcodebuild test plan is not
@@ -19,9 +27,15 @@ jobs:
           echo "catalog unchanged"
           exit 0
         fi
+        test -n "$BOT_SSH_KEY" || { echo "ERROR: BOT_SSH_KEY secret is not set"; exit 1; }
+        test -n "$GITBAY_SSH" || { echo "ERROR: GITBAY_SSH is not set; the runner is too old"; exit 1; }
+        umask 077
+        printf '%s\n' "$BOT_SSH_KEY" > "$PWD/.bot_key"
+        printf 'IdentityFile %s\nIdentitiesOnly yes\nStrictHostKeyChecking accept-new\nUserKnownHostsFile %s\n' "$PWD/.bot_key" "$PWD/.known_hosts" > "$PWD/.ssh_config"
+        export GIT_SSH_COMMAND="ssh -F $PWD/.ssh_config"
         git -c user.name=ci -c user.email=ci@gitbay.org checkout -q -B automated/man-page-catalog
         git -c user.name=ci -c user.email=ci@gitbay.org commit -qam "Sync bundled man page catalog with man.sr.ht"
-        git push -qf origin automated/man-page-catalog
-        if ! ssh git@127.0.0.1 mr list krz/hutch --json | grep -q "automated/man-page-catalog"; then
-          ssh git@127.0.0.1 "mr create krz/hutch --source automated/man-page-catalog --target main --title 'Sync bundled man page catalog' --body 'Automated update from scripts/sync_man_pages.py. Review the diff to Hutch/Resources/man-pages.json before merging.'"
+        git push -qf "ssh://$GITBAY_SSH/krz/hutch.git" automated/man-page-catalog
+        if ! ssh -F "$PWD/.ssh_config" "$GITBAY_SSH" mr list krz/hutch --json | grep -q "automated/man-page-catalog"; then
+          ssh -F "$PWD/.ssh_config" "$GITBAY_SSH" "mr create krz/hutch --source automated/man-page-catalog --target main --title 'Sync bundled man page catalog' --body 'Automated update from scripts/sync_man_pages.py. Review the diff to Hutch/Resources/man-pages.json before merging.'"
         fi
