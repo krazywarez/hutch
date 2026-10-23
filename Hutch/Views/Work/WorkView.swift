@@ -183,46 +183,7 @@ struct WorkView: View {
                     .themedRow()
             } else {
                 ForEach(viewModel.assignedTickets) { ticket in
-                    NavigationLink {
-                        TicketDetailView(
-                            ownerUsername: ticket.ownerUsername,
-                            trackerName: ticket.trackerName,
-                            trackerId: ticket.trackerId,
-                            trackerRid: ticket.trackerRid,
-                            ticketId: ticket.ticket.id
-                        )
-                    } label: {
-                        WorkAssignedTicketRow(ticket: ticket)
-                    }
-                    .swipeActions(edge: .leading, allowsFullSwipe: true) {
-                        if swipeActionsEnabled {
-                            if ticket.ticket.status.isOpen {
-                                Button {
-                                    Task { await viewModel.resolveTicket(ticket) }
-                                } label: {
-                                    Label("Resolve", systemImage: "checkmark.circle")
-                                }
-                                .tint(.green)
-                            } else {
-                                Button {
-                                    Task { await viewModel.reopenTicket(ticket) }
-                                } label: {
-                                    Label("Reopen", systemImage: "arrow.uturn.backward")
-                                }
-                                .tint(.blue)
-                            }
-                        }
-                    }
-                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                        if swipeActionsEnabled {
-                            Button {
-                                Task { await viewModel.unassignFromMe(ticket) }
-                            } label: {
-                                Label("Unassign", systemImage: "person.badge.minus")
-                            }
-                            .tint(.orange)
-                        }
-                    }
+                    assignedTicketRow(ticket, viewModel)
                 }
                 .themedRow()
             }
@@ -272,15 +233,53 @@ struct WorkView: View {
             return viewModel
         }
 
-        let newViewModel = HomeViewModel(
-            currentUser: currentUser,
-            client: appState.client,
-            systemStatusRepository: appState.systemStatusRepository,
-            defaults: appState.accountDefaults,
-            accountID: appState.activeAccountID
-        )
+        let newViewModel = HomeViewModel(currentUser: currentUser, appState: appState)
         viewModel = newViewModel
         return newViewModel
+    }
+
+    @ViewBuilder
+    private func assignedTicketRow(_ ticket: HomeAssignedTicket, _ viewModel: HomeViewModel) -> some View {
+        NavigationLink {
+            TicketDetailView(
+                ownerUsername: ticket.ownerUsername,
+                trackerName: ticket.trackerName,
+                trackerId: ticket.trackerId,
+                trackerRid: ticket.trackerRid,
+                ticketId: ticket.ticket.id
+            )
+        } label: {
+            WorkAssignedTicketRow(ticket: ticket)
+        }
+        .swipeActions(edge: .leading, allowsFullSwipe: true) {
+            if swipeActionsEnabled {
+                if ticket.ticket.status.isOpen {
+                    Button {
+                        Task { await viewModel.resolveTicket(ticket) }
+                    } label: {
+                        Label("Resolve", systemImage: "checkmark.circle")
+                    }
+                    .tint(.green)
+                } else {
+                    Button {
+                        Task { await viewModel.reopenTicket(ticket) }
+                    } label: {
+                        Label("Reopen", systemImage: "arrow.uturn.backward")
+                    }
+                    .tint(.blue)
+                }
+            }
+        }
+        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+            if swipeActionsEnabled {
+                Button {
+                    Task { await viewModel.unassignFromMe(ticket) }
+                } label: {
+                    Label("Unassign", systemImage: "person.badge.minus")
+                }
+                .tint(.orange)
+            }
+        }
     }
 }
 

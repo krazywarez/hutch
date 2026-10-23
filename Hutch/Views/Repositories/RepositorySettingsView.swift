@@ -13,22 +13,7 @@ struct RepositorySettingsView: View {
     @State private var showDeleteConfirmation = false
 
     var body: some View {
-        NavigationStack {
-            Group {
-                if let viewModel {
-                    settingsForm(viewModel)
-                } else {
-                    SRHTLoadingStateView(message: "Loading settings…")
-                }
-            }
-            .navigationTitle("Settings")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Done") { dismiss() }
-                }
-            }
-        }
+        SettingsSheet(model: viewModel) { settingsForm($0) }
         .task {
             if viewModel == nil {
                 viewModel = RepositorySettingsViewModel(

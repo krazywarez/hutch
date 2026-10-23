@@ -110,38 +110,39 @@ struct PasteDetailView: View {
     private func content(_ viewModel: PasteDetailViewModel) -> some View {
         @Bindable var vm = viewModel
 
-        if viewModel.isLoading, viewModel.paste == nil {
-            SRHTLoadingStateView(message: "Loading paste…")
-        } else if let error = viewModel.error, viewModel.paste == nil {
-            SRHTErrorStateView(
-                title: "Couldn't Load Paste",
-                message: error,
-                retryAction: { await viewModel.loadPaste() }
-            )
-        } else if let paste = viewModel.paste {
-            VStack(spacing: 0) {
-                fileHeaderBar(paste: paste, viewModel: viewModel)
-                Divider()
-                fileContentArea(viewModel: viewModel)
-            }
-            .safeAreaInset(edge: .bottom, spacing: 0) {
-                actionToolbar(viewModel: viewModel)
-            }
-            .srhtErrorBanner(error: $vm.error)
-            .sheet(isPresented: $showInfoSheet) {
-                PasteInfoSheet(paste: paste, selectedFile: viewModel.selectedFile)
-            }
-            .sheet(isPresented: $showFileShareSheet) {
-                if let contents = viewModel.selectedFileContents {
-                    FileContentShareSheet(activityItems: [contents])
+        SRHTLoadStateView(
+            isLoading: viewModel.isLoading,
+            error: viewModel.error,
+            isEmpty: viewModel.paste == nil,
+            loadingMessage: "Loading paste…",
+            errorTitle: "Couldn't Load Paste",
+            retryAction: { await viewModel.loadPaste() }
+        ) {
+            if let paste = viewModel.paste {
+                VStack(spacing: 0) {
+                    fileHeaderBar(paste: paste, viewModel: viewModel)
+                    Divider()
+                    fileContentArea(viewModel: viewModel)
                 }
-            }
-            .alert("Share Unavailable", isPresented: $showShareUnavailableAlert) {
-                Button("OK", role: .cancel) {
-                    // Alert dismissal is implicit; no additional action required.
+                .safeAreaInset(edge: .bottom, spacing: 0) {
+                    actionToolbar(viewModel: viewModel)
                 }
-            } message: {
-                Text(SRHTShareTarget.file.fallbackMessage)
+                .srhtErrorBanner(error: $vm.error)
+                .sheet(isPresented: $showInfoSheet) {
+                    PasteInfoSheet(paste: paste, selectedFile: viewModel.selectedFile)
+                }
+                .sheet(isPresented: $showFileShareSheet) {
+                    if let contents = viewModel.selectedFileContents {
+                        FileContentShareSheet(activityItems: [contents])
+                    }
+                }
+                .alert("Share Unavailable", isPresented: $showShareUnavailableAlert) {
+                    Button("OK", role: .cancel) {
+                        // Alert dismissal is implicit; no additional action required.
+                    }
+                } message: {
+                    Text(SRHTShareTarget.file.fallbackMessage)
+                }
             }
         }
     }
@@ -240,7 +241,7 @@ struct PasteDetailView: View {
 
     private func actionToolbar(viewModel: PasteDetailViewModel) -> some View {
         HStack(spacing: 0) {
-            toolbarButton(
+            BottomToolbarButton(
                 title: didCopyContents ? "Copied" : "Copy All",
                 systemImage: didCopyContents ? "checkmark" : "doc.on.doc"
             ) {
@@ -257,7 +258,7 @@ struct PasteDetailView: View {
             }
             .disabled(viewModel.selectedFileContents == nil)
 
-            toolbarButton(
+            BottomToolbarButton(
                 title: "Share",
                 systemImage: "square.and.arrow.up"
             ) {
@@ -269,14 +270,14 @@ struct PasteDetailView: View {
             }
             .disabled(viewModel.selectedFileContents == nil)
 
-            toolbarButton(
+            BottomToolbarButton(
                 title: wrapLines ? "Wrap On" : "Wrap Off",
                 systemImage: "text.word.spacing"
             ) {
                 wrapLines.toggle()
             }
 
-            toolbarButton(
+            BottomToolbarButton(
                 title: "Details",
                 systemImage: "info.circle"
             ) {
@@ -290,26 +291,6 @@ struct PasteDetailView: View {
         .overlay(alignment: .top) {
             Divider()
         }
-    }
-
-    private func toolbarButton(
-        title: String,
-        systemImage: String,
-        action: @escaping () -> Void
-    ) -> some View {
-        Button(action: action) {
-            VStack(spacing: 4) {
-                Image(systemName: systemImage)
-                    .font(.system(size: 17, weight: .semibold))
-                Text(title)
-                    .font(.caption2)
-                    .lineLimit(1)
-            }
-            .frame(maxWidth: .infinity)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .foregroundStyle(.primary)
     }
 }
 

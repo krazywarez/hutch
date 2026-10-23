@@ -85,52 +85,7 @@ struct CommitDetailView: View {
                 }
             }
         } else if let commit = viewModel.commit {
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: 0) {
-                    // Header
-                    commitHeader(commit)
-
-                    sectionDivider
-
-                    // Message
-                    commitMessage(commit)
-
-                    // Trailers
-                    if !commit.trailers.isEmpty {
-                        sectionDivider
-                        trailersSection(commit.trailers)
-                    }
-
-                    // Parents
-                    if !commit.parents.isEmpty {
-                        sectionDivider
-                        parentsSection(commit.parents)
-                    }
-
-                    // Diff
-                    if let diff = commit.diff, !diff.isEmpty {
-                        sectionDivider
-                        diffSection(diff)
-                    }
-
-                    // Tree
-                    if let tree = commit.tree, !tree.entries.results.isEmpty {
-                        sectionDivider
-                        treeSection(tree.entries.results)
-                    }
-                }
-            }
-            .navigationDestination(for: ParentCommit.self) { parent in
-                CommitDetailView(
-                    commitSummary: CommitSummary(
-                        id: parent.id,
-                        shortId: parent.shortId,
-                        author: CommitAuthor(name: parent.author.name, email: nil, time: .now),
-                        message: ""
-                    ),
-                    repository: repository
-                )
-            }
+            commitBody(commit)
         }
     }
 
@@ -360,6 +315,56 @@ struct CommitDetailView: View {
         case "tag":    return .orange
         case "commit": return .purple
         default:       return .secondary
+        }
+    }
+
+    @ViewBuilder
+    private func commitBody(_ commit: CommitDetail) -> some View {
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: 0) {
+                // Header
+                commitHeader(commit)
+
+                sectionDivider
+
+                // Message
+                commitMessage(commit)
+
+                // Trailers
+                if !commit.trailers.isEmpty {
+                    sectionDivider
+                    trailersSection(commit.trailers)
+                }
+
+                // Parents
+                if !commit.parents.isEmpty {
+                    sectionDivider
+                    parentsSection(commit.parents)
+                }
+
+                // Diff
+                if let diff = commit.diff, !diff.isEmpty {
+                    sectionDivider
+                    diffSection(diff)
+                }
+
+                // Tree
+                if let tree = commit.tree, !tree.entries.results.isEmpty {
+                    sectionDivider
+                    treeSection(tree.entries.results)
+                }
+            }
+        }
+        .navigationDestination(for: ParentCommit.self) { parent in
+            CommitDetailView(
+                commitSummary: CommitSummary(
+                    id: parent.id,
+                    shortId: parent.shortId,
+                    author: CommitAuthor(name: parent.author.name, email: nil, time: .now),
+                    message: ""
+                ),
+                repository: repository
+            )
         }
     }
 }

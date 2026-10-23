@@ -438,13 +438,7 @@ struct HomeView: View {
             return viewModel
         }
 
-        let newViewModel = HomeViewModel(
-            currentUser: currentUser,
-            client: appState.client,
-            systemStatusRepository: appState.systemStatusRepository,
-            defaults: appState.accountDefaults,
-            accountID: appState.activeAccountID
-        )
+        let newViewModel = HomeViewModel(currentUser: currentUser, appState: appState)
         viewModel = newViewModel
         return newViewModel
     }

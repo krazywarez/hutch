@@ -114,54 +114,9 @@ struct ThreadDetailView: View {
 
         List {
             if let thread = viewModel.thread {
-                Section {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text(thread.displaySubject)
-                            .font(.headline)
-                        Text(headerMetadata(thread))
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                    .padding(.vertical, 4)
-                    .themedRow()
-                }
+                headerSection(thread)
 
-                Section("Related") {
-                    Button {
-                        appState.navigateToMailingList(
-                            InboxMailingListReference(
-                                id: thread.listID,
-                                rid: thread.listRID,
-                                name: thread.listName,
-                                owner: thread.listOwner
-                            )
-                        )
-                    } label: {
-                        Label(thread.listDisplayName, systemImage: "list.bullet")
-                    }
-                    .themedRow()
-
-                    if let repo = self.thread.repo {
-                        Button {
-                            openRepository(named: repo, ownerCanonicalName: thread.listOwner.canonicalName)
-                        } label: {
-                            HStack {
-                                Label("\(thread.listOwner.canonicalName)/\(repo)", systemImage: "book.closed")
-                                Spacer()
-                                if isOpeningRepository {
-                                    ProgressView()
-                                        .controlSize(.small)
-                                } else {
-                                    Image(systemName: "arrow.up.right")
-                                        .font(.caption)
-                                        .foregroundStyle(.tertiary)
-                                }
-                            }
-                        }
-                        .disabled(isOpeningRepository)
-                        .themedRow()
-                    }
-                }
+                relatedSection(thread)
 
                 if let partialWarning = viewModel.partialWarning {
                     Section {
@@ -179,11 +134,7 @@ struct ThreadDetailView: View {
                         canCollapse: thread.messages.count > 1,
                         onToggleCollapse: {
                             withAnimation(.easeInOut(duration: 0.2)) {
-                                if collapsedMessageIDs.contains(message.id) {
-                                    collapsedMessageIDs.remove(message.id)
-                                } else {
-                                    collapsedMessageIDs.insert(message.id)
-                                }
+                                collapsedMessageIDs.formSymmetricDifference([message.id])
                             }
                         }
                     )
@@ -195,36 +146,18 @@ struct ThreadDetailView: View {
         .listStyle(.plain)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                HStack {
-                    if onMarkRead != nil || onMarkUnread != nil {
-                        Button(isUnread ? "Mark Read" : "Mark Unread") {
-                            suppressAutoMarkViewed = !isUnread
-                            if isUnread {
-                                onMarkRead?()
-                                isUnread = false
-                            } else {
-                                onMarkUnread?()
-                                isUnread = true
-                            }
-                        }
-                    }
-
-                    Button("Reply") {
-                        viewModel.prepareReply()
-                    }
-                }
+                toolbarButtons(viewModel)
             }
         }
         .overlay {
-            if viewModel.isLoading, viewModel.thread == nil {
-                SRHTLoadingStateView(message: "Loading thread…")
-            } else if let error = viewModel.error, viewModel.thread == nil {
-                SRHTErrorStateView(
-                    title: "Failed to load thread",
-                    message: error,
-                    retryAction: { await viewModel.loadThread() }
-                )
-            }
+            SRHTLoadStateView(
+                isLoading: viewModel.isLoading,
+                error: viewModel.error,
+                isEmpty: viewModel.thread == nil,
+                loadingMessage: "Loading thread…",
+                errorTitle: "Failed to load thread",
+                retryAction: { await viewModel.loadThread() }
+            ) {}
         }
         .srhtErrorBanner(error: $vm.error)
         .refreshable {
@@ -252,6 +185,83 @@ struct ThreadDetailView: View {
                 appState.navigateToRepository(repository)
             } catch {
                 appState.presentRepositoryDeepLinkError()
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func relatedSection(_ thread: InboxThreadDetail) -> some View {
+        Section("Related") {
+            Button {
+                appState.navigateToMailingList(
+                    InboxMailingListReference(
+                        id: thread.listID,
+                        rid: thread.listRID,
+                        name: thread.listName,
+                        owner: thread.listOwner
+                    )
+                )
+            } label: {
+                Label(thread.listDisplayName, systemImage: "list.bullet")
+            }
+            .themedRow()
+
+            if let repo = self.thread.repo {
+                Button {
+                    openRepository(named: repo, ownerCanonicalName: thread.listOwner.canonicalName)
+                } label: {
+                    HStack {
+                        Label("\(thread.listOwner.canonicalName)/\(repo)", systemImage: "book.closed")
+                        Spacer()
+                        if isOpeningRepository {
+                            ProgressView()
+                                .controlSize(.small)
+                        } else {
+                            Image(systemName: "arrow.up.right")
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+                        }
+                    }
+                }
+                .disabled(isOpeningRepository)
+                .themedRow()
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func headerSection(_ thread: InboxThreadDetail) -> some View {
+        Section {
+            VStack(alignment: .leading, spacing: 6) {
+                Text(thread.displaySubject)
+                    .font(.headline)
+                Text(headerMetadata(thread))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.vertical, 4)
+            .themedRow()
+        }
+    }
+
+    @ViewBuilder
+    private func toolbarButtons(_ viewModel: ThreadViewModel) -> some View {
+        HStack {
+            if onMarkRead != nil || onMarkUnread != nil {
+                Button(isUnread ? "Mark Read" : "Mark Unread") {
+                    suppressAutoMarkViewed = !isUnread
+                    if isUnread {
+                        onMarkRead?()
+                        isUnread = false
+                    } else {
+                        onMarkUnread?()
+                        isUnread = true
+                    }
+                }
+            }
+
+            Button("Reply") {
+                viewModel.prepareReply()
             }
         }
     }

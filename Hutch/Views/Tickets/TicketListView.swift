@@ -283,68 +283,7 @@ struct TicketListView: View {
                 .listRowSeparator(.hidden)
 
                 ForEach(viewModel.filteredTickets) { ticket in
-                    Group {
-                        if viewModel.isSelectionMode {
-                            Button {
-                                viewModel.toggleTicketSelection(ticket)
-                            } label: {
-                                SelectableTicketRow(
-                                    ticket: ticket,
-                                    isSelected: viewModel.selectedTicketIDs.contains(ticket.id)
-                                )
-                                .equatable()
-                            }
-                            .buttonStyle(.plain)
-                        } else {
-                            NavigationLink {
-                                TicketDetailView(
-                                    ownerUsername: String(tracker.owner.canonicalName.dropFirst()),
-                                    trackerName: tracker.name,
-                                    trackerId: tracker.id,
-                                    trackerRid: tracker.rid,
-                                    ticketId: ticket.id
-                                )
-                            } label: {
-                                TicketRowView(ticket: ticket)
-                                    .equatable()
-                            }
-                            .contextMenu {
-                                if let url = SRHTWebURL.ticket(ownerUsername: ownerUsername(for: tracker), trackerName: tracker.name, ticketId: ticket.id) {
-                                    Button {
-                                        openURL(url)
-                                    } label: {
-                                        Label("Open in Browser", systemImage: "safari")
-                                    }
-
-                                    Button {
-                                        appState.copyToPasteboard(url.absoluteString, label: "ticket URL")
-                                    } label: {
-                                        Label("Copy URL", systemImage: "doc.on.doc")
-                                    }
-                                }
-
-                                Button {
-                                    appState.copyToPasteboard(String(ticket.id), label: "ticket ID")
-                                } label: {
-                                    Label("Copy Ticket ID", systemImage: "number")
-                                }
-                            }
-                            .swipeActions(edge: .leading, allowsFullSwipe: true) {
-                                if swipeActionsEnabled {
-                                    ticketAssignSwipeAction(ticket, viewModel: viewModel)
-                                }
-                            }
-                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                                if swipeActionsEnabled {
-                                    ticketStatusSwipeAction(ticket, viewModel: viewModel)
-                                    ticketLabelSwipeAction(ticket, viewModel: viewModel)
-                                }
-                            }
-                        }
-                    }
-                    .task {
-                        await viewModel.loadMoreIfNeeded(currentItem: ticket)
-                    }
+                    ticketRow(ticket, viewModel)
                 }
                 .themedRow()
 
@@ -385,28 +324,7 @@ struct TicketListView: View {
             viewModel.recordRecentSearch(query)
         }
         .overlay {
-            if viewModel.isLoading, viewModel.tickets.isEmpty {
-                SRHTLoadingStateView(message: "Loading tickets…")
-            } else if let error = viewModel.error, viewModel.tickets.isEmpty {
-                SRHTErrorStateView(
-                    title: "Couldn't Load Tickets",
-                    message: error,
-                    retryAction: { await viewModel.loadTickets() }
-                )
-            } else if !viewModel.searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-                      viewModel.filteredTickets.isEmpty {
-                ContentUnavailableView(
-                    "No Ticket Matches",
-                    systemImage: "magnifyingglass",
-                    description: Text("No tickets in \(tracker.name) matched “\(viewModel.searchText)”.")
-                )
-            } else if viewModel.filteredTickets.isEmpty, viewModel.error == nil {
-                ContentUnavailableView(
-                    "No Tickets",
-                    systemImage: "ticket",
-                    description: Text(emptyStateDescription(for: viewModel))
-                )
-            }
+            emptyState(viewModel)
         }
         .connectivityOverlay(hasContent: !viewModel.filteredTickets.isEmpty) {
             await viewModel.loadTickets()
@@ -635,6 +553,99 @@ struct TicketListView: View {
     private func normalizedUsername(_ value: String) -> String {
         let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.hasPrefix("~") ? String(trimmed.dropFirst()) : trimmed
+    }
+
+    @ViewBuilder
+    private func emptyState(_ viewModel: TicketListViewModel) -> some View {
+        SRHTLoadStateView(
+            isLoading: viewModel.isLoading,
+            error: viewModel.error,
+            isEmpty: viewModel.tickets.isEmpty,
+            loadingMessage: "Loading tickets…",
+            errorTitle: "Couldn't Load Tickets",
+            retryAction: { await viewModel.loadTickets() }
+        ) {
+            if !viewModel.searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+               viewModel.filteredTickets.isEmpty {
+                ContentUnavailableView(
+                    "No Ticket Matches",
+                    systemImage: "magnifyingglass",
+                    description: Text("No tickets in \(tracker.name) matched “\(viewModel.searchText)”.")
+                )
+            } else if viewModel.filteredTickets.isEmpty, viewModel.error == nil {
+                ContentUnavailableView(
+                    "No Tickets",
+                    systemImage: "ticket",
+                    description: Text(emptyStateDescription(for: viewModel))
+                )
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func ticketRow(_ ticket: TicketSummary, _ viewModel: TicketListViewModel) -> some View {
+        Group {
+            if viewModel.isSelectionMode {
+                Button {
+                    viewModel.toggleTicketSelection(ticket)
+                } label: {
+                    SelectableTicketRow(
+                        ticket: ticket,
+                        isSelected: viewModel.selectedTicketIDs.contains(ticket.id)
+                    )
+                    .equatable()
+                }
+                .buttonStyle(.plain)
+            } else {
+                NavigationLink {
+                    TicketDetailView(
+                        ownerUsername: String(tracker.owner.canonicalName.dropFirst()),
+                        trackerName: tracker.name,
+                        trackerId: tracker.id,
+                        trackerRid: tracker.rid,
+                        ticketId: ticket.id
+                    )
+                } label: {
+                    TicketRowView(ticket: ticket)
+                        .equatable()
+                }
+                .contextMenu {
+                    if let url = SRHTWebURL.ticket(ownerUsername: ownerUsername(for: tracker), trackerName: tracker.name, ticketId: ticket.id) {
+                        Button {
+                            openURL(url)
+                        } label: {
+                            Label("Open in Browser", systemImage: "safari")
+                        }
+
+                        Button {
+                            appState.copyToPasteboard(url.absoluteString, label: "ticket URL")
+                        } label: {
+                            Label("Copy URL", systemImage: "doc.on.doc")
+                        }
+                    }
+
+                    Button {
+                        appState.copyToPasteboard(String(ticket.id), label: "ticket ID")
+                    } label: {
+                        Label("Copy Ticket ID", systemImage: "number")
+                    }
+                }
+                .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                    if swipeActionsEnabled {
+                        ticketAssignSwipeAction(ticket, viewModel: viewModel)
+                    }
+                }
+                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                    if swipeActionsEnabled {
+                        ticketStatusSwipeAction(ticket, viewModel: viewModel)
+                        ticketLabelSwipeAction(ticket, viewModel: viewModel)
+                    }
+                }
+            }
+        }
+        .task {
+            await viewModel.loadMoreIfNeeded(currentItem: ticket)
+        }
     }
 }
 

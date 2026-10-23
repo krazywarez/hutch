@@ -9,7 +9,7 @@ struct UserTrackersView: View {
                 NavigationLink {
                     TicketListView(tracker: tracker)
                 } label: {
-                    UserProfileTrackerRowView(tracker: tracker)
+                    TrackerSummaryRow(tracker: tracker)
                 }
             }
             .themedRow()

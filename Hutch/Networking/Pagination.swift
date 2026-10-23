@@ -155,22 +155,21 @@ struct RawJSON: Decodable, Sendable {
 
     init(from decoder: any Decoder) throws {
         let container = try decoder.singleValueContainer()
-        if let dict = try? container.decode([String: RawJSON].self) {
-            value = dict.mapValues(\.value)
-        } else if let array = try? container.decode([RawJSON].self) {
-            value = array.map(\.value)
-        } else if let string = try? container.decode(String.self) {
-            value = string
-        } else if let int = try? container.decode(Int.self) {
-            value = int
-        } else if let double = try? container.decode(Double.self) {
-            value = double
-        } else if let bool = try? container.decode(Bool.self) {
-            value = bool
-        } else if container.decodeNil() {
-            value = NSNull()
-        } else {
+        guard let value = Self.value(in: container) else {
             throw DecodingError.dataCorruptedError(in: container, debugDescription: "Unsupported JSON value")
         }
+        self.value = value
+    }
+
+    /// The first of object, array, string, integer, double, bool or null the value decodes as.
+    private static func value(in container: any SingleValueDecodingContainer) -> Any? {
+        if let dict = try? container.decode([String: RawJSON].self) { return dict.mapValues(\.value) }
+        if let array = try? container.decode([RawJSON].self) { return array.map(\.value) }
+        if let string = try? container.decode(String.self) { return string }
+        if let int = try? container.decode(Int.self) { return int }
+        if let double = try? container.decode(Double.self) { return double }
+        if let bool = try? container.decode(Bool.self) { return bool }
+        if container.decodeNil() { return NSNull() }
+        return nil
     }
 }

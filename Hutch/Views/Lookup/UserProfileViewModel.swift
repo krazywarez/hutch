@@ -169,39 +169,6 @@ final class UserProfileViewModel {
         let results: [RepositoryPayload]
         let cursor: String?
     }
-
-    private struct RepositoryPayload: Decodable, Sendable {
-        let id: Int
-        let rid: String
-        let name: String
-        let description: String?
-        let visibility: Visibility
-        let updated: Date
-        let owner: Entity
-        let head: Reference?
-
-        enum CodingKeys: String, CodingKey {
-            case id, rid, name, description, visibility, updated, owner
-            case head = "HEAD"
-        }
-
-        func repositorySummary(service: SRHTService) -> RepositorySummary {
-            RepositorySummary(
-                fields: .init(
-                    id: id,
-                    rid: rid,
-                    service: service,
-                    name: name,
-                    description: description,
-                    visibility: visibility,
-                    updated: updated,
-                    owner: owner,
-                    head: head
-                )
-            )
-        }
-    }
-
     private struct UserTrackersResponse: Decodable, Sendable {
         let user: UserTrackersContainer
     }

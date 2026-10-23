@@ -304,23 +304,7 @@ final class MailingListDetailViewModel {
 
         threads = threads.map { thread in
             guard thread.isUnread else { return thread }
-            return InboxThreadSummary(
-                rootEmailID: thread.rootEmailID,
-                rootMessageID: thread.rootMessageID,
-                threadRootEmailIDs: thread.threadRootEmailIDs,
-                threadRootMessageIDs: thread.threadRootMessageIDs,
-                listID: thread.listID,
-                listRID: thread.listRID,
-                listName: thread.listName,
-                listOwner: thread.listOwner,
-                subject: thread.subject,
-                latestSender: thread.latestSender,
-                lastActivityAt: thread.lastActivityAt,
-                messageCount: thread.messageCount,
-                repo: thread.repo,
-                containsPatch: thread.containsPatch,
-                isUnread: false
-            )
+            return thread.withUnread(false)
         }
 
         NeedsAttentionSnapshotStore.adjustUnreadInboxThreads(by: -unreadThreads.count, accountID: accountID)
@@ -363,63 +347,11 @@ final class MailingListDetailViewModel {
     private func updateThread(_ thread: InboxThreadSummary, isUnread: Bool) {
         guard let index = threads.firstIndex(where: { $0.id == thread.id }) else { return }
         let current = threads[index]
-        threads[index] = InboxThreadSummary(
-            rootEmailID: current.rootEmailID,
-            rootMessageID: current.rootMessageID,
-            threadRootEmailIDs: current.threadRootEmailIDs,
-            threadRootMessageIDs: current.threadRootMessageIDs,
-            listID: current.listID,
-            listRID: current.listRID,
-            listName: current.listName,
-            listOwner: current.listOwner,
-            subject: current.subject,
-            latestSender: current.latestSender,
-            lastActivityAt: current.lastActivityAt,
-            messageCount: current.messageCount,
-            repo: current.repo,
-            containsPatch: current.containsPatch,
-            isUnread: isUnread
-        )
+        threads[index] = current.withUnread(isUnread)
     }
 
     private func deduplicateThreads(_ threads: [InboxThreadSummary]) -> [InboxThreadSummary] {
-        var grouped: [String: InboxThreadSummary] = [:]
-
-        for thread in threads {
-            guard let existing = grouped[thread.threadGroupingKey] else {
-                grouped[thread.threadGroupingKey] = thread
-                continue
-            }
-
-            let latest = thread.lastActivityAt >= existing.lastActivityAt ? thread : existing
-            let mergedRootEmailIDs = Array(Set(existing.threadRootEmailIDs + thread.threadRootEmailIDs)).sorted()
-            let mergedRootMessageIDs = Array(Set(existing.threadRootMessageIDs + thread.threadRootMessageIDs)).sorted()
-            let mergedMessageCount = max(
-                existing.messageCount ?? existing.threadRootMessageIDs.count,
-                thread.messageCount ?? thread.threadRootMessageIDs.count,
-                mergedRootMessageIDs.count
-            )
-
-            grouped[thread.threadGroupingKey] = InboxThreadSummary(
-                rootEmailID: latest.rootEmailID,
-                rootMessageID: latest.rootMessageID,
-                threadRootEmailIDs: mergedRootEmailIDs,
-                threadRootMessageIDs: mergedRootMessageIDs,
-                listID: latest.listID,
-                listRID: latest.listRID,
-                listName: latest.listName,
-                listOwner: latest.listOwner,
-                subject: latest.subject,
-                latestSender: latest.latestSender,
-                lastActivityAt: max(existing.lastActivityAt, thread.lastActivityAt),
-                messageCount: mergedMessageCount,
-                repo: latest.repo ?? existing.repo,
-                containsPatch: latest.containsPatch || existing.containsPatch,
-                isUnread: latest.isUnread || existing.isUnread
-            )
-        }
-
-        return grouped.values.sorted { lhs, rhs in
+        return InboxThreadSummary.mergedByThread(threads).sorted { lhs, rhs in
             if lhs.lastActivityAt == rhs.lastActivityAt {
                 return lhs.displaySubject.localizedCaseInsensitiveCompare(rhs.displaySubject) == .orderedAscending
             }
@@ -578,48 +510,11 @@ struct MailingListDetailView: View {
                 ForEach(viewModel.filteredPatchsets) { patchset in
                     // Pushed directly rather than by value: this view is also shown
                     // from a project, whose stack declares no MoreRoute destination.
-                    NavigationLink {
-                        PatchsetDetailView(patchsetID: patchset.id, listName: mailingList.name)
-                    } label: {
-                        PatchsetRow(patchset: patchset)
-                    }
-                    .themedRow()
+                    patchsetRow(patchset, viewModel)
                 }
             } else {
             ForEach(viewModel.filteredThreads) { thread in
-                NavigationLink {
-                    ThreadDetailView(
-                        thread: thread,
-                        onViewed: {
-                            viewModel.markThreadRead(thread)
-                        },
-                        onMarkRead: {
-                            viewModel.markThreadRead(thread)
-                        },
-                        onMarkUnread: {
-                            viewModel.markThreadUnread(thread)
-                        }
-                    )
-                } label: {
-                    InboxThreadRow(thread: thread)
-                }
-                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                    Button {
-                        withAnimation(.easeInOut(duration: 0.2)) {
-                            if thread.isUnread {
-                                viewModel.markThreadRead(thread)
-                            } else {
-                                viewModel.markThreadUnread(thread)
-                            }
-                        }
-                    } label: {
-                        Label(
-                            thread.isUnread ? "Mark as Read" : "Mark as Unread",
-                            systemImage: thread.isUnread ? "envelope.open" : "envelope.badge"
-                        )
-                    }
-                    .tint(thread.isUnread ? .blue : .gray)
-                }
+                threadRow(thread, viewModel)
             }
             .themedRow()
             }
@@ -632,15 +527,29 @@ struct MailingListDetailView: View {
             prompt: showingPatches(viewModel) ? "Search patches" : "Search messages"
         )
         .overlay {
-            if viewModel.isLoading, viewModel.threads.isEmpty {
-                SRHTLoadingStateView(message: "Loading mailing list…")
-            } else if let error = viewModel.error, viewModel.threads.isEmpty {
-                SRHTErrorStateView(
-                    title: "Couldn't Load Mailing List",
-                    message: error,
-                    retryAction: { await viewModel.loadThreads() }
-                )
-            } else if showingPatches(viewModel) {
+            emptyState(viewModel)
+        }
+        .refreshable {
+            await viewModel.loadThreads()
+        }
+        .srhtErrorBanner(error: $vm.error)
+    }
+
+    private func showingPatches(_ viewModel: MailingListDetailViewModel) -> Bool {
+        scope == .patches && !viewModel.patchsets.isEmpty
+    }
+
+    @ViewBuilder
+    private func emptyState(_ viewModel: MailingListDetailViewModel) -> some View {
+        SRHTLoadStateView(
+            isLoading: viewModel.isLoading,
+            error: viewModel.error,
+            isEmpty: viewModel.threads.isEmpty,
+            loadingMessage: "Loading mailing list…",
+            errorTitle: "Couldn't Load Mailing List",
+            retryAction: { await viewModel.loadThreads() }
+        ) {
+            if showingPatches(viewModel) {
                 if !viewModel.patchsets.isEmpty, viewModel.filteredPatchsets.isEmpty {
                     ContentUnavailableView.search(text: viewModel.searchText)
                 }
@@ -654,14 +563,53 @@ struct MailingListDetailView: View {
                 )
             }
         }
-        .refreshable {
-            await viewModel.loadThreads()
-        }
-        .srhtErrorBanner(error: $vm.error)
     }
 
-    private func showingPatches(_ viewModel: MailingListDetailViewModel) -> Bool {
-        scope == .patches && !viewModel.patchsets.isEmpty
+    @ViewBuilder
+    private func threadRow(_ thread: InboxThreadSummary, _ viewModel: MailingListDetailViewModel) -> some View {
+        NavigationLink {
+            ThreadDetailView(
+                thread: thread,
+                onViewed: {
+                    viewModel.markThreadRead(thread)
+                },
+                onMarkRead: {
+                    viewModel.markThreadRead(thread)
+                },
+                onMarkUnread: {
+                    viewModel.markThreadUnread(thread)
+                }
+            )
+        } label: {
+            InboxThreadRow(thread: thread)
+        }
+        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+            Button {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    if thread.isUnread {
+                        viewModel.markThreadRead(thread)
+                    } else {
+                        viewModel.markThreadUnread(thread)
+                    }
+                }
+            } label: {
+                Label(
+                    thread.isUnread ? "Mark as Read" : "Mark as Unread",
+                    systemImage: thread.isUnread ? "envelope.open" : "envelope.badge"
+                )
+            }
+            .tint(thread.isUnread ? .blue : .gray)
+        }
+    }
+
+    @ViewBuilder
+    private func patchsetRow(_ patchset: PatchsetSummary, _ viewModel: MailingListDetailViewModel) -> some View {
+        NavigationLink {
+            PatchsetDetailView(patchsetID: patchset.id, listName: mailingList.name)
+        } label: {
+            PatchsetRow(patchset: patchset)
+        }
+        .themedRow()
     }
 }
 

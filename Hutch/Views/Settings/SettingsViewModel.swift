@@ -19,6 +19,26 @@ private struct UpdatedUser: Decodable, Sendable {
     let avatar: String?
 }
 
+private extension UserProfile {
+    /// This profile with the fields an update returns; the avatar is kept when the update has none.
+    func applying(_ updated: UpdatedUser) -> UserProfile {
+        UserProfile(
+            username: username,
+            canonicalName: canonicalName,
+            email: updated.email,
+            url: updated.url,
+            location: updated.location,
+            bio: updated.bio,
+            avatar: updated.avatar ?? avatar,
+            userType: userType,
+            sshKeys: sshKeys,
+            pgpKeys: pgpKeys,
+            paymentStatus: paymentStatus,
+            subscription: subscription
+        )
+    }
+}
+
 private struct CreateSSHKeyResponse: Decodable, Sendable {
     let createSSHKey: SSHKey
 }
@@ -208,23 +228,7 @@ final class SettingsViewModel {
                 variables: ["input": input],
                 responseType: UpdateUserResponse.self
             )
-            let updated = result.updateUser
-            if let p = profile {
-                profile = UserProfile(
-                    username: p.username,
-                    canonicalName: p.canonicalName,
-                    email: updated.email,
-                    url: updated.url,
-                    location: updated.location,
-                    bio: updated.bio,
-                    avatar: updated.avatar ?? p.avatar,
-                    userType: p.userType,
-                    sshKeys: p.sshKeys,
-                    pgpKeys: p.pgpKeys,
-                    paymentStatus: p.paymentStatus,
-                    subscription: p.subscription
-                )
-            }
+            profile = profile?.applying(result.updateUser)
             isEditingProfile = false
         } catch {
             self.error = error.userFacingMessage
@@ -256,23 +260,7 @@ final class SettingsViewModel {
                 ),
                 responseType: UpdateUserResponse.self
             )
-            let updated = result.updateUser
-            if let p = profile {
-                profile = UserProfile(
-                    username: p.username,
-                    canonicalName: p.canonicalName,
-                    email: updated.email,
-                    url: updated.url,
-                    location: updated.location,
-                    bio: updated.bio,
-                    avatar: updated.avatar ?? p.avatar,
-                    userType: p.userType,
-                    sshKeys: p.sshKeys,
-                    pgpKeys: p.pgpKeys,
-                    paymentStatus: p.paymentStatus,
-                    subscription: p.subscription
-                )
-            }
+            profile = profile?.applying(result.updateUser)
         } catch {
             self.error = error.userFacingMessage
         }

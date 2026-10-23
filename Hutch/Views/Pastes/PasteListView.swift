@@ -123,22 +123,23 @@ struct PasteListView: View {
             prompt: "Search pastes"
         )
         .overlay {
-            if viewModel.isLoading, viewModel.pastes.isEmpty {
-                SRHTLoadingStateView(message: "Loading pastes…")
-            } else if let error = viewModel.error, viewModel.pastes.isEmpty {
-                SRHTErrorStateView(
-                    title: "Couldn't Load Pastes",
-                    message: error,
-                    retryAction: { await viewModel.loadPastes() }
-                )
-            } else if !viewModel.pastes.isEmpty, viewModel.filteredPastes.isEmpty {
-                ContentUnavailableView.search(text: viewModel.searchText)
-            } else if viewModel.pastes.isEmpty {
-                ContentUnavailableView(
-                    "No Pastes",
-                    systemImage: "doc.on.clipboard",
-                    description: Text("Your pastes will appear here.")
-                )
+            SRHTLoadStateView(
+                isLoading: viewModel.isLoading,
+                error: viewModel.error,
+                isEmpty: viewModel.pastes.isEmpty,
+                loadingMessage: "Loading pastes…",
+                errorTitle: "Couldn't Load Pastes",
+                retryAction: { await viewModel.loadPastes() }
+            ) {
+                if !viewModel.pastes.isEmpty, viewModel.filteredPastes.isEmpty {
+                    ContentUnavailableView.search(text: viewModel.searchText)
+                } else if viewModel.pastes.isEmpty {
+                    ContentUnavailableView(
+                        "No Pastes",
+                        systemImage: "doc.on.clipboard",
+                        description: Text("Your pastes will appear here.")
+                    )
+                }
             }
         }
         .connectivityOverlay(hasContent: !viewModel.pastes.isEmpty) {

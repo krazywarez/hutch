@@ -184,22 +184,23 @@ struct TrackerListView: View {
             prompt: "Search trackers"
         )
         .overlay {
-            if viewModel.isLoading, viewModel.trackers.isEmpty {
-                SRHTLoadingStateView(message: "Loading trackers…")
-            } else if let error = viewModel.error, viewModel.trackers.isEmpty {
-                SRHTErrorStateView(
-                    title: "Couldn't Load Trackers",
-                    message: error,
-                    retryAction: { await viewModel.loadTrackers() }
-                )
-            } else if !viewModel.trackers.isEmpty, viewModel.filteredTrackers.isEmpty {
-                ContentUnavailableView.search(text: viewModel.searchText)
-            } else if viewModel.trackers.isEmpty, viewModel.error == nil {
-                ContentUnavailableView(
-                    "No Trackers",
-                    systemImage: "checklist",
-                    description: Text("Your bug trackers will appear here.")
-                )
+            SRHTLoadStateView(
+                isLoading: viewModel.isLoading,
+                error: viewModel.error,
+                isEmpty: viewModel.trackers.isEmpty,
+                loadingMessage: "Loading trackers…",
+                errorTitle: "Couldn't Load Trackers",
+                retryAction: { await viewModel.loadTrackers() }
+            ) {
+                if !viewModel.trackers.isEmpty, viewModel.filteredTrackers.isEmpty {
+                    ContentUnavailableView.search(text: viewModel.searchText)
+                } else if viewModel.trackers.isEmpty, viewModel.error == nil {
+                    ContentUnavailableView(
+                        "No Trackers",
+                        systemImage: "checklist",
+                        description: Text("Your bug trackers will appear here.")
+                    )
+                }
             }
         }
         .connectivityOverlay(hasContent: !viewModel.trackers.isEmpty) {
@@ -235,34 +236,7 @@ private struct TrackerRowView: View {
     let tracker: TrackerSummary
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack {
-                Text(tracker.name)
-                    .font(.subheadline.weight(.medium))
-
-                Spacer()
-
-                VisibilityBadge(visibility: tracker.visibility)
-            }
-
-            if let owner = tracker.owner.canonicalName.split(separator: "~").last {
-                Text("~\(owner)")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-
-            if let description = tracker.description, !description.isEmpty {
-                Text(description)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(2)
-            }
-
-            Text(tracker.updated.relativeDescription)
-                .font(.caption2)
-                .foregroundStyle(.tertiary)
-        }
-        .padding(.vertical, 2)
+        TrackerSummaryRow(tracker: tracker)
         .contextMenu {
             if let url = SRHTWebURL.tracker(tracker) {
                 Button {

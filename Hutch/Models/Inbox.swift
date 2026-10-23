@@ -235,3 +235,68 @@ nonisolated enum InboxReadStateStore {
         return true
     }
 }
+
+extension InboxThreadSummary {
+    /// This summary marked read or unread.
+    nonisolated func withUnread(_ isUnread: Bool) -> InboxThreadSummary {
+        InboxThreadSummary(
+            rootEmailID: rootEmailID,
+            rootMessageID: rootMessageID,
+            threadRootEmailIDs: threadRootEmailIDs,
+            threadRootMessageIDs: threadRootMessageIDs,
+            listID: listID,
+            listRID: listRID,
+            listName: listName,
+            listOwner: listOwner,
+            subject: subject,
+            latestSender: latestSender,
+            lastActivityAt: lastActivityAt,
+            messageCount: messageCount,
+            repo: repo,
+            containsPatch: containsPatch,
+            isUnread: isUnread
+        )
+    }
+
+    /// One summary per thread grouping key, unsorted: the latest summary's fields, with the
+    /// root IDs, counts, patch and unread flags of every summary for that thread.
+    nonisolated static func mergedByThread(_ threads: [InboxThreadSummary]) -> [InboxThreadSummary] {
+        var grouped: [String: InboxThreadSummary] = [:]
+
+        for thread in threads {
+            guard let existing = grouped[thread.threadGroupingKey] else {
+                grouped[thread.threadGroupingKey] = thread
+                continue
+            }
+
+            let latest = thread.lastActivityAt >= existing.lastActivityAt ? thread : existing
+            let mergedRootEmailIDs = Array(Set(existing.threadRootEmailIDs + thread.threadRootEmailIDs)).sorted()
+            let mergedRootMessageIDs = Array(Set(existing.threadRootMessageIDs + thread.threadRootMessageIDs)).sorted()
+            let mergedMessageCount = max(
+                existing.messageCount ?? existing.threadRootMessageIDs.count,
+                thread.messageCount ?? thread.threadRootMessageIDs.count,
+                mergedRootMessageIDs.count
+            )
+
+            grouped[thread.threadGroupingKey] = InboxThreadSummary(
+                rootEmailID: latest.rootEmailID,
+                rootMessageID: latest.rootMessageID,
+                threadRootEmailIDs: mergedRootEmailIDs,
+                threadRootMessageIDs: mergedRootMessageIDs,
+                listID: latest.listID,
+                listRID: latest.listRID,
+                listName: latest.listName,
+                listOwner: latest.listOwner,
+                subject: latest.subject,
+                latestSender: latest.latestSender,
+                lastActivityAt: max(existing.lastActivityAt, thread.lastActivityAt),
+                messageCount: mergedMessageCount,
+                repo: latest.repo ?? existing.repo,
+                containsPatch: latest.containsPatch || existing.containsPatch,
+                isUnread: latest.isUnread || existing.isUnread
+            )
+        }
+
+        return Array(grouped.values)
+    }
+}

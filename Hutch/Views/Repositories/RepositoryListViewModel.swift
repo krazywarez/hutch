@@ -384,39 +384,6 @@ final class RepositoryListViewModel {
     }
 
     private static let emptyPage = Page(results: [], cursor: nil)
-
-    private struct RepositoryPayload: Decodable, Sendable {
-        let id: Int
-        let rid: String
-        let name: String
-        let description: String?
-        let visibility: Visibility
-        let updated: Date
-        let owner: Entity
-        let head: Reference?
-
-        enum CodingKeys: String, CodingKey {
-            case id, rid, name, description, visibility, updated, owner
-            case head = "HEAD"
-        }
-
-        func repositorySummary(service: SRHTService) -> RepositorySummary {
-            RepositorySummary(
-                fields: .init(
-                    id: id,
-                    rid: rid,
-                    service: service,
-                    name: name,
-                    description: description,
-                    visibility: visibility,
-                    updated: updated,
-                    owner: owner,
-                    head: head
-                )
-            )
-        }
-    }
-
     private struct HGRepositoryPayload: Decodable, Sendable {
         let id: Int
         let rid: String
@@ -428,18 +395,20 @@ final class RepositoryListViewModel {
         let tip: HGTipReference?
 
         func repositorySummary(service: SRHTService) -> RepositorySummary {
-            RepositorySummary(
-                fields: .init(
-                    id: id,
-                    rid: rid,
-                    service: service,
-                    name: name,
-                    description: description,
-                    visibility: visibility,
-                    updated: updated,
-                    owner: owner,
-                    head: tip.map { Reference(name: $0.branch, target: nil) }
-                )
+            repositoryPayload.repositorySummary(service: service)
+        }
+
+        /// The shape the git API returns, with the tip's branch as HEAD.
+        var repositoryPayload: RepositoryPayload {
+            RepositoryPayload(
+                id: id,
+                rid: rid,
+                name: name,
+                description: description,
+                visibility: visibility,
+                updated: updated,
+                owner: owner,
+                head: tip.map { Reference(name: $0.branch, target: nil) }
             )
         }
     }
@@ -486,18 +455,7 @@ final class RepositoryListViewModel {
                 )
                 let result = cached.value
                 return Page(
-                    results: result.repositories?.results.map {
-                        RepositoryPayload(
-                            id: $0.id,
-                            rid: $0.rid,
-                            name: $0.name,
-                            description: $0.description,
-                            visibility: $0.visibility,
-                            updated: $0.updated,
-                            owner: $0.owner,
-                            head: $0.tip.map { Reference(name: $0.branch, target: nil) }
-                        )
-                    } ?? [],
+                    results: result.repositories?.results.map(\.repositoryPayload) ?? [],
                     cursor: result.repositories?.cursor
                 )
             }
@@ -522,18 +480,7 @@ final class RepositoryListViewModel {
                     responseType: HGRepositoriesResponse.self
                 )
                 return Page(
-                    results: result.repositories?.results.map {
-                        RepositoryPayload(
-                            id: $0.id,
-                            rid: $0.rid,
-                            name: $0.name,
-                            description: $0.description,
-                            visibility: $0.visibility,
-                            updated: $0.updated,
-                            owner: $0.owner,
-                            head: $0.tip.map { Reference(name: $0.branch, target: nil) }
-                        )
-                    } ?? [],
+                    results: result.repositories?.results.map(\.repositoryPayload) ?? [],
                     cursor: result.repositories?.cursor
                 )
             }

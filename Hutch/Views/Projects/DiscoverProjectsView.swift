@@ -113,20 +113,21 @@ struct DiscoverProjectsView: View {
         .themedList()
         .listStyle(.plain)
         .overlay {
-            if viewModel.isLoading, viewModel.projects.isEmpty {
-                SRHTLoadingStateView(message: "Loading projects…")
-            } else if let error = viewModel.error, viewModel.projects.isEmpty {
-                SRHTErrorStateView(
-                    title: "Couldn't Load Projects",
-                    message: error,
-                    retryAction: { await viewModel.reload() }
-                )
-            } else if viewModel.projects.isEmpty {
-                ContentUnavailableView(
-                    "No Public Projects",
-                    systemImage: "sparkle.magnifyingglass",
-                    description: Text("Public projects on SourceHut will appear here.")
-                )
+            SRHTLoadStateView(
+                isLoading: viewModel.isLoading,
+                error: viewModel.error,
+                isEmpty: viewModel.projects.isEmpty,
+                loadingMessage: "Loading projects…",
+                errorTitle: "Couldn't Load Projects",
+                retryAction: { await viewModel.reload() }
+            ) {
+                if viewModel.projects.isEmpty {
+                    ContentUnavailableView(
+                        "No Public Projects",
+                        systemImage: "sparkle.magnifyingglass",
+                        description: Text("Public projects on SourceHut will appear here.")
+                    )
+                }
             }
         }
         .srhtErrorBanner(

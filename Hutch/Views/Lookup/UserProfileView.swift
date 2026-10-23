@@ -177,7 +177,7 @@ struct UserProfileView: View {
                             NavigationLink {
                                 TicketListView(tracker: tracker)
                             } label: {
-                                UserProfileTrackerRowView(tracker: tracker)
+                                TrackerSummaryRow(tracker: tracker)
                             }
                         }
                         .themedRow()
@@ -260,7 +260,8 @@ struct UserProfileView: View {
     }
 }
 
-struct UserProfileTrackerRowView: View {
+/// A tracker's name, visibility, owner, description and last update.
+struct TrackerSummaryRow: View {
     let tracker: TrackerSummary
 
     var body: some View {

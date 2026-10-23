@@ -82,11 +82,11 @@ private struct UnassignUserResponse: Decodable, Sendable {
     let unassignUser: MutationEventResponse
 }
 
-private struct LabelTicketResponse: Decodable, Sendable {
+private nonisolated struct LabelTicketResponse: Decodable, Sendable {
     let labelTicket: MutationEventResponse
 }
 
-private struct UnlabelTicketResponse: Decodable, Sendable {
+private nonisolated struct UnlabelTicketResponse: Decodable, Sendable {
     let unlabelTicket: MutationEventResponse
 }
 
@@ -723,31 +723,14 @@ final class TicketDetailViewModel {
     }
 
     func labelTicket(labelId: Int) async {
-        guard !isPerformingAction else { return }
-        isPerformingAction = true
-        error = nil
-
-        do {
-            _ = try await client.execute(
-                service: .todo,
-                query: Self.labelTicketMutation,
-                variables: [
-                    "trackerId": trackerId,
-                    "ticketId": ticketId,
-                    "labelId": labelId
-                ],
-                responseType: LabelTicketResponse.self
-            )
-            await invalidateAfterMutation()
-            await reloadTicketPreservingDebugState()
-        } catch {
-            self.error = error.userFacingMessage
-        }
-
-        isPerformingAction = false
+        await runLabelMutation(Self.labelTicketMutation, labelId: labelId, response: LabelTicketResponse.self)
     }
 
     func unlabelTicket(labelId: Int) async {
+        await runLabelMutation(Self.unlabelTicketMutation, labelId: labelId, response: UnlabelTicketResponse.self)
+    }
+
+    private func runLabelMutation<Response: Decodable & Sendable>(_ query: String, labelId: Int, response: Response.Type) async {
         guard !isPerformingAction else { return }
         isPerformingAction = true
         error = nil
@@ -755,13 +738,13 @@ final class TicketDetailViewModel {
         do {
             _ = try await client.execute(
                 service: .todo,
-                query: Self.unlabelTicketMutation,
+                query: query,
                 variables: [
                     "trackerId": trackerId,
                     "ticketId": ticketId,
                     "labelId": labelId
                 ],
-                responseType: UnlabelTicketResponse.self
+                responseType: response
             )
             await invalidateAfterMutation()
             await reloadTicketPreservingDebugState()

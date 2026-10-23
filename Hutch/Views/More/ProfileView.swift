@@ -89,15 +89,14 @@ struct ProfileView: View {
         }
         .themedList()
         .overlay {
-            if viewModel.isLoading, viewModel.profile == nil {
-                SRHTLoadingStateView(message: "Loading profile…")
-            } else if let error = viewModel.error, viewModel.profile == nil {
-                SRHTErrorStateView(
-                    title: "Couldn't Load Profile",
-                    message: error,
-                    retryAction: { await viewModel.loadProfile() }
-                )
-            }
+            SRHTLoadStateView(
+                isLoading: viewModel.isLoading,
+                error: viewModel.error,
+                isEmpty: viewModel.profile == nil,
+                loadingMessage: "Loading profile…",
+                errorTitle: "Couldn't Load Profile",
+                retryAction: { await viewModel.loadProfile() }
+            ) {}
         }
         .sheet(isPresented: Binding(
             get: { viewModel.isEditingProfile },
@@ -160,36 +159,7 @@ struct ProfileView: View {
     @ViewBuilder
     private func profileSection(_ profile: UserProfile, viewModel: SettingsViewModel) -> some View {
         Section("Profile") {
-            HStack(spacing: 12) {
-                AsyncImage(url: profile.avatar.flatMap { URL(string: $0) }) { phase in
-                    if case .success(let image) = phase {
-                        image
-                            .resizable()
-                            .scaledToFill()
-                    } else {
-                        Image(systemName: "person.crop.circle.fill")
-                            .resizable()
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                .frame(width: 56, height: 56)
-                .clipShape(Circle())
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(profile.canonicalName)
-                        .font(.headline)
-                    Text(profile.email)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                    if let userType = profile.userType {
-                        Text(userType.capitalized)
-                            .font(.caption)
-                            .foregroundStyle(.tertiary)
-                    }
-                }
-            }
-            .padding(.vertical, 4)
-            .themedRow()
+            profileHeader(profile)
 
             if let bio = profile.bio, !bio.isEmpty {
                 VStack(alignment: .leading, spacing: 2) {
@@ -216,16 +186,7 @@ struct ProfileView: View {
                     .themedRow()
             }
 
-            if let sub = profile.subscription {
-                if let status = sub.status {
-                    LabeledContent("Subscription", value: status.capitalized)
-                        .themedRow()
-                }
-                if let interval = sub.interval {
-                    LabeledContent("Interval", value: interval.capitalized)
-                        .themedRow()
-                }
-            }
+            subscriptionRows(profile)
 
             Button("Edit Profile") {
                 viewModel.isEditingProfile = true
@@ -275,39 +236,13 @@ struct ProfileView: View {
             }
             .themedRow()
 
-            if viewModel.isAddingSSHKey {
-                TextField(
-                    "Paste SSH public key",
-                    text: Binding(
-                        get: { viewModel.newSSHKey },
-                        set: { viewModel.newSSHKey = $0 }
-                    ),
-                    axis: .vertical
-                )
-                    .font(.caption.monospaced())
-                    .lineLimit(3...6)
-                    .themedRow()
-
-                HStack {
-                    Button("Cancel") {
-                        viewModel.isAddingSSHKey = false
-                        viewModel.newSSHKey = ""
-                    }
-                    Spacer()
-                    Button("Add") {
-                        Task { await viewModel.addSSHKey() }
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(viewModel.newSSHKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                }
-                .themedRow()
-            } else {
-                Button {
-                    viewModel.isAddingSSHKey = true
-                } label: {
-                    SwiftUI.Label("Add SSH Key", systemImage: "key")
-                }
-                .themedRow()
+            AddKeyControls(
+                kind: "SSH",
+                systemImage: "key",
+                isAdding: Binding(get: { viewModel.isAddingSSHKey }, set: { viewModel.isAddingSSHKey = $0 }),
+                key: Binding(get: { viewModel.newSSHKey }, set: { viewModel.newSSHKey = $0 })
+            ) {
+                await viewModel.addSSHKey()
             }
         } header: {
             Text("SSH Keys")
@@ -338,39 +273,13 @@ struct ProfileView: View {
             }
             .themedRow()
 
-            if viewModel.isAddingPGPKey {
-                TextField(
-                    "Paste PGP public key",
-                    text: Binding(
-                        get: { viewModel.newPGPKey },
-                        set: { viewModel.newPGPKey = $0 }
-                    ),
-                    axis: .vertical
-                )
-                    .font(.caption.monospaced())
-                    .lineLimit(3...6)
-                    .themedRow()
-
-                HStack {
-                    Button("Cancel") {
-                        viewModel.isAddingPGPKey = false
-                        viewModel.newPGPKey = ""
-                    }
-                    Spacer()
-                    Button("Add") {
-                        Task { await viewModel.addPGPKey() }
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(viewModel.newPGPKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                }
-                .themedRow()
-            } else {
-                Button {
-                    viewModel.isAddingPGPKey = true
-                } label: {
-                    SwiftUI.Label("Add PGP Key", systemImage: "key.fill")
-                }
-                .themedRow()
+            AddKeyControls(
+                kind: "PGP",
+                systemImage: "key.fill",
+                isAdding: Binding(get: { viewModel.isAddingPGPKey }, set: { viewModel.isAddingPGPKey = $0 }),
+                key: Binding(get: { viewModel.newPGPKey }, set: { viewModel.newPGPKey = $0 })
+            ) {
+                await viewModel.addPGPKey()
             }
         } header: {
             Text("PGP Keys")
@@ -396,32 +305,7 @@ struct ProfileView: View {
                 .themedRow()
             } else {
                 ForEach(viewModel.personalAccessTokens) { token in
-                    VStack(alignment: .leading, spacing: 4) {
-                        HStack {
-                            Text(token.comment ?? "Token #\(token.id)")
-                                .font(.subheadline)
-                            Spacer()
-                        }
-
-                        HStack(spacing: 12) {
-                            Text("Issued \(token.issued.relativeDescription)")
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
-
-                            if let expires = token.expires {
-                                Text("Expires \(expires.relativeDescription)")
-                                    .font(.caption2)
-                                    .foregroundStyle(expires < Date.now ? .red : .secondary)
-                            }
-                        }
-
-                        if let grants = token.grants, !grants.isEmpty {
-                            Text(grants)
-                                .font(.caption2.monospaced())
-                                .foregroundStyle(.tertiary)
-                                .lineLimit(2)
-                        }
-                    }
+                    PersonalAccessTokenRow(token: token)
                 }
                 .themedRow()
             }
@@ -486,6 +370,127 @@ struct ProfileView: View {
             Text("Audit Log")
         } footer: {
             Text("Recent security-relevant activity on your account, newest first. The full log lives on meta.sr.ht.")
+        }
+    }
+
+    @ViewBuilder
+    private func subscriptionRows(_ profile: UserProfile) -> some View {
+        if let sub = profile.subscription {
+            if let status = sub.status {
+                LabeledContent("Subscription", value: status.capitalized)
+                    .themedRow()
+            }
+            if let interval = sub.interval {
+                LabeledContent("Interval", value: interval.capitalized)
+                    .themedRow()
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func profileHeader(_ profile: UserProfile) -> some View {
+        HStack(spacing: 12) {
+            AsyncImage(url: profile.avatar.flatMap { URL(string: $0) }) { phase in
+                if case .success(let image) = phase {
+                    image
+                        .resizable()
+                        .scaledToFill()
+                } else {
+                    Image(systemName: "person.crop.circle.fill")
+                        .resizable()
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .frame(width: 56, height: 56)
+            .clipShape(Circle())
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(profile.canonicalName)
+                    .font(.headline)
+                Text(profile.email)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                if let userType = profile.userType {
+                    Text(userType.capitalized)
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                }
+            }
+        }
+        .padding(.vertical, 4)
+        .themedRow()
+    }
+}
+
+/// A key list's add field and its Cancel and Add buttons, or the button that opens them.
+private struct AddKeyControls: View {
+    /// "SSH", "PGP".
+    let kind: String
+    let systemImage: String
+    @Binding var isAdding: Bool
+    @Binding var key: String
+    let add: () async -> Void
+
+    var body: some View {
+        if isAdding {
+            TextField("Paste \(kind) public key", text: $key, axis: .vertical)
+                .font(.caption.monospaced())
+                .lineLimit(3...6)
+                .themedRow()
+
+            HStack {
+                Button("Cancel") {
+                    isAdding = false
+                    key = ""
+                }
+                Spacer()
+                Button("Add") {
+                    Task { await add() }
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(key.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            }
+            .themedRow()
+        } else {
+            Button {
+                isAdding = true
+            } label: {
+                SwiftUI.Label("Add \(kind) Key", systemImage: systemImage)
+            }
+            .themedRow()
+        }
+    }
+}
+
+private struct PersonalAccessTokenRow: View {
+    let token: PersonalAccessToken
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Text(token.comment ?? "Token #\(token.id)")
+                    .font(.subheadline)
+                Spacer()
+            }
+
+            HStack(spacing: 12) {
+                Text("Issued \(token.issued.relativeDescription)")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+
+                if let expires = token.expires {
+                    Text("Expires \(expires.relativeDescription)")
+                        .font(.caption2)
+                        .foregroundStyle(expires < Date.now ? .red : .secondary)
+                }
+            }
+
+            if let grants = token.grants, !grants.isEmpty {
+                Text(grants)
+                    .font(.caption2.monospaced())
+                    .foregroundStyle(.tertiary)
+                    .lineLimit(2)
+            }
         }
     }
 }

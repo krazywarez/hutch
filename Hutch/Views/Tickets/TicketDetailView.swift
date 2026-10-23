@@ -216,86 +216,58 @@ struct TicketDetailView: View {
     private func detailContent(_ viewModel: TicketDetailViewModel) -> some View {
         @Bindable var vm = viewModel
 
-        if viewModel.isLoading, viewModel.ticket == nil {
-            SRHTLoadingStateView(message: "Loading ticket…")
-        } else if let error = viewModel.error, viewModel.ticket == nil {
-            SRHTErrorStateView(
-                title: "Couldn't Load Ticket",
-                message: error,
-                retryAction: { await reloadDetail(viewModel) }
-            )
-        } else if let ticket = viewModel.ticket {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 0) {
-                    if let cacheMetadata = viewModel.cacheMetadata {
-                        StaleCacheStatusRow(metadata: cacheMetadata, isRefreshing: viewModel.isRefreshingCachedData)
-                            .padding(.horizontal)
-                            .padding(.vertical, 8)
-                    }
-
-                    // Header
-                    ticketHeader(ticket, viewModel: viewModel)
-
-                    Divider()
-                        .padding(.vertical, 12)
-
-                    // Description
-                    if let description = ticket.description, !description.isEmpty {
-                        MarkdownContentView(markdown: description)
-                            .padding(.horizontal)
-                            .padding(.bottom, 16)
-
-                        Divider()
-                            .padding(.bottom, 12)
-                    }
-
-                    // Event timeline
-                    if !viewModel.events.isEmpty {
-                        Text("Activity")
-                            .font(.headline)
-                            .padding(.horizontal)
-                            .padding(.bottom, 8)
-
-                        LazyVStack(alignment: .leading, spacing: 0) {
-                            ForEach(viewModel.events) { event in
-                                EventRow(
-                                    event: event,
-                                    ticketSubmitter: viewModel.ticket?.submitter.canonicalName,
-                                    ticketAssignees: viewModel.ticket?.assignees.map { $0.canonicalName }
-                                )
-                                if event.id != viewModel.events.last?.id {
-                                    Divider()
-                                        .padding(.leading, 40)
-                                }
-                            }
+        SRHTLoadStateView(
+            isLoading: viewModel.isLoading,
+            error: viewModel.error,
+            isEmpty: viewModel.ticket == nil,
+            loadingMessage: "Loading ticket…",
+            errorTitle: "Couldn't Load Ticket",
+            retryAction: { await reloadDetail(viewModel) }
+        ) {
+            if let ticket = viewModel.ticket {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 0) {
+                        if let cacheMetadata = viewModel.cacheMetadata {
+                            StaleCacheStatusRow(metadata: cacheMetadata, isRefreshing: viewModel.isRefreshingCachedData)
+                                .padding(.horizontal)
+                                .padding(.vertical, 8)
                         }
 
+                        // Header
+                        ticketHeader(ticket, viewModel: viewModel)
+
                         Divider()
                             .padding(.vertical, 12)
+
+                        // Description
+                        descriptionSection(ticket)
+
+                        // Event timeline
+                        eventsSection(viewModel)
+
+                        if appState.isDebugModeEnabled {
+                            Divider()
+                                .padding(.vertical, 12)
+
+                            debugSection(viewModel: viewModel, ticket: ticket)
+                        }
+
+                        commentInput(viewModel)
                     }
-
-                    if appState.isDebugModeEnabled {
-                        Divider()
-                            .padding(.vertical, 12)
-
-                        debugSection(viewModel: viewModel, ticket: ticket)
-                    }
-
-                    commentInput(viewModel)
                 }
-            }
-            .task(id: ticket.id) {
-                RecentActivityStore.recordTicket(
-                    ownerUsername: ownerUsername,
-                    trackerName: trackerName,
-                    ticketId: ticket.id,
-                    title: ticket.title,
-                    defaults: appState.accountDefaults
-                )
-            }
-            .srhtErrorBanner(error: $vm.error)
-            .refreshable {
-                await reloadDetail(viewModel)
+                .task(id: ticket.id) {
+                    RecentActivityStore.recordTicket(
+                        ownerUsername: ownerUsername,
+                        trackerName: trackerName,
+                        ticketId: ticket.id,
+                        title: ticket.title,
+                        defaults: appState.accountDefaults
+                    )
+                }
+                .srhtErrorBanner(error: $vm.error)
+                .refreshable {
+                    await reloadDetail(viewModel)
+                }
             }
         }
     }
@@ -526,6 +498,45 @@ struct TicketDetailView: View {
             await viewModel.loadTicketWithDebugCapture()
         } else {
             await viewModel.loadTicket()
+        }
+    }
+
+    @ViewBuilder
+    private func eventsSection(_ viewModel: TicketDetailViewModel) -> some View {
+        if !viewModel.events.isEmpty {
+            Text("Activity")
+                .font(.headline)
+                .padding(.horizontal)
+                .padding(.bottom, 8)
+
+            LazyVStack(alignment: .leading, spacing: 0) {
+                ForEach(viewModel.events) { event in
+                    EventRow(
+                        event: event,
+                        ticketSubmitter: viewModel.ticket?.submitter.canonicalName,
+                        ticketAssignees: viewModel.ticket?.assignees.map { $0.canonicalName }
+                    )
+                    if event.id != viewModel.events.last?.id {
+                        Divider()
+                            .padding(.leading, 40)
+                    }
+                }
+            }
+
+            Divider()
+                .padding(.vertical, 12)
+        }
+    }
+
+    @ViewBuilder
+    private func descriptionSection(_ ticket: TicketDetail) -> some View {
+        if let description = ticket.description, !description.isEmpty {
+            MarkdownContentView(markdown: description)
+                .padding(.horizontal)
+                .padding(.bottom, 16)
+
+            Divider()
+                .padding(.bottom, 12)
         }
     }
 }

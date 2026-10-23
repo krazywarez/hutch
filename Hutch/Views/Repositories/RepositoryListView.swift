@@ -127,27 +127,28 @@ struct RepositoryListView: View {
             }
         }
         .overlay {
-            if viewModel.isLoading, viewModel.repositories.isEmpty {
-                SRHTLoadingStateView(message: "Loading repositories…")
-            } else if let error = viewModel.error, viewModel.repositories.isEmpty {
-                SRHTErrorStateView(
-                    title: "Couldn't Load Repositories",
-                    message: error,
-                    retryAction: { await viewModel.loadRepositories() }
-                )
-            } else if viewModel.repositories.isEmpty, viewModel.error == nil {
-                if viewModel.searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    ContentUnavailableView(
-                        "No Repositories",
-                        systemImage: "book.closed",
-                        description: Text("You don't have any repositories yet.")
-                    )
-                } else {
-                    ContentUnavailableView(
-                        "No Repository Matches",
-                        systemImage: "magnifyingglass",
-                        description: Text("No repositories matched “\(viewModel.searchText)”.")
-                    )
+            SRHTLoadStateView(
+                isLoading: viewModel.isLoading,
+                error: viewModel.error,
+                isEmpty: viewModel.repositories.isEmpty,
+                loadingMessage: "Loading repositories…",
+                errorTitle: "Couldn't Load Repositories",
+                retryAction: { await viewModel.loadRepositories() }
+            ) {
+                if viewModel.repositories.isEmpty, viewModel.error == nil {
+                    if viewModel.searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        ContentUnavailableView(
+                            "No Repositories",
+                            systemImage: "book.closed",
+                            description: Text("You don't have any repositories yet.")
+                        )
+                    } else {
+                        ContentUnavailableView(
+                            "No Repository Matches",
+                            systemImage: "magnifyingglass",
+                            description: Text("No repositories matched “\(viewModel.searchText)”.")
+                        )
+                    }
                 }
             }
         }

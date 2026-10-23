@@ -158,3 +158,25 @@ extension View {
         modifier(ConnectivityOverlay(hasContent: hasContent, retryAction: retryAction))
     }
 }
+
+/// A screen's loading or error state while it has nothing to show, and `content` otherwise.
+struct SRHTLoadStateView<Content: View>: View {
+    let isLoading: Bool
+    let error: String?
+    /// Whether nothing has loaded that could be shown instead.
+    let isEmpty: Bool
+    let loadingMessage: String
+    let errorTitle: String
+    let retryAction: (() async -> Void)?
+    @ViewBuilder var content: () -> Content
+
+    var body: some View {
+        if isLoading, isEmpty {
+            SRHTLoadingStateView(message: loadingMessage)
+        } else if let error, isEmpty {
+            SRHTErrorStateView(title: errorTitle, message: error, retryAction: retryAction)
+        } else {
+            content()
+        }
+    }
+}

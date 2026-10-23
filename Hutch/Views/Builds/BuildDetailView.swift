@@ -156,222 +156,54 @@ struct BuildDetailView: View {
 
     @ViewBuilder
     private func detailContent(_ viewModel: BuildDetailViewModel) -> some View {
-        if viewModel.isLoading, viewModel.job == nil {
-            SRHTLoadingStateView(message: "Loading build…")
-        } else if let error = viewModel.error, viewModel.job == nil {
-            SRHTErrorStateView(
-                title: "Couldn't Load Build",
-                message: error,
-                retryAction: { await reloadDetail(viewModel) }
-            )
-        } else if let job = viewModel.job {
-            List {
-                if let cacheMetadata = viewModel.cacheMetadata {
-                    Section {
-                        StaleCacheStatusRow(metadata: cacheMetadata, isRefreshing: viewModel.isRefreshingCachedData)
-                    }
+        SRHTLoadStateView(
+            isLoading: viewModel.isLoading,
+            error: viewModel.error,
+            isEmpty: viewModel.job == nil,
+            loadingMessage: "Loading build…",
+            errorTitle: "Couldn't Load Build",
+            retryAction: { await reloadDetail(viewModel) }
+        ) {
+            if let job = viewModel.job {
+                List {
+                    cacheSection(job, viewModel)
+
+                    detailsSection(job, viewModel)
+
+                    debugSection(job, viewModel)
+
+                    sourceSection(job, viewModel)
+
+                    artifactsSection(job, viewModel)
+
+                    // Per-task logs
+                    taskSections(job, viewModel)
+
+                    // Cancel button
+                    cancelSection(job, viewModel)
+
+                    rebuildSection(job, viewModel)
                 }
-
-                Section("Details") {
-                    HStack {
-                        Text("Status")
-                        Spacer()
-                        HStack(spacing: 6) {
-                            JobStatusIcon(status: job.status)
-                            Text(job.status.rawValue)
-                                .font(.subheadline.weight(.medium))
-                        }
-                    }
-                    .themedRow()
-
-                    if let note = job.note, !note.isEmpty {
-                        LabeledContent("Note", value: note)
-                            .themedRow()
-                    }
-
-                    if let image = job.image {
-                        LabeledContent("Image", value: image)
-                            .themedRow()
-                    }
-
-                    if !job.tags.isEmpty {
-                        LabeledContent("Tags", value: job.tags.joined(separator: ", "))
-                            .themedRow()
-                    }
-
-                    if let visibility = job.visibility {
-                        LabeledContent("Visibility", value: visibility.rawValue.capitalized)
-                            .themedRow()
-                    }
-
-                    LabeledContent("Owner", value: job.owner.canonicalName)
-                        .themedRow()
-                    LabeledContent("Created", value: job.created.relativeDescription)
-                        .themedRow()
-                    LabeledContent("Updated", value: job.updated.relativeDescription)
-                        .themedRow()
+                .themedList()
+                .task(id: job.id) {
+                    RecentActivityStore.recordBuild(
+                        jobId: job.id,
+                        title: recentActivityTitle(for: job),
+                        defaults: appState.accountDefaults
+                    )
                 }
-
-                if appState.isDebugModeEnabled {
-                    Section("Debug") {
-                        DebugTextBlock(
-                            title: "Diagnostics",
-                            content: """
-                            jobId: \(job.id)
-                            status: \(job.status.rawValue)
-                            tasks: \(job.tasks.count)
-                            artifacts: \(job.artifacts.count)
-                            owner: \(job.owner.canonicalName)
-                            url: \(SRHTWebURL.build(jobId: job.id, ownerCanonicalName: job.owner.canonicalName)?.absoluteString ?? "unavailable")
-                            """
-                        )
-                        .themedRow()
-
-                        if let rawJobResponse = viewModel.rawJobResponse {
-                            DebugTextBlock(title: "Raw Response", content: rawJobResponse)
-                                .themedRow()
-                        }
-                    }
+                .refreshable {
+                    await reloadDetail(viewModel)
                 }
-
-                if let repositoryReference = HomeViewModel.primaryRepositoryReference(in: job.manifest) {
-                    Section("Source") {
-                        Button {
-                            openRepository(ownerCanonicalName: repositoryReference.ownerCanonicalName, repositoryName: repositoryReference.name)
-                        } label: {
-                            HStack {
-                                Label("\(repositoryReference.ownerCanonicalName)/\(repositoryReference.name)", systemImage: "book.closed")
-                                Spacer()
-                                if isOpeningRepository {
-                                    ProgressView()
-                                        .controlSize(.small)
-                                } else {
-                                    Image(systemName: "arrow.up.right")
-                                        .font(.caption)
-                                        .foregroundStyle(.tertiary)
-                                }
-                            }
-                        }
-                        .disabled(isOpeningRepository)
-                        .themedRow()
-                    }
-                }
-
-                if !job.artifacts.isEmpty {
-                    Section {
-                        ForEach(job.artifacts) { artifact in
-                            BuildArtifactRow(artifact: artifact) {
-                                guard let url = artifact.url else { return }
-                                openURL(url)
-                            }
-                        }
-                        .themedRow()
-                    } header: {
-                        Text("Artifacts")
-                    } footer: {
-                        if job.artifacts.contains(where: { !$0.isDownloadable }) {
-                            Text("Artifacts without a download URL are no longer available for download.")
-                        }
-                    }
-                }
-
-                // Per-task logs
-                if !job.tasks.isEmpty {
-                    ForEach(job.tasks) { task in
-                        Section {
-                            Button {
-                                selectedTaskName = task.name
-                            } label: {
-                                HStack {
-                                    Text(task.status.rawValue.capitalized)
-                                        .font(.subheadline)
-                                        .foregroundStyle(.secondary)
-                                    Spacer()
-                                    Image(systemName: "chevron.right")
-                                        .font(.caption)
-                                        .foregroundStyle(.tertiary)
-                                }
-                            }
-                            .foregroundStyle(.primary)
-                            .themedRow()
-                        } header: {
-                            HStack(spacing: 6) {
-                                TaskStatusIcon(status: task.status)
-                                Text(task.name)
-                            }
-                        }
-                    }
-                }
-
-                // Cancel button
-                if job.status.isCancellable {
-                    Section {
-                        Button(role: .destructive) {
-                            showCancelConfirmation = true
-                        } label: {
-                            HStack {
-                                Text("Cancel Build")
-                                if viewModel.isCancelling {
-                                    Spacer()
-                                    ProgressView()
-                                }
-                            }
-                        }
-                        .disabled(viewModel.isCancelling)
-                        .themedRow()
-                    }
-                }
-
-                if let manifest = job.manifest,
-                   !manifest.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    Section {
-                        Button {
-                            Task {
-                                rebuiltJobId = await viewModel.rebuildJob()
-                            }
-                        } label: {
-                            HStack {
-                                Text(job.status == .failed || job.status == .cancelled || job.status == .timeout ? "Retry Build" : "Rebuild")
-                                if viewModel.isRebuilding {
-                                    Spacer()
-                                    ProgressView()
-                                }
-                            }
-                        }
-                        .disabled(viewModel.isRebuilding)
-                        .themedRow()
-
-                        Button {
-                            showEditResubmitSheet = true
-                        } label: {
-                            Text("Edit & Resubmit")
-                        }
-                        .disabled(viewModel.isSubmittingEditedBuild)
-                        .themedRow()
-                    } footer: {
-                        Text("Creates a new build using this job’s saved manifest, tags, note, and visibility.")
-                    }
-                }
+                .srhtErrorBanner(error: Binding(
+                    get: { viewModel.error },
+                    set: { viewModel.error = $0 }
+                ))
+                .srhtErrorBanner(error: Binding(
+                    get: { viewModel.actionError },
+                    set: { _ in viewModel.dismissActionError() }
+                ))
             }
-            .themedList()
-            .task(id: job.id) {
-                RecentActivityStore.recordBuild(
-                    jobId: job.id,
-                    title: recentActivityTitle(for: job),
-                    defaults: appState.accountDefaults
-                )
-            }
-            .refreshable {
-                await reloadDetail(viewModel)
-            }
-            .srhtErrorBanner(error: Binding(
-                get: { viewModel.error },
-                set: { viewModel.error = $0 }
-            ))
-            .srhtErrorBanner(error: Binding(
-                get: { viewModel.actionError },
-                set: { _ in viewModel.dismissActionError() }
-            ))
         }
     }
 
@@ -406,6 +238,216 @@ struct BuildDetailView: View {
             return job.tags.joined(separator: ", ")
         }
         return "Job #\(job.id)"
+    }
+
+
+    @ViewBuilder
+    private func cancelSection(_ job: JobDetail, _ viewModel: BuildDetailViewModel) -> some View {
+        if job.status.isCancellable {
+            Section {
+                Button(role: .destructive) {
+                    showCancelConfirmation = true
+                } label: {
+                    HStack {
+                        Text("Cancel Build")
+                        if viewModel.isCancelling {
+                            Spacer()
+                            ProgressView()
+                        }
+                    }
+                }
+                .disabled(viewModel.isCancelling)
+                .themedRow()
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func taskSections(_ job: JobDetail, _ viewModel: BuildDetailViewModel) -> some View {
+        if !job.tasks.isEmpty {
+            ForEach(job.tasks) { task in
+                Section {
+                    Button {
+                        selectedTaskName = task.name
+                    } label: {
+                        HStack {
+                            Text(task.status.rawValue.capitalized)
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+                        }
+                    }
+                    .foregroundStyle(.primary)
+                    .themedRow()
+                } header: {
+                    HStack(spacing: 6) {
+                        TaskStatusIcon(status: task.status)
+                        Text(task.name)
+                    }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func artifactsSection(_ job: JobDetail, _ viewModel: BuildDetailViewModel) -> some View {
+        if !job.artifacts.isEmpty {
+            Section {
+                ForEach(job.artifacts) { artifact in
+                    BuildArtifactRow(artifact: artifact) {
+                        guard let url = artifact.url else { return }
+                        openURL(url)
+                    }
+                }
+                .themedRow()
+            } header: {
+                Text("Artifacts")
+            } footer: {
+                if job.artifacts.contains(where: { !$0.isDownloadable }) {
+                    Text("Artifacts without a download URL are no longer available for download.")
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func sourceSection(_ job: JobDetail, _ viewModel: BuildDetailViewModel) -> some View {
+        if let repositoryReference = HomeViewModel.primaryRepositoryReference(in: job.manifest) {
+            Section("Source") {
+                Button {
+                    openRepository(ownerCanonicalName: repositoryReference.ownerCanonicalName, repositoryName: repositoryReference.name)
+                } label: {
+                    HStack {
+                        Label("\(repositoryReference.ownerCanonicalName)/\(repositoryReference.name)", systemImage: "book.closed")
+                        Spacer()
+                        if isOpeningRepository {
+                            ProgressView()
+                                .controlSize(.small)
+                        } else {
+                            Image(systemName: "arrow.up.right")
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+                        }
+                    }
+                }
+                .disabled(isOpeningRepository)
+                .themedRow()
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func debugSection(_ job: JobDetail, _ viewModel: BuildDetailViewModel) -> some View {
+        if appState.isDebugModeEnabled {
+            Section("Debug") {
+                DebugTextBlock(
+                    title: "Diagnostics",
+                    content: """
+                    jobId: \(job.id)
+                    status: \(job.status.rawValue)
+                    tasks: \(job.tasks.count)
+                    artifacts: \(job.artifacts.count)
+                    owner: \(job.owner.canonicalName)
+                    url: \(SRHTWebURL.build(jobId: job.id, ownerCanonicalName: job.owner.canonicalName)?.absoluteString ?? "unavailable")
+                    """
+                )
+                .themedRow()
+
+                if let rawJobResponse = viewModel.rawJobResponse {
+                    DebugTextBlock(title: "Raw Response", content: rawJobResponse)
+                        .themedRow()
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func detailsSection(_ job: JobDetail, _ viewModel: BuildDetailViewModel) -> some View {
+        Section("Details") {
+            HStack {
+                Text("Status")
+                Spacer()
+                HStack(spacing: 6) {
+                    JobStatusIcon(status: job.status)
+                    Text(job.status.rawValue)
+                        .font(.subheadline.weight(.medium))
+                }
+            }
+            .themedRow()
+
+            if let note = job.note, !note.isEmpty {
+                LabeledContent("Note", value: note)
+                    .themedRow()
+            }
+
+            if let image = job.image {
+                LabeledContent("Image", value: image)
+                    .themedRow()
+            }
+
+            if !job.tags.isEmpty {
+                LabeledContent("Tags", value: job.tags.joined(separator: ", "))
+                    .themedRow()
+            }
+
+            if let visibility = job.visibility {
+                LabeledContent("Visibility", value: visibility.rawValue.capitalized)
+                    .themedRow()
+            }
+
+            LabeledContent("Owner", value: job.owner.canonicalName)
+                .themedRow()
+            LabeledContent("Created", value: job.created.relativeDescription)
+                .themedRow()
+            LabeledContent("Updated", value: job.updated.relativeDescription)
+                .themedRow()
+        }
+    }
+
+    @ViewBuilder
+    private func cacheSection(_ job: JobDetail, _ viewModel: BuildDetailViewModel) -> some View {
+        if let cacheMetadata = viewModel.cacheMetadata {
+            Section {
+                StaleCacheStatusRow(metadata: cacheMetadata, isRefreshing: viewModel.isRefreshingCachedData)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func rebuildSection(_ job: JobDetail, _ viewModel: BuildDetailViewModel) -> some View {
+        if let manifest = job.manifest,
+           !manifest.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            Section {
+                Button {
+                    Task {
+                        rebuiltJobId = await viewModel.rebuildJob()
+                    }
+                } label: {
+                    HStack {
+                        Text(job.status == .failed || job.status == .cancelled || job.status == .timeout ? "Retry Build" : "Rebuild")
+                        if viewModel.isRebuilding {
+                            Spacer()
+                            ProgressView()
+                        }
+                    }
+                }
+                .disabled(viewModel.isRebuilding)
+                .themedRow()
+
+                Button {
+                    showEditResubmitSheet = true
+                } label: {
+                    Text("Edit & Resubmit")
+                }
+                .disabled(viewModel.isSubmittingEditedBuild)
+                .themedRow()
+            } footer: {
+                Text("Creates a new build using this job’s saved manifest, tags, note, and visibility.")
+            }
+        }
     }
 }
 
@@ -460,74 +502,28 @@ private struct EditResubmitBuildSheet: View {
     let onSubmitted: (Int) -> Void
 
     @Environment(\.dismiss) private var dismiss
-    @State private var manifest: String
-    @State private var tagsText: String
-    @State private var note: String
-    @State private var secrets = false
-    @State private var execute = true
-    @State private var visibility: Visibility
+    @State private var draft: BuildDraft
 
     init(viewModel: BuildDetailViewModel, job: JobDetail, onSubmitted: @escaping (Int) -> Void) {
         self.viewModel = viewModel
         self.job = job
         self.onSubmitted = onSubmitted
-        _manifest = State(initialValue: job.manifest ?? "")
-        _tagsText = State(initialValue: job.tags.joined(separator: ", "))
-        _note = State(initialValue: job.note ?? "")
-        _visibility = State(initialValue: job.visibility ?? .publicVisibility)
+        _draft = State(initialValue: BuildDraft(
+            manifest: job.manifest ?? "",
+            tagsText: job.tags.joined(separator: ", "),
+            note: job.note ?? "",
+            visibility: job.visibility ?? .publicVisibility
+        ))
     }
 
     var body: some View {
         NavigationStack {
-            Form {
-                Section("Build Manifest") {
-                    TextField("Build manifest", text: $manifest, axis: .vertical)
-                        .font(.system(.body, design: .monospaced))
-                        .lineLimit(12...24)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                        .themedRow()
-                }
-
-                Section("Build Options") {
-                    TextField("Note (optional)", text: $note)
-                        .themedRow()
-                    TextField("Tags (comma-separated, optional)", text: $tagsText)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                        .themedRow()
-                    Picker("Visibility", selection: $visibility) {
-                        Text("Public").tag(Visibility.publicVisibility)
-                        Text("Unlisted").tag(Visibility.unlisted)
-                        Text("Private").tag(Visibility.privateVisibility)
-                    }
-                    .themedRow()
-                    Toggle("Start build now", isOn: $execute)
-                        .themedRow()
-                    Toggle("Allow build secrets", isOn: $secrets)
-                        .themedRow()
-                }
-
-                Section {
-                    Text("This submits a new build. “Start build now” and “Allow build secrets” use local defaults because the current job does not include those original values.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                        .themedRow()
-                }
-
-                if let actionError = viewModel.actionError {
-                    Section {
-                        Label {
-                            Text(actionError)
-                        } icon: {
-                            Image(systemName: "exclamationmark.triangle.fill")
-                                .foregroundStyle(.red)
-                        }
-                        .foregroundStyle(.red)
-                        .themedRow()
-                    }
-                }
-            }
+            BuildDraftForm(
+                draft: $draft,
+                manifestPlaceholder: "Build manifest",
+                footnote: "This submits a new build. “Start build now” and “Allow build secrets” use local defaults because the current job does not include those original values.",
+                error: viewModel.actionError
+            )
             .navigationTitle("Edit & Resubmit")
             .navigationBarTitleDisplayMode(.inline)
             .onDisappear {
@@ -543,17 +539,13 @@ private struct EditResubmitBuildSheet: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button {
                         Task {
-                            let tags = tagsText
-                                .split(separator: ",")
-                                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-                                .filter { !$0.isEmpty }
                             if let jobId = await viewModel.submitBuild(
-                                manifest: manifest,
-                                tags: tags,
-                                note: note,
-                                secrets: secrets,
-                                execute: execute,
-                                visibility: visibility
+                                manifest: draft.manifest,
+                                tags: draft.tags,
+                                note: draft.note,
+                                secrets: draft.secrets,
+                                execute: draft.execute,
+                                visibility: draft.visibility
                             ) {
                                 onSubmitted(jobId)
                             }
@@ -566,7 +558,7 @@ private struct EditResubmitBuildSheet: View {
                             Text("Submit Build")
                         }
                     }
-                    .disabled(manifest.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || viewModel.isSubmittingEditedBuild)
+                    .disabled(!draft.hasManifest || viewModel.isSubmittingEditedBuild)
                 }
             }
             .themedList()

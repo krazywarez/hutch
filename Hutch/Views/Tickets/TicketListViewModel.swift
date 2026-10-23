@@ -15,7 +15,7 @@ private struct TicketsPage: Decodable, Sendable {
     let cursor: String?
 }
 
-private struct AssignmentMutationResponse: Decodable, Sendable {
+private nonisolated struct AssignmentMutationResponse: Decodable, Sendable {
     struct EventRef: Decodable, Sendable {
         let id: Int
     }
@@ -24,7 +24,7 @@ private struct AssignmentMutationResponse: Decodable, Sendable {
     let unassignUser: EventRef?
 }
 
-private struct LabelMutationResponse: Decodable, Sendable {
+private nonisolated struct LabelMutationResponse: Decodable, Sendable {
     struct EventRef: Decodable, Sendable {
         let id: Int
     }
@@ -499,22 +499,7 @@ final class TicketListViewModel {
             tickets[index] = updated
         }
 
-        do {
-            _ = try await client.execute(
-                service: .todo,
-                query: Self.assignUserMutation,
-                variables: [
-                    "trackerId": trackerId,
-                    "ticketId": ticket.id,
-                    "userId": user.id
-                ],
-                responseType: AssignmentMutationResponse.self
-            )
-            await invalidateTicketCaches()
-        } catch {
-            tickets = original
-            self.error = error.userFacingMessage
-        }
+        await commitTicketMutation(Self.assignUserMutation, ticketID: ticket.id, subject: ["userId": user.id], response: AssignmentMutationResponse.self, original: original)
 
         isPerformingAction = false
     }
@@ -542,22 +527,7 @@ final class TicketListViewModel {
             tickets[index] = updated
         }
 
-        do {
-            _ = try await client.execute(
-                service: .todo,
-                query: Self.unassignUserMutation,
-                variables: [
-                    "trackerId": trackerId,
-                    "ticketId": ticket.id,
-                    "userId": user.id
-                ],
-                responseType: AssignmentMutationResponse.self
-            )
-            await invalidateTicketCaches()
-        } catch {
-            tickets = original
-            self.error = error.userFacingMessage
-        }
+        await commitTicketMutation(Self.unassignUserMutation, ticketID: ticket.id, subject: ["userId": user.id], response: AssignmentMutationResponse.self, original: original)
 
         isPerformingAction = false
     }
@@ -743,22 +713,7 @@ final class TicketListViewModel {
             tickets[index] = updated
         }
 
-        do {
-            _ = try await client.execute(
-                service: .todo,
-                query: Self.labelTicketMutation,
-                variables: [
-                    "trackerId": trackerId,
-                    "ticketId": ticket.id,
-                    "labelId": label.id
-                ],
-                responseType: LabelMutationResponse.self
-            )
-            await invalidateTicketCaches()
-        } catch {
-            tickets = original
-            self.error = error.userFacingMessage
-        }
+        await commitTicketMutation(Self.labelTicketMutation, ticketID: ticket.id, subject: ["labelId": label.id], response: LabelMutationResponse.self, original: original)
 
         isPerformingAction = false
     }
@@ -784,22 +739,7 @@ final class TicketListViewModel {
             tickets[index] = updated
         }
 
-        do {
-            _ = try await client.execute(
-                service: .todo,
-                query: Self.unlabelTicketMutation,
-                variables: [
-                    "trackerId": trackerId,
-                    "ticketId": ticket.id,
-                    "labelId": label.id
-                ],
-                responseType: LabelMutationResponse.self
-            )
-            await invalidateTicketCaches()
-        } catch {
-            tickets = original
-            self.error = error.userFacingMessage
-        }
+        await commitTicketMutation(Self.unlabelTicketMutation, ticketID: ticket.id, subject: ["labelId": label.id], response: LabelMutationResponse.self, original: original)
 
         isPerformingAction = false
     }
@@ -1068,6 +1008,26 @@ final class TicketListViewModel {
             ],
             responseType: AssignmentMutationResponse.self
         )
+    }
+
+    /// Sends an assignment or label mutation for one ticket, restoring `original`
+    /// if it fails. `subject` is the user or label added or removed, e.g. `["userId": 7]`.
+    private func commitTicketMutation<Response: Decodable & Sendable>(
+        _ query: String,
+        ticketID: Int,
+        subject: [String: Int],
+        response: Response.Type,
+        original: [TicketSummary]
+    ) async {
+        var variables: [String: any Sendable] = ["trackerId": trackerId, "ticketId": ticketID]
+        for (key, id) in subject { variables[key] = id }
+        do {
+            _ = try await client.execute(service: .todo, query: query, variables: variables, responseType: response)
+            await invalidateTicketCaches()
+        } catch {
+            tickets = original
+            self.error = error.userFacingMessage
+        }
     }
 
     private func invalidateTicketCaches() async {

@@ -144,22 +144,23 @@ struct ProjectsListView: View {
             prompt: "Search projects"
         )
         .overlay {
-            if viewModel.isLoading, viewModel.projects.isEmpty {
-                SRHTLoadingStateView(message: "Loading projects…")
-            } else if let error = viewModel.error, viewModel.projects.isEmpty {
-                SRHTErrorStateView(
-                    title: "Couldn't Load Projects",
-                    message: error,
-                    retryAction: { await viewModel.loadProjects() }
-                )
-            } else if !viewModel.projects.isEmpty, viewModel.filteredProjects.isEmpty {
-                ContentUnavailableView.search(text: viewModel.searchText)
-            } else if viewModel.projects.isEmpty {
-                ContentUnavailableView(
-                    "No Projects",
-                    systemImage: "square.stack.3d.up",
-                    description: Text("Projects from your SourceHut account will appear here when available.")
-                )
+            SRHTLoadStateView(
+                isLoading: viewModel.isLoading,
+                error: viewModel.error,
+                isEmpty: viewModel.projects.isEmpty,
+                loadingMessage: "Loading projects…",
+                errorTitle: "Couldn't Load Projects",
+                retryAction: { await viewModel.loadProjects() }
+            ) {
+                if !viewModel.projects.isEmpty, viewModel.filteredProjects.isEmpty {
+                    ContentUnavailableView.search(text: viewModel.searchText)
+                } else if viewModel.projects.isEmpty {
+                    ContentUnavailableView(
+                        "No Projects",
+                        systemImage: "square.stack.3d.up",
+                        description: Text("Projects from your SourceHut account will appear here when available.")
+                    )
+                }
             }
         }
         .srhtErrorBanner(

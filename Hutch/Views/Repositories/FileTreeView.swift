@@ -321,21 +321,21 @@ private struct FileTreeContentView: View {
 
     private func fileActionToolbar(text: String) -> some View {
         HStack(spacing: 0) {
-            toolbarButton(
+            BottomToolbarButton(
                 title: "Share",
                 systemImage: "square.and.arrow.up"
             ) {
                 shareFileContents(text)
             }
 
-            toolbarButton(
+            BottomToolbarButton(
                 title: didCopyFileContents ? "Copied" : "Copy All",
                 systemImage: didCopyFileContents ? "checkmark" : "doc.on.doc"
             ) {
                 copyFileContents(text)
             }
 
-            toolbarButton(
+            BottomToolbarButton(
                 title: wrapRepositoryFileLines ? "Wrap On" : "Wrap Off",
                 systemImage: "text.word.spacing"
             ) {
@@ -349,26 +349,6 @@ private struct FileTreeContentView: View {
         .overlay(alignment: .top) {
             Divider()
         }
-    }
-
-    private func toolbarButton(
-        title: String,
-        systemImage: String,
-        action: @escaping () -> Void
-    ) -> some View {
-        Button(action: action) {
-            VStack(spacing: 4) {
-                Image(systemName: systemImage)
-                    .font(.system(size: 17, weight: .semibold))
-                Text(title)
-                    .font(.caption2)
-                    .lineLimit(1)
-            }
-            .frame(maxWidth: .infinity)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .foregroundStyle(.primary)
     }
 }
 

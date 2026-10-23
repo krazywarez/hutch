@@ -100,13 +100,14 @@ private struct ProjectDetailPayload: Decodable, Sendable {
 }
 
 private struct ProjectMailingListPage: Decodable, Sendable {
-    let results: [ProjectMailingListPayload]
+    let results: [ProjectResourcePayload]
     let cursor: String?
 
     static let empty = ProjectMailingListPage(results: [], cursor: nil)
 }
 
-private struct ProjectMailingListPayload: Decodable, Sendable {
+/// A mailing list or tracker linked to a project; both decode the same fields.
+private struct ProjectResourcePayload: Decodable, Sendable {
     let rid: String
     let name: String
     let description: String?
@@ -167,35 +168,10 @@ private struct ProjectSourcePayload: Decodable, Sendable {
 }
 
 private struct ProjectTrackerPage: Decodable, Sendable {
-    let results: [ProjectTrackerPayload]
+    let results: [ProjectResourcePayload]
     let cursor: String?
 
     static let empty = ProjectTrackerPage(results: [], cursor: nil)
-}
-
-private struct ProjectTrackerPayload: Decodable, Sendable {
-    let rid: String
-    let name: String
-    let description: String?
-    let visibility: Visibility
-    let owner: Entity
-
-    private enum CodingKeys: String, CodingKey {
-        case rid
-        case name
-        case description
-        case visibility
-        case owner
-    }
-
-    init(from decoder: any Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        rid = try container.decode(String.self, forKey: .rid)
-        name = try container.decodeIfPresent(String.self, forKey: .name) ?? ""
-        description = try container.decodeIfPresent(String.self, forKey: .description)
-        visibility = try container.decodeIfPresent(Visibility.self, forKey: .visibility) ?? .publicVisibility
-        owner = try container.decodeIfPresent(Entity.self, forKey: .owner) ?? Entity(canonicalName: "~unknown")
-    }
 }
 
 /// A public project surfaced by discovery, carrying its owner for display.

@@ -11,22 +11,7 @@ struct HgRepositorySettingsView: View {
     @State private var pendingACLDeletion: HgACLEntry?
 
     var body: some View {
-        NavigationStack {
-            Group {
-                if let viewModel {
-                    settingsForm(viewModel)
-                } else {
-                    SRHTLoadingStateView(message: "Loading settings…")
-                }
-            }
-            .navigationTitle("Settings")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Done") { dismiss() }
-                }
-            }
-        }
+        SettingsSheet(model: viewModel) { settingsForm($0) }
         .task {
             if viewModel == nil {
                 let vm = HgRepositorySettingsViewModel(repository: repository, client: client)
@@ -36,6 +21,24 @@ struct HgRepositorySettingsView: View {
                 _ = await (info, acls)
             }
         }
+    }
+
+    private func saveInfoButton(_ viewModel: HgRepositorySettingsViewModel) -> some View {
+        Button {
+            Task {
+                _ = await viewModel.saveInfo()
+            }
+        } label: {
+            if viewModel.isSavingInfo {
+                ProgressView()
+                    .frame(maxWidth: .infinity)
+            } else {
+                Text("Save Changes")
+                    .frame(maxWidth: .infinity)
+            }
+        }
+        .disabled(viewModel.isSavingInfo || !viewModel.isInfoDirty)
+        .themedRow()
     }
 
     @ViewBuilder
@@ -127,21 +130,7 @@ struct HgRepositorySettingsView: View {
             }
             .themedRow()
 
-            Button {
-                Task {
-                    _ = await viewModel.saveInfo()
-                }
-            } label: {
-                if viewModel.isSavingInfo {
-                    ProgressView()
-                        .frame(maxWidth: .infinity)
-                } else {
-                    Text("Save Changes")
-                        .frame(maxWidth: .infinity)
-                }
-            }
-            .disabled(viewModel.isSavingInfo || !viewModel.isInfoDirty)
-            .themedRow()
+            saveInfoButton(viewModel)
         }
     }
 
@@ -220,21 +209,7 @@ struct HgRepositorySettingsView: View {
                 .foregroundStyle(.secondary)
                 .themedRow()
 
-            Button {
-                Task {
-                    _ = await viewModel.saveInfo()
-                }
-            } label: {
-                if viewModel.isSavingInfo {
-                    ProgressView()
-                        .frame(maxWidth: .infinity)
-                } else {
-                    Text("Save Changes")
-                        .frame(maxWidth: .infinity)
-                }
-            }
-            .disabled(viewModel.isSavingInfo || !viewModel.isInfoDirty)
-            .themedRow()
+            saveInfoButton(viewModel)
         }
     }
 

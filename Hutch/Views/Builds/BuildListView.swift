@@ -168,48 +168,7 @@ struct BuildListView: View {
                 .listRowSeparator(.hidden)
 
                 ForEach(viewModel.filteredJobs) { job in
-                    NavigationLink(value: job) {
-                        BuildRowView(job: job)
-                            .equatable()
-                    }
-                    .contextMenu {
-                        Button {
-                            appState.copyToPasteboard(String(job.id), label: "job ID")
-                        } label: {
-                            Label("Copy Job ID", systemImage: "doc.on.doc")
-                        }
-
-                        if let note = job.note, !note.isEmpty {
-                            Button {
-                                appState.copyToPasteboard(note, label: "build note")
-                            } label: {
-                                Label("Copy Note", systemImage: "text.alignleft")
-                            }
-                        }
-
-                        if !job.tags.isEmpty {
-                            Button {
-                                appState.copyToPasteboard(job.tags.joined(separator: ", "), label: "build tags")
-                            } label: {
-                                Label("Copy Tags", systemImage: "tag")
-                            }
-                        }
-                    }
-                    .swipeActions(edge: .leading, allowsFullSwipe: true) {
-                        if swipeActionsEnabled, job.status.isCancellable {
-                            Button {
-                                Task {
-                                    await viewModel.cancelJob(job)
-                                }
-                            } label: {
-                                Label("Cancel", systemImage: "xmark.circle")
-                            }
-                            .tint(.red)
-                        }
-                    }
-                    .task {
-                        await viewModel.loadMoreIfNeeded(currentItem: job)
-                    }
+                    jobRow(job, viewModel)
                 }
                 .themedRow()
 
@@ -250,16 +209,29 @@ struct BuildListView: View {
             viewModel.recordRecentSearch(query)
         }
         .overlay {
-            if viewModel.isLoading, viewModel.jobs.isEmpty {
-                SRHTLoadingStateView(message: "Loading builds…")
-            } else if let error = viewModel.error, viewModel.jobs.isEmpty {
-                SRHTErrorStateView(
-                    title: "Couldn't Load Builds",
-                    message: error,
-                    retryAction: { await viewModel.loadJobs() }
-                )
-            } else if !viewModel.searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-                      viewModel.filteredJobs.isEmpty {
+            emptyState(viewModel)
+        }
+        .connectivityOverlay(hasContent: !viewModel.jobs.isEmpty) {
+            await viewModel.loadJobs()
+        }
+        .srhtErrorBanner(error: $vm.error)
+        .refreshable {
+            await viewModel.loadJobs()
+        }
+    }
+
+    @ViewBuilder
+    private func emptyState(_ viewModel: BuildListViewModel) -> some View {
+        SRHTLoadStateView(
+            isLoading: viewModel.isLoading,
+            error: viewModel.error,
+            isEmpty: viewModel.jobs.isEmpty,
+            loadingMessage: "Loading builds…",
+            errorTitle: "Couldn't Load Builds",
+            retryAction: { await viewModel.loadJobs() }
+        ) {
+            if !viewModel.searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+               viewModel.filteredJobs.isEmpty {
                 ContentUnavailableView(
                     "No Build Matches",
                     systemImage: "magnifyingglass",
@@ -279,12 +251,51 @@ struct BuildListView: View {
                 )
             }
         }
-        .connectivityOverlay(hasContent: !viewModel.jobs.isEmpty) {
-            await viewModel.loadJobs()
+    }
+
+    @ViewBuilder
+    private func jobRow(_ job: JobSummary, _ viewModel: BuildListViewModel) -> some View {
+        NavigationLink(value: job) {
+            BuildRowView(job: job)
+                .equatable()
         }
-        .srhtErrorBanner(error: $vm.error)
-        .refreshable {
-            await viewModel.loadJobs()
+        .contextMenu {
+            Button {
+                appState.copyToPasteboard(String(job.id), label: "job ID")
+            } label: {
+                Label("Copy Job ID", systemImage: "doc.on.doc")
+            }
+
+            if let note = job.note, !note.isEmpty {
+                Button {
+                    appState.copyToPasteboard(note, label: "build note")
+                } label: {
+                    Label("Copy Note", systemImage: "text.alignleft")
+                }
+            }
+
+            if !job.tags.isEmpty {
+                Button {
+                    appState.copyToPasteboard(job.tags.joined(separator: ", "), label: "build tags")
+                } label: {
+                    Label("Copy Tags", systemImage: "tag")
+                }
+            }
+        }
+        .swipeActions(edge: .leading, allowsFullSwipe: true) {
+            if swipeActionsEnabled, job.status.isCancellable {
+                Button {
+                    Task {
+                        await viewModel.cancelJob(job)
+                    }
+                } label: {
+                    Label("Cancel", systemImage: "xmark.circle")
+                }
+                .tint(.red)
+            }
+        }
+        .task {
+            await viewModel.loadMoreIfNeeded(currentItem: job)
         }
     }
 }
@@ -295,12 +306,7 @@ private struct SubmitBuildSheet: View {
 
     @Environment(\.dismiss) private var dismiss
     @Bindable var viewModelBindable: BuildListViewModel
-    @State private var manifest = ""
-    @State private var tagsText = ""
-    @State private var note = ""
-    @State private var secrets = false
-    @State private var execute = true
-    @State private var visibility: Visibility = .publicVisibility
+    @State private var draft = BuildDraft()
 
     init(viewModel: BuildListViewModel, onSubmitted: @escaping (Int) -> Void) {
         self.viewModel = viewModel
@@ -310,55 +316,12 @@ private struct SubmitBuildSheet: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                Section("Build Manifest") {
-                    TextField("Paste a build manifest", text: $manifest, axis: .vertical)
-                        .font(.system(.body, design: .monospaced))
-                        .lineLimit(12...24)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                        .themedRow()
-                }
-
-                Section("Build Options") {
-                    TextField("Note (optional)", text: $note)
-                        .themedRow()
-                    TextField("Tags (comma-separated, optional)", text: $tagsText)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                        .themedRow()
-                    Picker("Visibility", selection: $visibility) {
-                        Text("Public").tag(Visibility.publicVisibility)
-                        Text("Unlisted").tag(Visibility.unlisted)
-                        Text("Private").tag(Visibility.privateVisibility)
-                    }
-                    .themedRow()
-                    Toggle("Start build now", isOn: $execute)
-                        .themedRow()
-                    Toggle("Allow build secrets", isOn: $secrets)
-                        .themedRow()
-                }
-
-                Section {
-                    Text("You need a valid builds.sr.ht manifest and a token with BUILDS:RW.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                        .themedRow()
-                }
-
-                if let error = viewModel.error {
-                    Section {
-                        Label {
-                            Text(error)
-                        } icon: {
-                            Image(systemName: "exclamationmark.triangle.fill")
-                                .foregroundStyle(.red)
-                        }
-                        .foregroundStyle(.red)
-                        .themedRow()
-                    }
-                }
-            }
+            BuildDraftForm(
+                draft: $draft,
+                manifestPlaceholder: "Paste a build manifest",
+                footnote: "You need a valid builds.sr.ht manifest and a token with BUILDS:RW.",
+                error: viewModel.error
+            )
             .themedList()
             .navigationTitle("Submit Build")
             .navigationBarTitleDisplayMode(.inline)
@@ -375,17 +338,13 @@ private struct SubmitBuildSheet: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button {
                         Task {
-                            let tags = tagsText
-                                .split(separator: ",")
-                                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-                                .filter { !$0.isEmpty }
                             if let jobId = await viewModel.submitBuild(
-                                manifest: manifest,
-                                tags: tags,
-                                note: note,
-                                secrets: secrets,
-                                execute: execute,
-                                visibility: visibility
+                                manifest: draft.manifest,
+                                tags: draft.tags,
+                                note: draft.note,
+                                secrets: draft.secrets,
+                                execute: draft.execute,
+                                visibility: draft.visibility
                             ) {
                                 onSubmitted(jobId)
                             }
@@ -398,7 +357,7 @@ private struct SubmitBuildSheet: View {
                             Text("Submit Build")
                         }
                     }
-                    .disabled(manifest.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || viewModel.isSubmitting)
+                    .disabled(!draft.hasManifest || viewModel.isSubmitting)
                 }
             }
         }
