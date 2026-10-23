@@ -18,13 +18,7 @@ struct PasteDetailView: View {
     @AppStorage(AppStorageKeys.wrapPasteFileLines) private var wrapLines = false
 
     var body: some View {
-        Group {
-            if let viewModel {
-                content(viewModel)
-            } else {
-                SRHTLoadingStateView(message: "Loading paste…")
-            }
-        }
+        ModelContent(model: viewModel, loadingMessage: "Loading paste…") { content($0) }
         .navigationTitle(displayTitle)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {

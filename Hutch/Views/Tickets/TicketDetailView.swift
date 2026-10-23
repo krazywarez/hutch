@@ -36,13 +36,7 @@ struct TicketDetailView: View {
     }
 
     var body: some View {
-        Group {
-            if let viewModel {
-                detailContent(viewModel)
-            } else {
-                SRHTLoadingStateView(message: "Loading ticket…")
-            }
-        }
+        ModelContent(model: viewModel, loadingMessage: "Loading ticket…") { detailContent($0) }
         .navigationTitle("#\(ticketId)")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {

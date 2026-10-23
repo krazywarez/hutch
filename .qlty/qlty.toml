@@ -48,3 +48,8 @@ enabled = false
 # Exhaustive switch-over-enum lookup tables share shape but not content.
 [language.swift.smells.duplication]
 filter_patterns = ["(import_declaration _)", "(switch_statement _)"]
+
+# tree-sitter-swift nests each `else if` inside the previous branch, so a one-line `if` in the
+# fourth branch of a flat chain reports level 5.
+[language.swift.smells.nested_control_flow]
+enabled = false

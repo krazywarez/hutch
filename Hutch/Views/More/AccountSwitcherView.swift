@@ -89,14 +89,7 @@ struct AccountSwitcherView: View {
             }
             .alert(
                 "Remove Account?",
-                isPresented: Binding(
-                    get: { pendingRemoval != nil },
-                    set: { isPresented in
-                        if !isPresented {
-                            pendingRemoval = nil
-                        }
-                    }
-                )
+                isPresented: .isPresent($pendingRemoval)
             ) {
                 Button("Cancel", role: .cancel) {
                     /* Dismiss only; removal uses the destructive button. */

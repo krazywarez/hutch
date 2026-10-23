@@ -45,13 +45,7 @@ struct RepositoryDetailView: View {
         if currentRepository.service == .hg {
             HgRepositoryDetailView(repository: currentRepository, onDeleted: onDeleted)
         } else {
-            Group {
-                if let viewModel {
-                    detailContent(viewModel)
-                } else {
-                    SRHTLoadingStateView(message: "Loading repository…")
-                }
-            }
+            ModelContent(model: viewModel, loadingMessage: "Loading repository…") { detailContent($0) }
             .navigationTitle(currentRepository.name)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

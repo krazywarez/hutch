@@ -15,13 +15,7 @@ struct HomeView: View {
     @State private var isShowingSystemStatus = false
 
     var body: some View {
-        Group {
-            if let viewModel {
-                content(viewModel)
-            } else {
-                SRHTLoadingStateView(message: "Loading Home…")
-            }
-        }
+        ModelContent(model: viewModel, loadingMessage: "Loading Home…") { content($0) }
         .navigationTitle("Home")
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -36,26 +30,12 @@ struct HomeView: View {
                 .accessibilityLabel("System status")
             }
         }
-        .navigationDestination(isPresented: Binding(
-            get: { selectedPinnedProject != nil },
-            set: { isPresented in
-                if !isPresented {
-                    selectedPinnedProject = nil
-                }
-            }
-        )) {
+        .navigationDestination(isPresented: .isPresent($selectedPinnedProject)) {
             if let selectedPinnedProject {
                 ProjectDetailView(project: selectedPinnedProject)
             }
         }
-        .navigationDestination(isPresented: Binding(
-            get: { selectedPinnedUser != nil },
-            set: { isPresented in
-                if !isPresented {
-                    selectedPinnedUser = nil
-                }
-            }
-        )) {
+        .navigationDestination(isPresented: .isPresent($selectedPinnedUser)) {
             if let selectedPinnedUser {
                 UserProfileView(user: selectedPinnedUser)
             }

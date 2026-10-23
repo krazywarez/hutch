@@ -30,35 +30,12 @@ struct SettingsView: View {
         .sheet(isPresented: $showAccountSwitcher) {
             AccountSwitcherView()
         }
-        .alert(
-            pendingDestructiveAction?.title ?? "",
-            isPresented: Binding(
-                get: { pendingDestructiveAction != nil },
-                set: { isPresented in
-                    if !isPresented {
-                        pendingDestructiveAction = nil
-                    }
-                }
-            )
-        ) {
-            Button("Cancel", role: .cancel) {
-                /* Dismiss only; destructive action is separate. */
-            }
-            Button(pendingDestructiveAction?.confirmationLabel ?? "Confirm", role: .destructive) {
-                guard let action = pendingDestructiveAction else { return }
-                pendingDestructiveAction = nil
-                Task {
-                    switch action {
-                    case .resetAppData:
-                        await appState.resetAppData()
-                    case .signOut:
-                        await appState.signOut()
-                    }
-                }
-            }
-        } message: {
-            if let pendingDestructiveAction {
-                Text(pendingDestructiveAction.message)
+        .destructiveConfirmation($pendingDestructiveAction) { action in
+            switch action {
+            case .resetAppData:
+                await appState.resetAppData()
+            case .signOut:
+                await appState.signOut()
             }
         }
     }
@@ -238,7 +215,7 @@ func settingsBioAttributedString(_ markdown: String) -> AttributedString {
     profileBioAttributedString(markdown)
 }
 
-private enum SettingsDestructiveAction {
+private enum SettingsDestructiveAction: DestructiveAction {
     case resetAppData
     case signOut
 

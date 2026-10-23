@@ -224,26 +224,33 @@ struct ProjectDetailView: View {
         }
     }
 
+    /// A section of rows that each open their resource and dismiss, or say why they couldn't.
     @ViewBuilder
-    private var repositoriesSection: some View {
-        if !displayedProject.sources.isEmpty {
-            Section("Repositories") {
-                ForEach(displayedProject.sources) { source in
+    private func openSection<Resource: ProjectResource & Identifiable>(
+        _ title: LocalizedStringKey,
+        _ resources: [Resource],
+        noun: String,
+        systemImage: String,
+        open: @escaping (Resource) async throws -> Void
+    ) -> some View {
+        if !resources.isEmpty {
+            Section(title) {
+                ForEach(resources) { resource in
                     Button {
                         Task {
                             do {
-                                try await appState.openProjectSource(source)
+                                try await open(resource)
                                 dismiss()
                             } catch {
-                                self.error = "Couldn’t open repository. \(error.userFacingMessage)"
+                                self.error = "Couldn’t open \(noun). \(error.userFacingMessage)"
                             }
                         }
                     } label: {
                         ProjectResourceRow(
-                            title: source.displayName,
-                            subtitle: source.ownerDisplayName,
-                            detail: source.displayDescription,
-                            systemImage: "book.closed"
+                            title: resource.displayName,
+                            subtitle: resource.ownerDisplayName,
+                            detail: resource.displayDescription,
+                            systemImage: systemImage
                         )
                     }
                     .buttonStyle(.plain)
@@ -253,32 +260,15 @@ struct ProjectDetailView: View {
         }
     }
 
-    @ViewBuilder
+    private var repositoriesSection: some View {
+        openSection("Repositories", displayedProject.sources, noun: "repository", systemImage: "book.closed") {
+            try await appState.openProjectSource($0)
+        }
+    }
+
     private var trackersSection: some View {
-        if !displayedProject.trackers.isEmpty {
-            Section("Trackers") {
-                ForEach(displayedProject.trackers) { tracker in
-                    Button {
-                        Task {
-                            do {
-                                try await appState.openProjectTracker(tracker)
-                                dismiss()
-                            } catch {
-                                self.error = "Couldn’t open tracker. \(error.userFacingMessage)"
-                            }
-                        }
-                    } label: {
-                        ProjectResourceRow(
-                            title: tracker.displayName,
-                            subtitle: tracker.ownerDisplayName,
-                            detail: tracker.displayDescription,
-                            systemImage: "checklist"
-                        )
-                    }
-                    .buttonStyle(.plain)
-                }
-                .themedRow()
-            }
+        openSection("Trackers", displayedProject.trackers, noun: "tracker", systemImage: "checklist") {
+            try await appState.openProjectTracker($0)
         }
     }
 
@@ -381,6 +371,16 @@ private struct ProjectLink: Identifiable {
     let systemImage: String
     let url: URL
 }
+
+/// A project's repository, tracker or mailing list, as its row shows it.
+private protocol ProjectResource {
+    var displayName: String { get }
+    var ownerDisplayName: String { get }
+    var displayDescription: String? { get }
+}
+
+extension Project.SourceRepo: ProjectResource {}
+extension Project.Tracker: ProjectResource {}
 
 private struct ProjectResourceRow: View {
     let title: String

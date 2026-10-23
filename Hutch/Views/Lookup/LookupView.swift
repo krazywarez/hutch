@@ -348,13 +348,7 @@ struct LookupView: View {
     }
 
     var body: some View {
-        Group {
-            if let viewModel {
-                content(viewModel)
-            } else {
-                SRHTLoadingStateView(message: "Preparing lookup…")
-            }
-        }
+        ModelContent(model: viewModel, loadingMessage: "Preparing lookup…") { content($0) }
         .navigationTitle("Look Up")
         .task {
             if viewModel == nil {

@@ -10,12 +10,8 @@ struct FileTreeView: View {
     @State private var viewModel: FileTreeViewModel?
 
     var body: some View {
-        Group {
-            if let viewModel {
-                FileTreeContentView(viewModel: viewModel)
-            } else {
-                SRHTLoadingStateView(message: "Loading files…")
-            }
+        ModelContent(model: viewModel, loadingMessage: "Loading files…") { viewModel in
+            FileTreeContentView(viewModel: viewModel)
         }
         .task {
             if viewModel == nil {
@@ -787,40 +783,14 @@ private struct RefPickerSheet: View {
         NavigationStack {
             List {
                 Section {
-                    Button {
-                        Task {
-                            await viewModel.changeRevspec("HEAD")
-                            isPresented = false
-                        }
-                    } label: {
-                        refRow(
-                            title: "HEAD",
-                            systemImage: "arrow.triangle.branch",
-                            color: .blue,
-                            isSelected: viewModel.revspec == "HEAD"
-                        )
-                    }
-                    .buttonStyle(.plain)
+                    choice("HEAD", title: "HEAD", systemImage: "arrow.triangle.branch", color: .blue)
                     .themedRow()
                 }
 
                 if !viewModel.branches.isEmpty {
                     Section("Branches") {
                         ForEach(viewModel.branches, id: \.name) { ref in
-                            Button {
-                                Task {
-                                    await viewModel.changeRevspec(ref.name)
-                                    isPresented = false
-                                }
-                            } label: {
-                                refRow(
-                                    title: ref.name.replacingOccurrences(of: "refs/heads/", with: ""),
-                                    systemImage: "arrow.triangle.branch",
-                                    color: .blue,
-                                    isSelected: viewModel.revspec == ref.name
-                                )
-                            }
-                            .buttonStyle(.plain)
+                            choice(ref.name, title: ref.name.replacingOccurrences(of: "refs/heads/", with: ""), systemImage: "arrow.triangle.branch", color: .blue)
                         }
                         .themedRow()
                     }
@@ -829,20 +799,7 @@ private struct RefPickerSheet: View {
                 if !viewModel.tags.isEmpty {
                     Section("Tags") {
                         ForEach(viewModel.tags, id: \.name) { ref in
-                            Button {
-                                Task {
-                                    await viewModel.changeRevspec(ref.name)
-                                    isPresented = false
-                                }
-                            } label: {
-                                refRow(
-                                    title: ref.name.replacingOccurrences(of: "refs/tags/", with: ""),
-                                    systemImage: "tag",
-                                    color: .orange,
-                                    isSelected: viewModel.revspec == ref.name
-                                )
-                            }
-                            .buttonStyle(.plain)
+                            choice(ref.name, title: ref.name.replacingOccurrences(of: "refs/tags/", with: ""), systemImage: "tag", color: .orange)
                         }
                         .themedRow()
                     }
@@ -867,23 +824,10 @@ private struct RefPickerSheet: View {
         }
     }
 
-    private func refRow(title: String, systemImage: String, color: ViewColor, isSelected: Bool) -> some View {
-        HStack(spacing: 12) {
-            Image(systemName: systemImage)
-                .foregroundStyle(color)
-
-            Text(title)
-                .font(.body.monospaced())
-                .foregroundStyle(.primary)
-
-            Spacer()
-
-            if isSelected {
-                Image(systemName: "checkmark")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.tint)
-            }
+    private func choice(_ revspec: String, title: String, systemImage: String, color: ViewColor) -> some View {
+        RefChoiceButton(title: title, systemImage: systemImage, color: color, isSelected: viewModel.revspec == revspec) {
+            await viewModel.changeRevspec(revspec)
+            isPresented = false
         }
-        .contentShape(Rectangle())
     }
 }

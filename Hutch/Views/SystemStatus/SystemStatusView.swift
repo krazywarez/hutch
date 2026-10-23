@@ -5,13 +5,7 @@ struct SystemStatusView: View {
     @State private var viewModel: SystemStatusViewModel?
 
     var body: some View {
-        Group {
-            if let viewModel {
-                content(viewModel)
-            } else {
-                SRHTLoadingStateView(message: "Loading system status…")
-            }
-        }
+        ModelContent(model: viewModel, loadingMessage: "Loading system status…") { content($0) }
         .navigationTitle("System Status")
         .navigationBarTitleDisplayMode(.inline)
         .task {

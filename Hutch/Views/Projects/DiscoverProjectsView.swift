@@ -63,13 +63,7 @@ struct DiscoverProjectsView: View {
     @State private var viewModel: DiscoverProjectsViewModel?
 
     var body: some View {
-        Group {
-            if let viewModel {
-                content(viewModel)
-            } else {
-                SRHTLoadingStateView(message: "Loading projects…")
-            }
-        }
+        ModelContent(model: viewModel, loadingMessage: "Loading projects…") { content($0) }
         .navigationTitle("Discover")
         .navigationBarTitleDisplayMode(.inline)
         .task {

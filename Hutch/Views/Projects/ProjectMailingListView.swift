@@ -419,13 +419,7 @@ struct MailingListDetailView: View {
     }
 
     var body: some View {
-        Group {
-            if let viewModel {
-                content(viewModel)
-            } else {
-                SRHTLoadingStateView(message: "Loading mailing list…")
-            }
-        }
+        ModelContent(model: viewModel, loadingMessage: "Loading mailing list…") { content($0) }
         .navigationTitle(mailingList.name)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {

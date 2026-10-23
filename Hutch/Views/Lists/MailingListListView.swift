@@ -334,13 +334,7 @@ struct MailingListListView: View {
     }
 
     var body: some View {
-        Group {
-            if let viewModel {
-                content(viewModel)
-            } else {
-                SRHTLoadingStateView(message: "Loading mailing lists…")
-            }
-        }
+        ModelContent(model: viewModel, loadingMessage: "Loading mailing lists…") { content($0) }
         .navigationTitle("Mailing Lists")
         .task {
             if viewModel == nil {

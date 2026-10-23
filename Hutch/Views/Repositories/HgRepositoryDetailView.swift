@@ -47,13 +47,7 @@ struct HgRepositoryDetailView: View {
     }
 
     var body: some View {
-        Group {
-            if let viewModel {
-                content(viewModel)
-            } else {
-                SRHTLoadingStateView(message: "Loading repository…")
-            }
-        }
+        ModelContent(model: viewModel, loadingMessage: "Loading repository…") { content($0) }
         .navigationTitle(repository.name)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -672,40 +666,14 @@ private struct HgBrowseRefPickerSheet: View {
         NavigationStack {
             List {
                 Section {
-                    Button {
-                        Task {
-                            await viewModel.changeBrowseRevspec("tip")
-                            isPresented = false
-                        }
-                    } label: {
-                        refRow(
-                            title: "tip",
-                            systemImage: "arrow.triangle.branch",
-                            color: .blue,
-                            isSelected: viewModel.browseRevspec == "tip"
-                        )
-                    }
-                    .buttonStyle(.plain)
+                    choice("tip", title: "tip", systemImage: "arrow.triangle.branch", color: .blue)
                     .themedRow()
                 }
 
                 if !viewModel.branches.isEmpty {
                     Section("Branches") {
                         ForEach(viewModel.branches) { revision in
-                            Button {
-                                Task {
-                                    await viewModel.changeBrowseRevspec(revision.name)
-                                    isPresented = false
-                                }
-                            } label: {
-                                refRow(
-                                    title: revision.name,
-                                    systemImage: "arrow.triangle.branch",
-                                    color: .blue,
-                                    isSelected: viewModel.browseRevspec == revision.name
-                                )
-                            }
-                            .buttonStyle(.plain)
+                            choice(revision.name, title: revision.name, systemImage: "arrow.triangle.branch", color: .blue)
                         }
                         .themedRow()
                     }
@@ -714,20 +682,7 @@ private struct HgBrowseRefPickerSheet: View {
                 if !viewModel.tags.isEmpty {
                     Section("Tags") {
                         ForEach(viewModel.tags) { revision in
-                            Button {
-                                Task {
-                                    await viewModel.changeBrowseRevspec(revision.name)
-                                    isPresented = false
-                                }
-                            } label: {
-                                refRow(
-                                    title: revision.name,
-                                    systemImage: "tag",
-                                    color: .orange,
-                                    isSelected: viewModel.browseRevspec == revision.name
-                                )
-                            }
-                            .buttonStyle(.plain)
+                            choice(revision.name, title: revision.name, systemImage: "tag", color: .orange)
                         }
                         .themedRow()
                     }
@@ -736,20 +691,7 @@ private struct HgBrowseRefPickerSheet: View {
                 if !viewModel.bookmarks.isEmpty {
                     Section("Bookmarks") {
                         ForEach(viewModel.bookmarks) { revision in
-                            Button {
-                                Task {
-                                    await viewModel.changeBrowseRevspec(revision.name)
-                                    isPresented = false
-                                }
-                            } label: {
-                                refRow(
-                                    title: revision.name,
-                                    systemImage: "bookmark",
-                                    color: .purple,
-                                    isSelected: viewModel.browseRevspec == revision.name
-                                )
-                            }
-                            .buttonStyle(.plain)
+                            choice(revision.name, title: revision.name, systemImage: "bookmark", color: .purple)
                         }
                         .themedRow()
                     }
@@ -769,24 +711,11 @@ private struct HgBrowseRefPickerSheet: View {
         }
     }
 
-    private func refRow(title: String, systemImage: String, color: Color, isSelected: Bool) -> some View {
-        HStack(spacing: 12) {
-            Image(systemName: systemImage)
-                .foregroundStyle(color)
-
-            Text(title)
-                .font(.body.monospaced())
-                .foregroundStyle(.primary)
-
-            Spacer()
-
-            if isSelected {
-                Image(systemName: "checkmark")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.tint)
-            }
+    private func choice(_ revspec: String, title: String, systemImage: String, color: Color) -> some View {
+        RefChoiceButton(title: title, systemImage: systemImage, color: color, isSelected: viewModel.browseRevspec == revspec) {
+            await viewModel.changeBrowseRevspec(revspec)
+            isPresented = false
         }
-        .contentShape(Rectangle())
     }
 }
 

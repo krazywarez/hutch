@@ -9,23 +9,12 @@ struct TrackerListView: View {
     @State private var pendingDeletion: TrackerSummary?
 
     var body: some View {
-        Group {
-            if let viewModel {
-                listContent(viewModel)
-            } else {
-                SRHTLoadingStateView(message: "Loading trackers…")
-            }
-        }
+        ModelContent(model: viewModel, loadingMessage: "Loading trackers…") { listContent($0) }
         .navigationTitle("Trackers")
         .toolbar {
             if viewModel != nil {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        showCreateTrackerSheet = true
-                    } label: {
-                        Image(systemName: "plus")
-                    }
-                    .accessibilityLabel("Create tracker")
+                AddToolbarItem(label: "Create tracker") {
+                    showCreateTrackerSheet = true
                 }
             }
         }
@@ -78,14 +67,7 @@ struct TrackerListView: View {
                 }
             }
         }
-        .navigationDestination(isPresented: Binding(
-            get: { createdTracker != nil },
-            set: { isPresented in
-                if !isPresented {
-                    createdTracker = nil
-                }
-            }
-        )) {
+        .navigationDestination(isPresented: .isPresent($createdTracker)) {
             if let createdTracker {
                 TicketListView(tracker: createdTracker) { updatedTracker in
                     viewModel?.applyTrackerUpdate(updatedTracker)
@@ -99,14 +81,7 @@ struct TrackerListView: View {
                 }
             }
         }
-        .alert("Delete Tracker?", isPresented: Binding(
-            get: { pendingDeletion != nil },
-            set: { isPresented in
-                if !isPresented {
-                    pendingDeletion = nil
-                }
-            }
-        )) {
+        .alert("Delete Tracker?", isPresented: .isPresent($pendingDeletion)) {
             Button("Cancel", role: .cancel) {
                 // no-op: .cancel role handles alert dismissal
             }

@@ -35,13 +35,7 @@ struct ThreadDetailView: View {
     }
 
     var body: some View {
-        Group {
-            if let viewModel {
-                content(viewModel)
-            } else {
-                SRHTLoadingStateView(message: "Loading thread…")
-            }
-        }
+        ModelContent(model: viewModel, loadingMessage: "Loading thread…") { content($0) }
         .navigationTitle("Thread")
         .navigationBarTitleDisplayMode(.inline)
         .task(id: thread.id) {

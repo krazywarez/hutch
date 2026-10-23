@@ -77,13 +77,7 @@ struct RepositoryDeployKeysView: View {
     @State private var pendingDeletion: RepositoryDeployKey?
 
     var body: some View {
-        Group {
-            if let viewModel {
-                content(viewModel)
-            } else {
-                SRHTLoadingStateView(message: "Loading deploy keys…")
-            }
-        }
+        ModelContent(model: viewModel, loadingMessage: "Loading deploy keys…") { content($0) }
         .navigationTitle("Deploy Keys")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -93,13 +87,8 @@ struct RepositoryDeployKeysView: View {
                 }
             }
             if viewModel != nil {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        showAddSheet = true
-                    } label: {
-                        Image(systemName: "plus")
-                    }
-                    .accessibilityLabel("Add deploy key")
+                AddToolbarItem(label: "Add deploy key") {
+                    showAddSheet = true
                 }
             }
         }

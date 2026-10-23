@@ -9,23 +9,12 @@ struct PasteListView: View {
     @State private var pasteToDelete: Paste?
 
     var body: some View {
-        Group {
-            if let viewModel {
-                content(viewModel)
-            } else {
-                SRHTLoadingStateView(message: "Loading pastes…")
-            }
-        }
+        ModelContent(model: viewModel, loadingMessage: "Loading pastes…") { content($0) }
         .navigationTitle("Pastes")
         .toolbar {
             if viewModel != nil {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        showCreatePasteSheet = true
-                    } label: {
-                        Image(systemName: "plus")
-                    }
-                    .accessibilityLabel("Create paste")
+                AddToolbarItem(label: "Create paste") {
+                    showCreatePasteSheet = true
                 }
             }
         }
@@ -37,14 +26,7 @@ struct PasteListView: View {
                 }
             }
         }
-        .navigationDestination(isPresented: Binding(
-            get: { createdPaste != nil },
-            set: { isPresented in
-                if !isPresented {
-                    createdPaste = nil
-                }
-            }
-        )) {
+        .navigationDestination(isPresented: .isPresent($createdPaste)) {
             if let createdPaste {
                 PasteDetailView(
                     paste: createdPaste,

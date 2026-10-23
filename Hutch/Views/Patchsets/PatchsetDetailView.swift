@@ -10,13 +10,7 @@ struct PatchsetDetailView: View {
     @State private var expandedPatchIDs: Set<Int> = []
 
     var body: some View {
-        Group {
-            if let viewModel {
-                content(viewModel)
-            } else {
-                SRHTLoadingStateView(message: "Loading Patchset…")
-            }
-        }
+        ModelContent(model: viewModel, loadingMessage: "Loading Patchset…") { content($0) }
         .navigationTitle("Patchset")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {

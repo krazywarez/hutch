@@ -819,7 +819,31 @@ final class HomeViewModel {
     }
 
     private func fetchInboxMailingLists(forceRefresh: Bool) async throws -> [InboxMailingListReference] {
-        var subscriptions: [HomeInboxSubscription] = []
+        let subscriptions = try await fetchAllPages(
+            service: .lists,
+            query: Self.inboxSubscriptionsQuery,
+            responseType: HomeInboxSubscriptionsResponse.self,
+            page: { ($0.subscriptions.results, $0.subscriptions.cursor) },
+            cacheKey: { APICacheKeys.inboxSubscriptions(cursor: $0) },
+            ttl: APICacheTTLs.inboxSummary,
+            forceRefresh: forceRefresh
+        )
+
+        var seen = Set<String>()
+        return subscriptions.compactMap(\.list).filter { seen.insert($0.rid).inserted }
+    }
+
+    /// Every page of a cursor-paged query, each read through the cache under `cacheKey(cursor)`.
+    private func fetchAllPages<Response: Decodable, Item>(
+        service: SRHTService,
+        query: String,
+        responseType _: Response.Type,
+        page: (Response) -> (results: [Item], cursor: String?),
+        cacheKey: (String?) -> String,
+        ttl: TimeInterval,
+        forceRefresh: Bool
+    ) async throws -> [Item] {
+        var items: [Item] = []
         var cursor: String?
 
         while true {
@@ -829,26 +853,25 @@ final class HomeViewModel {
             }
 
             let cached = try await client.executeCached(
-                service: .lists,
-                query: Self.inboxSubscriptionsQuery,
+                service: service,
+                query: query,
                 variables: variables.isEmpty ? nil : variables,
-                responseType: HomeInboxSubscriptionsResponse.self,
-                cacheKey: APICacheKeys.inboxSubscriptions(cursor: cursor),
+                responseType: Response.self,
+                cacheKey: cacheKey(cursor),
                 resourceType: .ticketList,
-                ttl: APICacheTTLs.inboxSummary,
+                ttl: ttl,
                 policy: forceRefresh ? .refreshIgnoringCache : .cacheFirstThenRefresh
             )
-            let response = cached.value
+            let (results, nextCursor) = page(cached.value)
 
-            subscriptions.append(contentsOf: response.subscriptions.results)
-            guard let nextCursor = response.subscriptions.cursor else {
+            items.append(contentsOf: results)
+            guard let nextCursor else {
                 break
             }
             cursor = nextCursor
         }
 
-        var seen = Set<String>()
-        return subscriptions.compactMap(\.list).filter { seen.insert($0.rid).inserted }
+        return items
     }
 
     private func fetchUnreadThreadSnapshot(for mailingList: InboxMailingListReference, forceRefresh: Bool) async throws -> HomeInboxUnreadSnapshot {
@@ -934,35 +957,15 @@ final class HomeViewModel {
     }
 
     private func fetchAllTrackers(forceRefresh: Bool) async throws -> [TrackerSummary] {
-        var allTrackers: [TrackerSummary] = []
-        var cursor: String?
-
-        while true {
-            var variables: [String: any Sendable] = [:]
-            if let cursor {
-                variables["cursor"] = cursor
-            }
-
-            let cached = try await client.executeCached(
-                service: .todo,
-                query: Self.trackersQuery,
-                variables: variables.isEmpty ? nil : variables,
-                responseType: HomeTrackersResponse.self,
-                cacheKey: APICacheKeys.trackers(cursor: cursor),
-                resourceType: .ticketList,
-                ttl: APICacheTTLs.ticketList,
-                policy: forceRefresh ? .refreshIgnoringCache : .cacheFirstThenRefresh
-            )
-            let response = cached.value
-
-            allTrackers.append(contentsOf: response.trackers.results)
-            guard let nextCursor = response.trackers.cursor else {
-                break
-            }
-            cursor = nextCursor
-        }
-
-        return allTrackers
+        try await fetchAllPages(
+            service: .todo,
+            query: Self.trackersQuery,
+            responseType: HomeTrackersResponse.self,
+            page: { ($0.trackers.results, $0.trackers.cursor) },
+            cacheKey: { APICacheKeys.trackers(cursor: $0) },
+            ttl: APICacheTTLs.ticketList,
+            forceRefresh: forceRefresh
+        )
     }
 
     private func fetchAssignedTickets(for trackers: [TrackerSummary], forceRefresh: Bool) async throws -> [HomeAssignedTicket] {

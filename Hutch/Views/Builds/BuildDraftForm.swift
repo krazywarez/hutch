@@ -81,3 +81,58 @@ struct BuildDraftForm: View {
         }
     }
 }
+
+/// Something a build draft can be submitted to, answering the new job's id.
+@MainActor
+protocol BuildSubmitting {
+    func submitBuild(
+        manifest: String,
+        tags: [String],
+        note: String,
+        secrets: Bool,
+        execute: Bool,
+        visibility: Visibility
+    ) async -> Int?
+}
+
+extension BuildListViewModel: BuildSubmitting {}
+extension BuildDetailViewModel: BuildSubmitting {}
+
+/// Cancel, and Submit Build once the draft has a manifest.
+struct BuildDraftToolbar: ToolbarContent {
+    let draft: BuildDraft
+    let submitter: any BuildSubmitting
+    let isSubmitting: Bool
+    let cancel: () -> Void
+    let onSubmitted: (Int) -> Void
+
+    var body: some ToolbarContent {
+        ToolbarItem(placement: .cancellationAction) {
+            Button("Cancel", action: cancel)
+        }
+        ToolbarItem(placement: .confirmationAction) {
+            Button {
+                Task {
+                    if let jobId = await submitter.submitBuild(
+                        manifest: draft.manifest,
+                        tags: draft.tags,
+                        note: draft.note,
+                        secrets: draft.secrets,
+                        execute: draft.execute,
+                        visibility: draft.visibility
+                    ) {
+                        onSubmitted(jobId)
+                    }
+                }
+            } label: {
+                if isSubmitting {
+                    ProgressView()
+                        .controlSize(.small)
+                } else {
+                    Text("Submit Build")
+                }
+            }
+            .disabled(!draft.hasManifest || isSubmitting)
+        }
+    }
+}

@@ -12,13 +12,7 @@ struct RepositoryACLView: View {
     @State private var showAddSheet = false
 
     var body: some View {
-        Group {
-            if let viewModel {
-                content(viewModel)
-            } else {
-                SRHTLoadingStateView(message: "Loading access…")
-            }
-        }
+        ModelContent(model: viewModel, loadingMessage: "Loading access…") { content($0) }
         .navigationTitle("Access")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -29,13 +23,8 @@ struct RepositoryACLView: View {
             }
 
             if viewModel != nil {
-                ToolbarItem(placement: .primaryAction) {
-                    Button {
-                        showAddSheet = true
-                    } label: {
-                        Image(systemName: "plus")
-                    }
-                    .accessibilityLabel("Add User")
+                AddToolbarItem(label: "Add User", placement: .primaryAction) {
+                    showAddSheet = true
                 }
             }
         }
@@ -102,14 +91,7 @@ struct RepositoryACLView: View {
                 set: { viewModel.error = $0 }
             )
         )
-        .alert("Remove Access?", isPresented: Binding(
-            get: { pendingDeletion != nil },
-            set: { isPresented in
-                if !isPresented {
-                    pendingDeletion = nil
-                }
-            }
-        )) {
+        .alert("Remove Access?", isPresented: .isPresent($pendingDeletion)) {
             Button("Cancel", role: .cancel) {
                 /* Dismiss only; removal is confirmed separately. */
             }

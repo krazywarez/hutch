@@ -73,14 +73,7 @@ struct HgRepositorySettingsView: View {
         } message: {
             Text("This cannot be undone.")
         }
-        .alert("Remove Access?", isPresented: Binding(
-            get: { pendingACLDeletion != nil },
-            set: { isPresented in
-                if !isPresented {
-                    pendingACLDeletion = nil
-                }
-            }
-        )) {
+        .alert("Remove Access?", isPresented: .isPresent($pendingACLDeletion)) {
             Button("Cancel", role: .cancel) {
                 // Alert dismissal is implicit; no additional action required.
             }

@@ -825,14 +825,7 @@ struct TrackerACLManagementSheet: View {
                     await viewModel.updateDefaultACL(permissions)
                 }
             }
-            .alert("Remove Access?", isPresented: Binding(
-                get: { pendingDeletion != nil },
-                set: { isPresented in
-                    if !isPresented {
-                        pendingDeletion = nil
-                    }
-                }
-            )) {
+            .alert("Remove Access?", isPresented: .isPresent($pendingDeletion)) {
                 Button("Cancel", role: .cancel) {
                     // no-op: .cancel role handles alert dismissal
                 }
@@ -1194,14 +1187,7 @@ struct TrackerLabelManagementSheet: View {
                     )
                 }
             }
-            .alert("Delete Label?", isPresented: Binding(
-                get: { pendingDeletion != nil },
-                set: { isPresented in
-                    if !isPresented {
-                        pendingDeletion = nil
-                    }
-                }
-            )) {
+            .alert("Delete Label?", isPresented: .isPresent($pendingDeletion)) {
                 Button("Cancel", role: .cancel) {
                     // no-op: .cancel role handles alert dismissal
                 }

@@ -25,13 +25,7 @@ struct WorkView: View {
     }
 
     var body: some View {
-        Group {
-            if let viewModel {
-                content(viewModel)
-            } else {
-                SRHTLoadingStateView(message: "Loading Work…")
-            }
-        }
+        ModelContent(model: viewModel, loadingMessage: "Loading Work…") { content($0) }
         .navigationTitle("Work")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {

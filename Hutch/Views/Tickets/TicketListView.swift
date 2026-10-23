@@ -58,13 +58,7 @@ struct TicketListView: View {
     }
 
     var body: some View {
-        Group {
-            if let viewModel {
-                listContent(viewModel)
-            } else {
-                SRHTLoadingStateView(message: "Loading tickets…")
-            }
-        }
+        ModelContent(model: viewModel, loadingMessage: "Loading tickets…") { listContent($0) }
         .navigationTitle(navigationTitle)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -210,14 +204,7 @@ struct TicketListView: View {
                 dismissButton: .default(Text("OK"))
             )
         }
-        .navigationDestination(isPresented: Binding(
-            get: { createdTicket != nil },
-            set: { isPresented in
-                if !isPresented {
-                    createdTicket = nil
-                }
-            }
-        )) {
+        .navigationDestination(isPresented: .isPresent($createdTicket)) {
             if let createdTicket {
                 TicketDetailView(
                     ownerUsername: String(tracker.owner.canonicalName.dropFirst()),

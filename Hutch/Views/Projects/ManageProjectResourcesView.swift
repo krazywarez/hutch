@@ -107,13 +107,7 @@ struct ManageProjectResourcesView: View {
 
     var body: some View {
         NavigationStack {
-            Group {
-                if let viewModel {
-                    content(viewModel)
-                } else {
-                    SRHTLoadingStateView(message: "Loading…")
-                }
-            }
+            ModelContent(model: viewModel, loadingMessage: "Loading…") { content($0) }
             .navigationTitle("Linked Resources")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

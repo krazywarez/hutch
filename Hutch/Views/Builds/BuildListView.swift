@@ -17,13 +17,7 @@ struct BuildListView: View {
     }
 
     var body: some View {
-        Group {
-            if let viewModel {
-                listContent(viewModel)
-            } else {
-                SRHTLoadingStateView(message: "Loading builds…")
-            }
-        }
+        ModelContent(model: viewModel, loadingMessage: "Loading builds…") { listContent($0) }
         .navigationTitle("Builds")
         .toolbar {
             if let viewModel {
@@ -86,13 +80,8 @@ struct BuildListView: View {
                     }
                     .accessibilityLabel("Build filters")
                 }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        showSubmitSheet = true
-                    } label: {
-                        Image(systemName: "plus")
-                    }
-                    .accessibilityLabel("Submit build")
+                AddToolbarItem(label: "Submit build") {
+                    showSubmitSheet = true
                 }
             }
         }
@@ -107,14 +96,7 @@ struct BuildListView: View {
         .navigationDestination(for: JobSummary.self) { job in
             BuildDetailView(jobId: job.id)
         }
-        .navigationDestination(isPresented: Binding(
-            get: { submittedJobId != nil },
-            set: { isPresented in
-                if !isPresented {
-                    submittedJobId = nil
-                }
-            }
-        )) {
+        .navigationDestination(isPresented: .isPresent($submittedJobId)) {
             if let submittedJobId {
                 BuildDetailView(jobId: submittedJobId)
             }
@@ -329,36 +311,10 @@ private struct SubmitBuildSheet: View {
                 viewModelBindable.error = nil
             }
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
-                        viewModelBindable.error = nil
-                        dismiss()
-                    }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button {
-                        Task {
-                            if let jobId = await viewModel.submitBuild(
-                                manifest: draft.manifest,
-                                tags: draft.tags,
-                                note: draft.note,
-                                secrets: draft.secrets,
-                                execute: draft.execute,
-                                visibility: draft.visibility
-                            ) {
-                                onSubmitted(jobId)
-                            }
-                        }
-                    } label: {
-                        if viewModel.isSubmitting {
-                            ProgressView()
-                                .controlSize(.small)
-                        } else {
-                            Text("Submit Build")
-                        }
-                    }
-                    .disabled(!draft.hasManifest || viewModel.isSubmitting)
-                }
+                BuildDraftToolbar(draft: draft, submitter: viewModel, isSubmitting: viewModel.isSubmitting) {
+                    viewModelBindable.error = nil
+                    dismiss()
+                } onSubmitted: { onSubmitted($0) }
             }
         }
     }

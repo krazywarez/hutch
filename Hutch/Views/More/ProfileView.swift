@@ -13,13 +13,7 @@ struct ProfileView: View {
     @State private var pendingDestructiveAction: ProfileDestructiveAction?
 
     var body: some View {
-        Group {
-            if let viewModel {
-                profileContent(viewModel)
-            } else {
-                SRHTLoadingStateView(message: "Loading profile…")
-            }
-        }
+        ModelContent(model: viewModel, loadingMessage: "Loading profile…") { profileContent($0) }
         .navigationTitle("Profile")
         .task {
             if viewModel == nil {
@@ -120,35 +114,12 @@ struct ProfileView: View {
                 Text(error)
             }
         }
-        .alert(
-            pendingDestructiveAction?.title ?? "",
-            isPresented: Binding(
-                get: { pendingDestructiveAction != nil },
-                set: { isPresented in
-                    if !isPresented {
-                        pendingDestructiveAction = nil
-                    }
-                }
-            )
-        ) {
-            Button("Cancel", role: .cancel) {
-                /* Dismiss only; destructive action is separate. */
-            }
-            Button(pendingDestructiveAction?.confirmationLabel ?? "Confirm", role: .destructive) {
-                guard let action = pendingDestructiveAction else { return }
-                pendingDestructiveAction = nil
-                Task {
-                    switch action {
-                    case .deleteSSHKey(let key):
-                        await viewModel.deleteSSHKey(key)
-                    case .deletePGPKey(let key):
-                        await viewModel.deletePGPKey(key)
-                    }
-                }
-            }
-        } message: {
-            if let pendingDestructiveAction {
-                Text(pendingDestructiveAction.message)
+        .destructiveConfirmation($pendingDestructiveAction) { action in
+            switch action {
+            case .deleteSSHKey(let key):
+                await viewModel.deleteSSHKey(key)
+            case .deletePGPKey(let key):
+                await viewModel.deletePGPKey(key)
             }
         }
         .refreshable {
@@ -713,7 +684,7 @@ private struct EditProfileSheet: View {
     }
 }
 
-private enum ProfileDestructiveAction {
+private enum ProfileDestructiveAction: DestructiveAction {
     case deleteSSHKey(SSHKey)
     case deletePGPKey(PGPKey)
 

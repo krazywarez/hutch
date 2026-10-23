@@ -9,23 +9,12 @@ struct RepositoryListView: View {
     @State private var createdRepository: RepositorySummary?
 
     var body: some View {
-        Group {
-            if let viewModel {
-                listContent(viewModel)
-            } else {
-                SRHTLoadingStateView(message: "Loading repositories…")
-            }
-        }
+        ModelContent(model: viewModel, loadingMessage: "Loading repositories…") { listContent($0) }
         .navigationTitle("Repositories")
         .toolbar {
             if viewModel != nil {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        showCreateRepositorySheet = true
-                    } label: {
-                        Image(systemName: "plus")
-                    }
-                    .accessibilityLabel("Create repository")
+                AddToolbarItem(label: "Create repository") {
+                    showCreateRepositorySheet = true
                 }
             }
         }
@@ -37,14 +26,7 @@ struct RepositoryListView: View {
                 }
             }
         }
-        .navigationDestination(isPresented: Binding(
-            get: { createdRepository != nil },
-            set: { isPresented in
-                if !isPresented {
-                    createdRepository = nil
-                }
-            }
-        )) {
+        .navigationDestination(isPresented: .isPresent($createdRepository)) {
             if let createdRepository {
                 RepositoryDetailView(
                     repository: createdRepository,

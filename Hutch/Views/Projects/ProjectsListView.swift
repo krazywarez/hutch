@@ -85,13 +85,8 @@ struct ProjectsListView: View {
                             .accessibilityLabel("Discover public projects")
                         }
                         if appState.currentUser != nil {
-                            ToolbarItem(placement: .topBarTrailing) {
-                                Button {
-                                    isPresentingCreate = true
-                                } label: {
-                                    Image(systemName: "plus")
-                                }
-                                .accessibilityLabel("Create project")
+                            AddToolbarItem(label: "Create project") {
+                                isPresentingCreate = true
                             }
                         }
                     }
