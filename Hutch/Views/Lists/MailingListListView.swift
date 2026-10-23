@@ -455,24 +455,19 @@ struct MailingListListView: View {
             Text("This permanently deletes the list and its entire archive, for everyone. This cannot be undone.")
         }
         .overlay {
-            SRHTLoadStateView(
+            SearchableListState(
                 isLoading: viewModel.isLoading,
                 error: viewModel.error,
                 isEmpty: viewModel.mailingLists.isEmpty,
+                hasMatches: !viewModel.filteredMailingLists.isEmpty,
+                searchText: viewModel.searchText,
                 loadingMessage: "Loading mailing lists…",
                 errorTitle: "Couldn't Load Mailing Lists",
+                emptyTitle: "No Mailing Lists",
+                emptySystemImage: "list.bullet.rectangle",
+                emptyDescription: "Your subscribed mailing lists will appear here.",
                 retryAction: { await viewModel.loadMailingLists() }
-            ) {
-                if !viewModel.mailingLists.isEmpty, viewModel.filteredMailingLists.isEmpty {
-                    ContentUnavailableView.search(text: viewModel.searchText)
-                } else if viewModel.mailingLists.isEmpty {
-                    ContentUnavailableView(
-                        "No Mailing Lists",
-                        systemImage: "list.bullet.rectangle",
-                        description: Text("Your subscribed mailing lists will appear here.")
-                    )
-                }
-            }
+            )
         }
         .srhtErrorBanner(error: $vm.error)
         .refreshable {

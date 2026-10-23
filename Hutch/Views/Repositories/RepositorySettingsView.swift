@@ -127,19 +127,11 @@ struct RepositorySettingsView: View {
                     .themedRow()
             }
 
-            Button {
+            ProgressButton("Save Details", isWorking: viewModel.isSavingMetadata) {
                 Task {
                     if let updatedRepository = await viewModel.saveMetadata() {
                         onUpdated(updatedRepository)
                     }
-                }
-            } label: {
-                if viewModel.isSavingMetadata {
-                    ProgressView()
-                        .frame(maxWidth: .infinity)
-                } else {
-                    Text("Save Details")
-                        .frame(maxWidth: .infinity)
                 }
             }
             .disabled(
@@ -181,19 +173,11 @@ struct RepositorySettingsView: View {
                     .foregroundStyle(.secondary)
                     .themedRow()
 
-                Button {
+                ProgressButton("Set Default Branch", isWorking: viewModel.isSavingDefaultBranch) {
                     Task {
                         if let updatedRepository = await viewModel.saveDefaultBranch() {
                             onUpdated(updatedRepository)
                         }
-                    }
-                } label: {
-                    if viewModel.isSavingDefaultBranch {
-                        ProgressView()
-                            .frame(maxWidth: .infinity)
-                    } else {
-                        Text("Set Default Branch")
-                            .frame(maxWidth: .infinity)
                     }
                 }
                 .disabled(
@@ -223,16 +207,8 @@ struct RepositorySettingsView: View {
                 .foregroundStyle(.secondary)
                 .themedRow()
 
-            Button {
+            ProgressButton("Apply Visibility Change", isWorking: viewModel.isUpdatingVisibility) {
                 showVisibilityConfirmation = true
-            } label: {
-                if viewModel.isUpdatingVisibility {
-                    ProgressView()
-                        .frame(maxWidth: .infinity)
-                } else {
-                    Text("Apply Visibility Change")
-                        .frame(maxWidth: .infinity)
-                }
             }
             .disabled(viewModel.isMutating || !viewModel.isVisibilityDirty)
             .themedRow()
@@ -244,16 +220,8 @@ struct RepositorySettingsView: View {
     @ViewBuilder
     private func deleteSection(_ viewModel: RepositorySettingsViewModel) -> some View {
         Section {
-            Button(role: .destructive) {
+            ProgressButton("Delete Repository", isWorking: viewModel.isDeleting, role: .destructive) {
                 showDeleteConfirmation = true
-            } label: {
-                if viewModel.isDeleting {
-                    ProgressView()
-                        .frame(maxWidth: .infinity)
-                } else {
-                    Text("Delete Repository")
-                        .frame(maxWidth: .infinity)
-                }
             }
             .disabled(viewModel.isMutating)
             .themedRow()

@@ -24,17 +24,9 @@ struct HgRepositorySettingsView: View {
     }
 
     private func saveInfoButton(_ viewModel: HgRepositorySettingsViewModel) -> some View {
-        Button {
+        ProgressButton("Save Changes", isWorking: viewModel.isSavingInfo) {
             Task {
                 _ = await viewModel.saveInfo()
-            }
-        } label: {
-            if viewModel.isSavingInfo {
-                ProgressView()
-                    .frame(maxWidth: .infinity)
-            } else {
-                Text("Save Changes")
-                    .frame(maxWidth: .infinity)
             }
         }
         .disabled(viewModel.isSavingInfo || !viewModel.isInfoDirty)
@@ -232,16 +224,8 @@ struct HgRepositorySettingsView: View {
     @ViewBuilder
     private func deleteSection(_ viewModel: HgRepositorySettingsViewModel) -> some View {
         Section {
-            Button(role: .destructive) {
+            ProgressButton("Delete Repository", isWorking: viewModel.isDeleting, role: .destructive) {
                 showDeleteConfirmation = true
-            } label: {
-                if viewModel.isDeleting {
-                    ProgressView()
-                        .frame(maxWidth: .infinity)
-                } else {
-                    Text("Delete Repository")
-                        .frame(maxWidth: .infinity)
-                }
             }
             .disabled(viewModel.isDeleting)
             .themedRow()

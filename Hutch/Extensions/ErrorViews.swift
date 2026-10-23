@@ -180,3 +180,35 @@ struct SRHTLoadStateView<Content: View>: View {
         }
     }
 }
+
+/// A searchable list's loading and error states, then no matches for the search, or nothing at all.
+struct SearchableListState: View {
+    let isLoading: Bool
+    let error: String?
+    let isEmpty: Bool
+    let hasMatches: Bool
+    let searchText: String
+    let loadingMessage: String
+    let errorTitle: String
+    let emptyTitle: LocalizedStringKey
+    let emptySystemImage: String
+    let emptyDescription: LocalizedStringKey
+    let retryAction: () async -> Void
+
+    var body: some View {
+        SRHTLoadStateView(
+            isLoading: isLoading,
+            error: error,
+            isEmpty: isEmpty,
+            loadingMessage: loadingMessage,
+            errorTitle: errorTitle,
+            retryAction: retryAction
+        ) {
+            if !isEmpty, !hasMatches {
+                ContentUnavailableView.search(text: searchText)
+            } else if isEmpty {
+                ContentUnavailableView(emptyTitle, systemImage: emptySystemImage, description: Text(emptyDescription))
+            }
+        }
+    }
+}

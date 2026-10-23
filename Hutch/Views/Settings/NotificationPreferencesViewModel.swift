@@ -126,48 +126,51 @@ final class NotificationPreferencesViewModel {
     }
 
     func setNotifySelf(_ newValue: Bool) async {
-        guard !isSavingNotifySelf else { return }
-        isSavingNotifySelf = true
-        error = nil
-        defer { isSavingNotifySelf = false }
-
-        let previous = notifySelf
-        notifySelf = newValue
-
-        do {
-            let response = try await client.execute(
+        await setPreference(\.notifySelf, saving: \.isSavingNotifySelf, to: newValue,
+                            failure: "Couldn't update ticket email preference.") {
+            try await self.client.execute(
                 service: .todo,
                 query: Self.updateNotifySelfMutation,
                 variables: ["notifySelf": newValue],
                 responseType: TodoPreferencesResponse.self
-            )
-            notifySelf = response.preferences.notifySelf
-        } catch {
-            notifySelf = previous
-            self.error = "Couldn't update ticket email preference. \(error.userFacingMessage)"
+            ).preferences.notifySelf
         }
     }
 
     func setCopySelf(_ newValue: Bool) async {
-        guard !isSavingCopySelf else { return }
-        isSavingCopySelf = true
-        error = nil
-        defer { isSavingCopySelf = false }
-
-        let previous = copySelf
-        copySelf = newValue
-
-        do {
-            let response = try await client.execute(
+        await setPreference(\.copySelf, saving: \.isSavingCopySelf, to: newValue,
+                            failure: "Couldn't update mailing list email preference.") {
+            try await self.client.execute(
                 service: .lists,
                 query: Self.updateCopySelfMutation,
                 variables: ["copySelf": newValue],
                 responseType: ListsPreferencesResponse.self
-            )
-            copySelf = response.preferences.copySelf
+            ).preferences.copySelf
+        }
+    }
+
+    /// Shows `newValue` at once and saves it with `save`, which answers what the server kept. On
+    /// failure the previous value comes back and the error says what `failure` couldn't do.
+    private func setPreference(
+        _ value: ReferenceWritableKeyPath<NotificationPreferencesViewModel, Bool>,
+        saving: ReferenceWritableKeyPath<NotificationPreferencesViewModel, Bool>,
+        to newValue: Bool,
+        failure: String,
+        save: () async throws -> Bool
+    ) async {
+        guard !self[keyPath: saving] else { return }
+        self[keyPath: saving] = true
+        error = nil
+        defer { self[keyPath: saving] = false }
+
+        let previous = self[keyPath: value]
+        self[keyPath: value] = newValue
+
+        do {
+            self[keyPath: value] = try await save()
         } catch {
-            copySelf = previous
-            self.error = "Couldn't update mailing list email preference. \(error.userFacingMessage)"
+            self[keyPath: value] = previous
+            self.error = "\(failure) \(error.userFacingMessage)"
         }
     }
 }

@@ -75,12 +75,7 @@ struct RepositoryListView: View {
             .themedRow()
 
             if viewModel.isLoadingMore {
-                HStack {
-                    Spacer()
-                    ProgressView()
-                    Spacer()
-                }
-                .listRowSeparator(.hidden)
+                LoadingMoreRow()
                 .themedRow()
             }
         }

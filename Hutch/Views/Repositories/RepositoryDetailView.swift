@@ -101,16 +101,7 @@ struct RepositoryDetailView: View {
     @ViewBuilder
     private func detailContent(_ viewModel: RepositoryDetailViewModel) -> some View {
         VStack(spacing: 0) {
-            Picker("Tab", selection: $selectedTab) {
-                ForEach(RepositoryDetailViewModel.Tab.allCases, id: \.self) { tab in
-                    Text(tab.rawValue).tag(tab)
-                }
-            }
-            .pickerStyle(.segmented)
-            .padding(.horizontal)
-            .padding(.vertical, 8)
-
-            Divider()
+            SegmentedTabs(selection: $selectedTab)
 
             switch selectedTab {
             case .summary:

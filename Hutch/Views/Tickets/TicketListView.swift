@@ -275,12 +275,7 @@ struct TicketListView: View {
                 .themedRow()
 
                 if viewModel.isLoadingMore {
-                    HStack {
-                        Spacer()
-                        ProgressView()
-                        Spacer()
-                    }
-                    .listRowSeparator(.hidden)
+                    LoadingMoreRow()
                     .themedRow()
                 }
             }
@@ -711,7 +706,7 @@ private struct TicketLabelsSheet: View {
                     } else {
                         List {
                             ForEach(viewModel.trackerLabels) { label in
-                                TicketListLabelToggleRow(
+                                LabelToggleRow(
                                     label: label,
                                     isApplied: ticket.labels.contains(where: { $0.id == label.id }),
                                     isLoading: viewModel.isPerformingAction
@@ -1032,30 +1027,6 @@ private struct SaveTicketFilterSheet: View {
                 }
             }
         }
-    }
-}
-
-private struct TicketListLabelToggleRow: View {
-    let label: TicketLabel
-    let isApplied: Bool
-    let isLoading: Bool
-    let onToggle: (Bool) -> Void
-
-    var body: some View {
-        Button {
-            onToggle(!isApplied)
-        } label: {
-            HStack {
-                LabelPill(label: label)
-                Spacer()
-                if isApplied {
-                    Image(systemName: "checkmark")
-                        .foregroundStyle(.blue)
-                }
-            }
-        }
-        .disabled(isLoading)
-        .accessibilityAddTraits(isApplied ? [.isSelected] : [])
     }
 }
 

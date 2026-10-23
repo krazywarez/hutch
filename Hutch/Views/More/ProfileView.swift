@@ -30,23 +30,9 @@ struct ProfileView: View {
                 : currentUser.canonicalName
             let actor = currentUser.canonicalName.hasPrefix("~") ? currentUser.canonicalName : "~\(currentUser.canonicalName)"
 
-            let vm: UserProfileViewModel
-            if let existingViewModel = contributionViewModel,
-               existingViewModel.actor == actor,
-               existingViewModel.ownerUsername == owner {
-                vm = existingViewModel
-            } else {
-                let newViewModel = UserProfileViewModel(
-                    ownerUsername: owner,
-                    actor: actor,
-                    client: appState.client,
-                    statsService: HutchStatsService(
-                        configuration: appState.configuration,
-                        currentActor: appState.currentUser?.canonicalName
-                    )
-                )
-                contributionViewModel = newViewModel
-                vm = newViewModel
+            let vm = UserProfileViewModel.reusing(contributionViewModel, owner: owner, actor: actor, appState: appState)
+            if vm !== contributionViewModel {
+                contributionViewModel = vm
             }
 
             await vm.loadContributions()

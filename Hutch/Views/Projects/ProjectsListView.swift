@@ -139,24 +139,19 @@ struct ProjectsListView: View {
             prompt: "Search projects"
         )
         .overlay {
-            SRHTLoadStateView(
+            SearchableListState(
                 isLoading: viewModel.isLoading,
                 error: viewModel.error,
                 isEmpty: viewModel.projects.isEmpty,
+                hasMatches: !viewModel.filteredProjects.isEmpty,
+                searchText: viewModel.searchText,
                 loadingMessage: "Loading projects…",
                 errorTitle: "Couldn't Load Projects",
+                emptyTitle: "No Projects",
+                emptySystemImage: "square.stack.3d.up",
+                emptyDescription: "Projects from your SourceHut account will appear here when available.",
                 retryAction: { await viewModel.loadProjects() }
-            ) {
-                if !viewModel.projects.isEmpty, viewModel.filteredProjects.isEmpty {
-                    ContentUnavailableView.search(text: viewModel.searchText)
-                } else if viewModel.projects.isEmpty {
-                    ContentUnavailableView(
-                        "No Projects",
-                        systemImage: "square.stack.3d.up",
-                        description: Text("Projects from your SourceHut account will appear here when available.")
-                    )
-                }
-            }
+            )
         }
         .srhtErrorBanner(
             error: Binding(

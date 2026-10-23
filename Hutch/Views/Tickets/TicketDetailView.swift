@@ -1139,7 +1139,8 @@ private struct CreateLabelSheet: View {
     }
 }
 
-private struct LabelToggleRow: View {
+/// A label with a checkmark when it is applied; tapping asks for the opposite.
+struct LabelToggleRow: View {
     let label: TicketLabel
     let isApplied: Bool
     let isLoading: Bool

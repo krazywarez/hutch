@@ -121,19 +121,9 @@ struct TrackerListView: View {
                     TrackerRowView(tracker: tracker)
                 }
                 .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                    Button {
-                        pendingDeletion = tracker
-                    } label: {
-                        Label("Delete", systemImage: "trash")
-                    }
-                    .tint(.red)
+                    SwipeDeleteButton { pendingDeletion = tracker }
 
-                    Button {
-                        editingTracker = tracker
-                    } label: {
-                        Label("Edit", systemImage: "pencil")
-                    }
-                    .tint(.blue)
+                    SwipeEditButton { editingTracker = tracker }
                 }
                 .task {
                     await viewModel.loadMoreIfNeeded(currentItem: tracker)
@@ -142,12 +132,7 @@ struct TrackerListView: View {
             .themedRow()
 
             if viewModel.isLoadingMore {
-                HStack {
-                    Spacer()
-                    ProgressView()
-                    Spacer()
-                }
-                .listRowSeparator(.hidden)
+                LoadingMoreRow()
                 .themedRow()
             }
         }

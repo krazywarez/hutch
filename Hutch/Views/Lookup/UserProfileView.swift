@@ -215,23 +215,9 @@ struct UserProfileView: View {
                 : user.canonicalName
             let actor = user.canonicalName.hasPrefix("~") ? user.canonicalName : "~\(user.canonicalName)"
 
-            let vm: UserProfileViewModel
-            if let existingViewModel = profileViewModel,
-               existingViewModel.actor == actor,
-               existingViewModel.ownerUsername == owner {
-                vm = existingViewModel
-            } else {
-                let newViewModel = UserProfileViewModel(
-                    ownerUsername: owner,
-                    actor: actor,
-                    client: appState.client,
-                    statsService: HutchStatsService(
-                        configuration: appState.configuration,
-                        currentActor: appState.currentUser?.canonicalName
-                    )
-                )
-                profileViewModel = newViewModel
-                vm = newViewModel
+            let vm = UserProfileViewModel.reusing(profileViewModel, owner: owner, actor: actor, appState: appState)
+            if vm !== profileViewModel {
+                profileViewModel = vm
             }
 
             async let repos: () = vm.loadRepositories()

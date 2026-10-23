@@ -210,3 +210,21 @@ final class UserProfileViewModel {
     }
 
 }
+
+extension UserProfileViewModel {
+    /// `existing` when it already shows `owner` to `actor`, else a new model for them.
+    static func reusing(_ existing: UserProfileViewModel?, owner: String, actor: String, appState: AppState) -> UserProfileViewModel {
+        if let existing, existing.actor == actor, existing.ownerUsername == owner {
+            return existing
+        }
+        return UserProfileViewModel(
+            ownerUsername: owner,
+            actor: actor,
+            client: appState.client,
+            statsService: HutchStatsService(
+                configuration: appState.configuration,
+                currentActor: appState.currentUser?.canonicalName
+            )
+        )
+    }
+}

@@ -182,16 +182,7 @@ struct HgRepositoryDetailView: View {
     @ViewBuilder
     private func content(_ viewModel: HgRepositoryDetailViewModel) -> some View {
         VStack(spacing: 0) {
-            Picker("Tab", selection: $selectedTab) {
-                ForEach(HgRepositoryDetailViewModel.Tab.allCases, id: \.self) { tab in
-                    Text(tab.rawValue).tag(tab)
-                }
-            }
-            .pickerStyle(.segmented)
-            .padding(.horizontal)
-            .padding(.vertical, 8)
-
-            Divider()
+            SegmentedTabs(selection: $selectedTab)
 
             switch selectedTab {
             case .summary:
@@ -453,32 +444,28 @@ struct HgRepositoryDetailView: View {
             .themedRow()
 
             if viewModel.isLoadingMoreLog {
-                HStack {
-                    Spacer()
-                    ProgressView()
-                    Spacer()
-                }
-                .listRowSeparator(.hidden)
+                LoadingMoreRow()
                 .themedRow()
             }
         }
         .themedList()
         .listStyle(.plain)
         .overlay {
-            if viewModel.isLoadingLog, viewModel.log.isEmpty {
-                SRHTLoadingStateView(message: "Loading revisions…")
-            } else if let error = viewModel.error, viewModel.log.isEmpty {
-                SRHTErrorStateView(
-                    title: "Couldn't Load Revisions",
-                    message: error,
-                    retryAction: { await viewModel.loadLog() }
-                )
-            } else if viewModel.log.isEmpty {
-                ContentUnavailableView(
-                    "No Revisions",
-                    systemImage: "clock.arrow.trianglehead.counterclockwise.rotate.90",
-                    description: Text("This repository has no revision history.")
-                )
+            SRHTLoadStateView(
+                isLoading: viewModel.isLoadingLog,
+                error: viewModel.error,
+                isEmpty: viewModel.log.isEmpty,
+                loadingMessage: "Loading revisions…",
+                errorTitle: "Couldn't Load Revisions",
+                retryAction: { await viewModel.loadLog() }
+            ) {
+                if viewModel.log.isEmpty {
+                    ContentUnavailableView(
+                        "No Revisions",
+                        systemImage: "clock.arrow.trianglehead.counterclockwise.rotate.90",
+                        description: Text("This repository has no revision history.")
+                    )
+                }
             }
         }
         .refreshable {

@@ -16,32 +16,28 @@ struct CommitLogView: View {
             .themedRow()
 
             if viewModel.isLoadingMoreCommits {
-                HStack {
-                    Spacer()
-                    ProgressView()
-                    Spacer()
-                }
-                .listRowSeparator(.hidden)
+                LoadingMoreRow()
                 .themedRow()
             }
         }
         .themedList()
         .listStyle(.plain)
         .overlay {
-            if viewModel.isLoadingCommits, viewModel.commits.isEmpty {
-                SRHTLoadingStateView(message: "Loading commits…")
-            } else if let error = viewModel.error, viewModel.commits.isEmpty {
-                SRHTErrorStateView(
-                    title: "Couldn't Load Commits",
-                    message: error,
-                    retryAction: { await viewModel.loadCommits() }
-                )
-            } else if viewModel.commits.isEmpty {
-                ContentUnavailableView(
-                    "No Commits",
-                    systemImage: "clock.arrow.trianglehead.counterclockwise.rotate.90",
-                    description: Text("This repository has no commit history.")
-                )
+            SRHTLoadStateView(
+                isLoading: viewModel.isLoadingCommits,
+                error: viewModel.error,
+                isEmpty: viewModel.commits.isEmpty,
+                loadingMessage: "Loading commits…",
+                errorTitle: "Couldn't Load Commits",
+                retryAction: { await viewModel.loadCommits() }
+            ) {
+                if viewModel.commits.isEmpty {
+                    ContentUnavailableView(
+                        "No Commits",
+                        systemImage: "clock.arrow.trianglehead.counterclockwise.rotate.90",
+                        description: Text("This repository has no commit history.")
+                    )
+                }
             }
         }
         .task {

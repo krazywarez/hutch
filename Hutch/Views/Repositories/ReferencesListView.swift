@@ -6,58 +6,45 @@ struct ReferencesListView: View {
     var body: some View {
         List {
             if let defaultBranch = viewModel.defaultBranchReference {
-                Section {
-                    ReferenceRow(reference: defaultBranch, prefix: "refs/heads/")
-                        .themedRow()
-
-                    NavigationLink("See All Branches") {
-                        ReferencesDetailListView(
-                            title: "Branches",
-                            references: viewModel.branches,
-                            prefix: "refs/heads/"
-                        )
-                    }
-                    .themedRow()
-                } header: {
-                    sectionHeader(title: "Default Branch")
-                }
+                referenceSection(
+                    defaultBranch,
+                    header: "Default Branch",
+                    seeAll: "See All Branches",
+                    title: "Branches",
+                    references: viewModel.branches,
+                    prefix: "refs/heads/"
+                )
             }
 
             if let latestTag = viewModel.latestTagReference {
-                Section {
-                    ReferenceRow(reference: latestTag, prefix: "refs/tags/")
-                        .themedRow()
-
-                    NavigationLink("See All Tags") {
-                        ReferencesDetailListView(
-                            title: "Tags",
-                            references: viewModel.tags,
-                            prefix: "refs/tags/"
-                        )
-                    }
-                    .themedRow()
-                } header: {
-                    sectionHeader(title: "Latest Tag")
-                }
+                referenceSection(
+                    latestTag,
+                    header: "Latest Tag",
+                    seeAll: "See All Tags",
+                    title: "Tags",
+                    references: viewModel.tags,
+                    prefix: "refs/tags/"
+                )
             }
         }
         .themedList()
         .listStyle(.insetGrouped)
         .overlay {
-            if viewModel.isLoadingRefs, viewModel.branches.isEmpty, viewModel.tags.isEmpty {
-                SRHTLoadingStateView(message: "Loading references…")
-            } else if let error = viewModel.error, viewModel.branches.isEmpty, viewModel.tags.isEmpty {
-                SRHTErrorStateView(
-                    title: "Couldn't Load References",
-                    message: error,
-                    retryAction: { await viewModel.loadReferences() }
-                )
-            } else if viewModel.branches.isEmpty, viewModel.tags.isEmpty {
-                ContentUnavailableView(
-                    "No References",
-                    systemImage: "arrow.triangle.branch",
-                    description: Text("This repository has no branches or tags.")
-                )
+            SRHTLoadStateView(
+                isLoading: viewModel.isLoadingRefs,
+                error: viewModel.error,
+                isEmpty: viewModel.branches.isEmpty && viewModel.tags.isEmpty,
+                loadingMessage: "Loading references…",
+                errorTitle: "Couldn't Load References",
+                retryAction: { await viewModel.loadReferences() }
+            ) {
+                if viewModel.branches.isEmpty, viewModel.tags.isEmpty {
+                    ContentUnavailableView(
+                        "No References",
+                        systemImage: "arrow.triangle.branch",
+                        description: Text("This repository has no branches or tags.")
+                    )
+                }
             }
         }
         .task {
@@ -71,6 +58,28 @@ struct ReferencesListView: View {
     }
 
     @ViewBuilder
+    /// One reference with a link to all of its kind.
+    private func referenceSection(
+        _ reference: ReferenceDetail,
+        header: String,
+        seeAll: LocalizedStringKey,
+        title: String,
+        references: [ReferenceDetail],
+        prefix: String
+    ) -> some View {
+        Section {
+            ReferenceRow(reference: reference, prefix: prefix)
+                .themedRow()
+
+            NavigationLink(seeAll) {
+                ReferencesDetailListView(title: title, references: references, prefix: prefix)
+            }
+            .themedRow()
+        } header: {
+            sectionHeader(title: header)
+        }
+    }
+
     private func sectionHeader(title: String) -> some View {
         HStack {
             Text(title)

@@ -142,25 +142,26 @@ struct ArtifactsView: View {
             }
         }
         .overlay {
-            if viewModel.isLoadingArtifacts, viewModel.referenceArtifacts.isEmpty {
-                SRHTLoadingStateView(message: "Loading artifacts…")
-            } else if let error = viewModel.error, viewModel.referenceArtifacts.isEmpty {
-                SRHTErrorStateView(
-                    title: "Couldn't Load Artifacts",
-                    message: error,
-                    retryAction: { await viewModel.loadArtifacts() }
-                )
-            } else if viewModel.referenceArtifacts.isEmpty {
-                // The overlay covers the whole list, so the upload row above is
-                // hidden underneath it — and a repository with no artifacts is
-                // exactly the one that needs uploading. Offer it here too.
-                ContentUnavailableView {
-                    SwiftUI.Label("No Artifacts", systemImage: "archivebox")
-                } description: {
-                    Text("This repository has no release artifacts.")
-                } actions: {
-                    if isOwnedByCurrentUser {
-                        uploadMenu
+            SRHTLoadStateView(
+                isLoading: viewModel.isLoadingArtifacts,
+                error: viewModel.error,
+                isEmpty: viewModel.referenceArtifacts.isEmpty,
+                loadingMessage: "Loading artifacts…",
+                errorTitle: "Couldn't Load Artifacts",
+                retryAction: { await viewModel.loadArtifacts() }
+            ) {
+                if viewModel.referenceArtifacts.isEmpty {
+                    // The overlay covers the whole list, so the upload row above is
+                    // hidden underneath it — and a repository with no artifacts is
+                    // exactly the one that needs uploading. Offer it here too.
+                    ContentUnavailableView {
+                        SwiftUI.Label("No Artifacts", systemImage: "archivebox")
+                    } description: {
+                        Text("This repository has no release artifacts.")
+                    } actions: {
+                        if isOwnedByCurrentUser {
+                            uploadMenu
+                        }
                     }
                 }
             }

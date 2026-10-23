@@ -73,12 +73,7 @@ struct PasteListView: View {
                 }
                 .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                     if swipeActionsEnabled {
-                        Button {
-                            pasteToDelete = paste
-                        } label: {
-                            Label("Delete", systemImage: "trash")
-                        }
-                        .tint(.red)
+                        SwipeDeleteButton { pasteToDelete = paste }
                     }
                 }
                 .task {
@@ -88,12 +83,7 @@ struct PasteListView: View {
             .themedRow()
 
             if viewModel.isLoadingMore {
-                HStack {
-                    Spacer()
-                    ProgressView()
-                    Spacer()
-                }
-                .listRowSeparator(.hidden)
+                LoadingMoreRow()
                 .themedRow()
             }
         }
@@ -105,24 +95,19 @@ struct PasteListView: View {
             prompt: "Search pastes"
         )
         .overlay {
-            SRHTLoadStateView(
+            SearchableListState(
                 isLoading: viewModel.isLoading,
                 error: viewModel.error,
                 isEmpty: viewModel.pastes.isEmpty,
+                hasMatches: !viewModel.filteredPastes.isEmpty,
+                searchText: viewModel.searchText,
                 loadingMessage: "Loading pastes…",
                 errorTitle: "Couldn't Load Pastes",
+                emptyTitle: "No Pastes",
+                emptySystemImage: "doc.on.clipboard",
+                emptyDescription: "Your pastes will appear here.",
                 retryAction: { await viewModel.loadPastes() }
-            ) {
-                if !viewModel.pastes.isEmpty, viewModel.filteredPastes.isEmpty {
-                    ContentUnavailableView.search(text: viewModel.searchText)
-                } else if viewModel.pastes.isEmpty {
-                    ContentUnavailableView(
-                        "No Pastes",
-                        systemImage: "doc.on.clipboard",
-                        description: Text("Your pastes will appear here.")
-                    )
-                }
-            }
+            )
         }
         .connectivityOverlay(hasContent: !viewModel.pastes.isEmpty) {
             await viewModel.loadPastes()

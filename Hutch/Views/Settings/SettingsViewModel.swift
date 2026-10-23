@@ -309,75 +309,48 @@ final class SettingsViewModel {
 
     func addSSHKey() async {
         let key = newSSHKey.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !key.isEmpty else { return }
-        error = nil
-
-        do {
-            let result = try await client.execute(
-                service: .meta,
-                query: Self.createSSHKeyMutation,
-                variables: ["key": key],
-                responseType: CreateSSHKeyResponse.self
-            )
-            sshKeys.append(result.createSSHKey)
-            newSSHKey = ""
-            isAddingSSHKey = false
-        } catch {
-            self.error = error.userFacingMessage
-        }
+        guard !key.isEmpty,
+              let result = await metaMutation(Self.createSSHKeyMutation, ["key": key], as: CreateSSHKeyResponse.self)
+        else { return }
+        sshKeys.append(result.createSSHKey)
+        newSSHKey = ""
+        isAddingSSHKey = false
     }
 
     func deleteSSHKey(_ key: SSHKey) async {
-        error = nil
-
-        do {
-            _ = try await client.execute(
-                service: .meta,
-                query: Self.deleteSSHKeyMutation,
-                variables: ["id": key.id],
-                responseType: DeleteSSHKeyResponse.self
-            )
-            sshKeys.removeAll { $0.id == key.id }
-        } catch {
-            self.error = error.userFacingMessage
-        }
+        guard await metaMutation(Self.deleteSSHKeyMutation, ["id": key.id], as: DeleteSSHKeyResponse.self) != nil else { return }
+        sshKeys.removeAll { $0.id == key.id }
     }
 
     // MARK: - PGP Keys
 
     func addPGPKey() async {
         let key = newPGPKey.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !key.isEmpty else { return }
-        error = nil
-
-        do {
-            let result = try await client.execute(
-                service: .meta,
-                query: Self.createPGPKeyMutation,
-                variables: ["key": key],
-                responseType: CreatePGPKeyResponse.self
-            )
-            pgpKeys.append(result.createPGPKey)
-            newPGPKey = ""
-            isAddingPGPKey = false
-        } catch {
-            self.error = error.userFacingMessage
-        }
+        guard !key.isEmpty,
+              let result = await metaMutation(Self.createPGPKeyMutation, ["key": key], as: CreatePGPKeyResponse.self)
+        else { return }
+        pgpKeys.append(result.createPGPKey)
+        newPGPKey = ""
+        isAddingPGPKey = false
     }
 
     func deletePGPKey(_ key: PGPKey) async {
-        error = nil
+        guard await metaMutation(Self.deletePGPKeyMutation, ["id": key.id], as: DeletePGPKeyResponse.self) != nil else { return }
+        pgpKeys.removeAll { $0.id == key.id }
+    }
 
+    /// Runs a meta.sr.ht mutation, clearing the last error first and keeping the new one on failure.
+    private func metaMutation<Response: Decodable>(
+        _ query: String,
+        _ variables: [String: any Sendable],
+        as responseType: Response.Type
+    ) async -> Response? {
+        error = nil
         do {
-            _ = try await client.execute(
-                service: .meta,
-                query: Self.deletePGPKeyMutation,
-                variables: ["id": key.id],
-                responseType: DeletePGPKeyResponse.self
-            )
-            pgpKeys.removeAll { $0.id == key.id }
+            return try await client.execute(service: .meta, query: query, variables: variables, responseType: responseType)
         } catch {
             self.error = error.userFacingMessage
+            return nil
         }
     }
 

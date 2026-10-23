@@ -438,22 +438,9 @@ final class TrackerManagementViewModel {
     }
 
     func deleteACL(_ entry: TrackerACL) async {
-        guard !isDeletingACL else { return }
-        isDeletingACL = true
-        error = nil
-        defer { isDeletingACL = false }
-
-        do {
-            _ = try await client.execute(
-                service: .todo,
-                query: Self.deleteACLMutation,
-                variables: ["id": entry.id],
-                responseType: DeleteTrackerACLResponse.self
-            )
+        await todoMutation(Self.deleteACLMutation, ["id": entry.id], as: DeleteTrackerACLResponse.self, while: \.isDeletingACL) { _ in
             acls.removeAll { $0.id == entry.id }
             await loadACLs()
-        } catch {
-            self.error = error.userFacingMessage
         }
     }
 
@@ -565,20 +552,29 @@ final class TrackerManagementViewModel {
     }
 
     func deleteLabel(_ label: TicketLabel) async {
-        guard !isDeletingLabel else { return }
-        isDeletingLabel = true
-        error = nil
-        defer { isDeletingLabel = false }
-
-        do {
-            _ = try await client.execute(
-                service: .todo,
-                query: Self.deleteLabelMutation,
-                variables: ["id": label.id],
-                responseType: DeleteTrackerLabelResponse.self
-            )
+        await todoMutation(Self.deleteLabelMutation, ["id": label.id], as: DeleteTrackerLabelResponse.self, while: \.isDeletingLabel) { _ in
             labels.removeAll { $0.id == label.id }
             await loadLabels()
+        }
+    }
+
+    /// Runs a todo.sr.ht mutation and then `apply` while `busy` is set, clearing the last error
+    /// first and keeping the new one on failure. Does nothing while `busy` is already set.
+    private func todoMutation<Response: Decodable>(
+        _ query: String,
+        _ variables: [String: any Sendable],
+        as responseType: Response.Type,
+        while busy: ReferenceWritableKeyPath<TrackerManagementViewModel, Bool>,
+        apply: (Response) async -> Void
+    ) async {
+        guard !self[keyPath: busy] else { return }
+        self[keyPath: busy] = true
+        error = nil
+        defer { self[keyPath: busy] = false }
+
+        do {
+            let response = try await client.execute(service: .todo, query: query, variables: variables, responseType: responseType)
+            await apply(response)
         } catch {
             self.error = error.userFacingMessage
         }
@@ -751,19 +747,9 @@ struct TrackerACLManagementSheet: View {
                                 TrackerPermissionSummary(permissions: entry.permissions)
                             }
                             .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                                Button {
-                                    pendingDeletion = entry
-                                } label: {
-                                    Label("Delete", systemImage: "trash")
-                                }
-                                .tint(.red)
+                                SwipeDeleteButton { pendingDeletion = entry }
 
-                                Button {
-                                    editingACL = entry
-                                } label: {
-                                    Label("Edit", systemImage: "pencil")
-                                }
-                                .tint(.blue)
+                                SwipeEditButton { editingACL = entry }
                             }
                         }
                         .themedRow()
@@ -1120,19 +1106,9 @@ struct TrackerLabelManagementSheet: View {
                         }
                         .buttonStyle(.plain)
                         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                            Button {
-                                editingLabel = label
-                            } label: {
-                                Label("Edit", systemImage: "pencil")
-                            }
-                            .tint(.blue)
+                            SwipeEditButton { editingLabel = label }
 
-                            Button {
-                                pendingDeletion = label
-                            } label: {
-                                Label("Delete", systemImage: "trash")
-                            }
-                            .tint(.red)
+                            SwipeDeleteButton { pendingDeletion = label }
                         }
                     }
                     .themedRow()
