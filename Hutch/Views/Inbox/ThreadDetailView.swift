@@ -34,6 +34,27 @@ struct ThreadDetailView: View {
         self._isUnread = State(initialValue: thread.isUnread)
     }
 
+    /// Viewing the thread and Mark as Read both run `markRead`.
+    init(thread: InboxThreadSummary, markRead: @escaping () -> Void, markUnread: @escaping () -> Void) {
+        self.init(thread: thread, onViewed: markRead, onMarkRead: markRead, onMarkUnread: markUnread)
+    }
+
+    /// A thread opened on its own, not from a list: its read state lives in the account's defaults
+    /// and the needs-attention count.
+    static func standalone(_ thread: InboxThreadSummary, appState: AppState) -> ThreadDetailView {
+        ThreadDetailView(
+            thread: thread,
+            markRead: {
+                InboxReadStateStore.markViewed(max(Date(), thread.lastActivityAt), for: thread.threadGroupingKey, defaults: appState.accountDefaults)
+                NeedsAttentionSnapshotStore.adjustUnreadInboxThreads(by: -1, accountID: appState.activeAccountID)
+            },
+            markUnread: {
+                InboxReadStateStore.markUnread(for: thread.threadGroupingKey, defaults: appState.accountDefaults)
+                NeedsAttentionSnapshotStore.adjustUnreadInboxThreads(by: 1, accountID: appState.activeAccountID)
+            }
+        )
+    }
+
     var body: some View {
         ModelContent(model: viewModel, loadingMessage: "Loading thread…") { content($0) }
         .navigationTitle("Thread")

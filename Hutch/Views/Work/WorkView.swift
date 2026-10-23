@@ -134,9 +134,8 @@ struct WorkView: View {
                     NavigationLink {
                         ThreadDetailView(
                             thread: thread,
-                            onViewed: { viewModel.markInboxThreadRead(thread) },
-                            onMarkRead: { viewModel.markInboxThreadRead(thread) },
-                            onMarkUnread: { viewModel.markInboxThreadUnread(thread) }
+                            markRead: { viewModel.markInboxThreadRead(thread) },
+                            markUnread: { viewModel.markInboxThreadUnread(thread) }
                         )
                     } label: {
                         WorkThreadRow(thread: thread)

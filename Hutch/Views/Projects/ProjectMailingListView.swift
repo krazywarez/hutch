@@ -564,15 +564,8 @@ struct MailingListDetailView: View {
         NavigationLink {
             ThreadDetailView(
                 thread: thread,
-                onViewed: {
-                    viewModel.markThreadRead(thread)
-                },
-                onMarkRead: {
-                    viewModel.markThreadRead(thread)
-                },
-                onMarkUnread: {
-                    viewModel.markThreadUnread(thread)
-                }
+                markRead: { viewModel.markThreadRead(thread) },
+                markUnread: { viewModel.markThreadUnread(thread) }
             )
         } label: {
             InboxThreadRow(thread: thread)

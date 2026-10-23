@@ -467,21 +467,7 @@ struct LookupView: View {
                 case .mailingList(let mailingList):
                     MailingListDetailView(mailingList: mailingList)
                 case .thread(let thread):
-                    ThreadDetailView(
-                        thread: thread,
-                        onViewed: {
-                            InboxReadStateStore.markViewed(max(Date(), thread.lastActivityAt), for: thread.threadGroupingKey, defaults: appState.accountDefaults)
-                            NeedsAttentionSnapshotStore.adjustUnreadInboxThreads(by: -1, accountID: appState.activeAccountID)
-                        },
-                        onMarkRead: {
-                            InboxReadStateStore.markViewed(max(Date(), thread.lastActivityAt), for: thread.threadGroupingKey, defaults: appState.accountDefaults)
-                            NeedsAttentionSnapshotStore.adjustUnreadInboxThreads(by: -1, accountID: appState.activeAccountID)
-                        },
-                        onMarkUnread: {
-                            InboxReadStateStore.markUnread(for: thread.threadGroupingKey, defaults: appState.accountDefaults)
-                            NeedsAttentionSnapshotStore.adjustUnreadInboxThreads(by: 1, accountID: appState.activeAccountID)
-                        }
-                    )
+                    ThreadDetailView.standalone(thread, appState: appState)
                 case .manPageBrowser:
                     ManPageBrowserView()
                 case .manPage(let url):
