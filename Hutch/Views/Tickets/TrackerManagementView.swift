@@ -1026,34 +1026,26 @@ private struct TrackerDefaultACLEditorSheet: View {
             .navigationTitle("Default ACL")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button {
-                        Task {
-                            let didSave = await onSave(
-                                TrackerACLPermissions(
-                                    browse: browse,
-                                    submit: submit,
-                                    comment: comment,
-                                    edit: edit,
-                                    triage: triage
-                                )
+                SubmitToolbar(
+                    title: "Save",
+                    isWorking: isSaving,
+                    isDisabled: isSaving,
+                    cancel: { dismiss() }
+                ) {
+                    Task {
+                        let didSave = await onSave(
+                            TrackerACLPermissions(
+                                browse: browse,
+                                submit: submit,
+                                comment: comment,
+                                edit: edit,
+                                triage: triage
                             )
-                            if didSave {
-                                dismiss()
-                            }
-                        }
-                    } label: {
-                        if isSaving {
-                            ProgressView()
-                                .controlSize(.small)
-                        } else {
-                            Text("Save")
+                        )
+                        if didSave {
+                            dismiss()
                         }
                     }
-                    .disabled(isSaving)
                 }
             }
         }

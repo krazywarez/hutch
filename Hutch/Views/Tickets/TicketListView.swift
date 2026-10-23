@@ -658,25 +658,17 @@ private struct CreateTicketSheet: View {
             .navigationTitle("New Ticket")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button {
-                        Task {
-                            if let ticket = await viewModel.createTicket(subject: subject, body: descriptionText) {
-                                onCreated(ticket)
-                            }
-                        }
-                    } label: {
-                        if viewModel.isCreatingTicket {
-                            ProgressView()
-                                .controlSize(.small)
-                        } else {
-                            Text("Create Ticket")
+                SubmitToolbar(
+                    title: "Create Ticket",
+                    isWorking: viewModel.isCreatingTicket,
+                    isDisabled: subject.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || viewModel.isCreatingTicket,
+                    cancel: { dismiss() }
+                ) {
+                    Task {
+                        if let ticket = await viewModel.createTicket(subject: subject, body: descriptionText) {
+                            onCreated(ticket)
                         }
                     }
-                    .disabled(subject.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || viewModel.isCreatingTicket)
                 }
             }
         }

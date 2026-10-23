@@ -11,33 +11,18 @@ struct PasteListView: View {
     var body: some View {
         ModelContent(model: viewModel, loadingMessage: "Loading pastes…") { content($0) }
         .navigationTitle("Pastes")
-        .toolbar {
-            if viewModel != nil {
-                AddToolbarItem(label: "Create paste") {
-                    showCreatePasteSheet = true
+        .createFlow(viewModel, label: "Create paste", isPresented: $showCreatePasteSheet, created: $createdPaste) {
+            CreatePasteSheet(viewModel: $0, onCreated: $1)
+        } destination: { createdPaste in
+            PasteDetailView(
+                paste: createdPaste,
+                onUpdated: { updated in
+                    viewModel?.upsertPaste(updated)
+                },
+                onDeleted: { id in
+                    viewModel?.removePaste(id: id)
                 }
-            }
-        }
-        .sheet(isPresented: $showCreatePasteSheet) {
-            if let viewModel {
-                CreatePasteSheet(viewModel: viewModel) { paste in
-                    showCreatePasteSheet = false
-                    createdPaste = paste
-                }
-            }
-        }
-        .navigationDestination(isPresented: .isPresent($createdPaste)) {
-            if let createdPaste {
-                PasteDetailView(
-                    paste: createdPaste,
-                    onUpdated: { updated in
-                        viewModel?.upsertPaste(updated)
-                    },
-                    onDeleted: { id in
-                        viewModel?.removePaste(id: id)
-                    }
-                )
-            }
+            )
         }
         .task {
             if viewModel == nil {
@@ -312,25 +297,17 @@ private struct CreatePasteSheet: View {
             .navigationTitle("New Paste")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button {
-                        Task {
-                            if let paste = await viewModel.createPaste(files: files, visibility: visibility) {
-                                onCreated(paste)
-                            }
-                        }
-                    } label: {
-                        if viewModel.isCreatingPaste {
-                            ProgressView()
-                                .controlSize(.small)
-                        } else {
-                            Text("Create Paste")
+                SubmitToolbar(
+                    title: "Create Paste",
+                    isWorking: viewModel.isCreatingPaste,
+                    isDisabled: !hasValidContent || viewModel.isCreatingPaste,
+                    cancel: { dismiss() }
+                ) {
+                    Task {
+                        if let paste = await viewModel.createPaste(files: files, visibility: visibility) {
+                            onCreated(paste)
                         }
                     }
-                    .disabled(!hasValidContent || viewModel.isCreatingPaste)
                 }
             }
         }

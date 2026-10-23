@@ -47,7 +47,16 @@ enabled = false
 
 # Exhaustive switch-over-enum lookup tables share shape but not content.
 [language.swift.smells.duplication]
-filter_patterns = ["(import_declaration _)", "(switch_statement _)"]
+# The widget extension is its own target with its own decodeDateString; each paging view model
+# owns its cursor state in loadMore...IfNeeded; calls to the shared load-state views differ only in
+# their arguments.
+filter_patterns = [
+  "(import_declaration _)",
+  "(switch_statement _)",
+  "(function_declaration name: (simple_identifier) @_n (#eq? @_n \"decodeDateString\"))",
+  "(function_declaration name: (simple_identifier) @_n (#match? @_n \"^loadMore[A-Za-z]*IfNeeded$\"))",
+  "(call_expression (simple_identifier) @_n (#match? @_n \"^(SearchableListState|SRHTLoadStateView)$\"))",
+]
 
 # tree-sitter-swift nests each `else if` inside the previous branch, so a one-line `if` in the
 # fourth branch of a flat chain reports level 5.

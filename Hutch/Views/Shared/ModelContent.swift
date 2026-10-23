@@ -30,3 +30,37 @@ struct AddToolbarItem: ToolbarContent {
         }
     }
 }
+
+extension View {
+    /// A + button, once `model` exists, that presents `sheet`. The sheet calls back with what it
+    /// created, which closes it and pushes `destination`.
+    func createFlow<Model, Item, Sheet: View, Destination: View>(
+        _ model: Model?,
+        label: LocalizedStringKey,
+        isPresented: Binding<Bool>,
+        created: Binding<Item?>,
+        @ViewBuilder sheet: @escaping (Model, @escaping (Item) -> Void) -> Sheet,
+        @ViewBuilder destination: @escaping (Item) -> Destination
+    ) -> some View {
+        toolbar {
+            if model != nil {
+                AddToolbarItem(label: label) {
+                    isPresented.wrappedValue = true
+                }
+            }
+        }
+        .sheet(isPresented: isPresented) {
+            if let model {
+                sheet(model) { item in
+                    isPresented.wrappedValue = false
+                    created.wrappedValue = item
+                }
+            }
+        }
+        .navigationDestination(isPresented: .isPresent(created)) {
+            if let item = created.wrappedValue {
+                destination(item)
+            }
+        }
+    }
+}

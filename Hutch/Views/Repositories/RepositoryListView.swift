@@ -11,32 +11,17 @@ struct RepositoryListView: View {
     var body: some View {
         ModelContent(model: viewModel, loadingMessage: "Loading repositories…") { listContent($0) }
         .navigationTitle("Repositories")
-        .toolbar {
-            if viewModel != nil {
-                AddToolbarItem(label: "Create repository") {
-                    showCreateRepositorySheet = true
+        .createFlow(viewModel, label: "Create repository", isPresented: $showCreateRepositorySheet, created: $createdRepository) {
+            CreateRepositorySheet(viewModel: $0, onCreated: $1)
+        } destination: { createdRepository in
+            RepositoryDetailView(
+                repository: createdRepository,
+                onRepositoryUpdated: { updatedRepository in
+                    self.createdRepository = updatedRepository
+                    viewModel?.updateRepository(updatedRepository)
                 }
-            }
-        }
-        .sheet(isPresented: $showCreateRepositorySheet) {
-            if let viewModel {
-                CreateRepositorySheet(viewModel: viewModel) { repository in
-                    showCreateRepositorySheet = false
-                    createdRepository = repository
-                }
-            }
-        }
-        .navigationDestination(isPresented: .isPresent($createdRepository)) {
-            if let createdRepository {
-                RepositoryDetailView(
-                    repository: createdRepository,
-                    onRepositoryUpdated: { updatedRepository in
-                        self.createdRepository = updatedRepository
-                        viewModel?.updateRepository(updatedRepository)
-                    }
-                ) {
-                    viewModel?.removeRepository(id: createdRepository.id)
-                }
+            ) {
+                viewModel?.removeRepository(id: createdRepository.id)
             }
         }
         .task {
@@ -243,31 +228,23 @@ private struct CreateRepositorySheet: View {
             .navigationTitle(service == .git ? "New Git Repository" : "New Mercurial Repository")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button {
-                        Task {
-                            if let repository = await viewModel.createRepository(
-                                service: service,
-                                name: name,
-                                description: description,
-                                visibility: visibility,
-                                cloneURL: cloneURL
-                            ) {
-                                onCreated(repository)
-                            }
-                        }
-                    } label: {
-                        if viewModel.isCreatingRepository {
-                            ProgressView()
-                                .controlSize(.small)
-                        } else {
-                            Text("Create")
+                SubmitToolbar(
+                    title: "Create",
+                    isWorking: viewModel.isCreatingRepository,
+                    isDisabled: name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || viewModel.isCreatingRepository,
+                    cancel: { dismiss() }
+                ) {
+                    Task {
+                        if let repository = await viewModel.createRepository(
+                            service: service,
+                            name: name,
+                            description: description,
+                            visibility: visibility,
+                            cloneURL: cloneURL
+                        ) {
+                            onCreated(repository)
                         }
                     }
-                    .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || viewModel.isCreatingRepository)
                 }
             }
         }
