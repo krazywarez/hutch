@@ -1,5 +1,7 @@
 #+title: hutch
 
+support hutch with a tip in the app (more → about) or through [[https://github.com/sponsors/ccleberg][github sponsors]].
+
 * what
 ios client for sourcehut. native swiftui, iphone and ipad. uses
 sourcehut's graphql apis. stores your personal access token in the
