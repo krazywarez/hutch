@@ -52,8 +52,8 @@ Nothing downstream is trustworthy until the build badge means something.
   to `.gitbay/ci.yml`, so the test plan now runs nowhere in CI: only in Xcode or
   `xcodebuild test -scheme Hutch` locally. gitbay CI runs the accessibility check
   and the weekly man-page sync, and the instance's own `gitbay-security` job
-  covers secret scanning. `builds/swift-ci.yml` is still in the tree, but the
-  repo has no sr.ht remote for builds.sr.ht to trigger from. Phase 0's gate is
+  covers secret scanning, alongside qlty's trufflehog. builds.sr.ht runs nothing
+  here: the repo has no sr.ht remote for it to trigger from. Phase 0's gate is
   open again, and closing it still needs a macOS runner.
 
 Turning the gate on first required making the suite green. All 214 tests had
