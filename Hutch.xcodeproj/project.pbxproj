@@ -11,7 +11,7 @@
 		85EF08B88008A7861BC573CD /* AccessibilityUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36512CB22293FDA01F42B239 /* AccessibilityUITests.swift */; };
 		8B2F89662F69DEB900FC0253 /* LICENSE in Resources */ = {isa = PBXBuildFile; fileRef = 8B2F89632F69DEB900FC0253 /* LICENSE */; };
 		8B2F89672F69DEB900FC0253 /* README.org in Resources */ = {isa = PBXBuildFile; fileRef = 8B2F89642F69DEB900FC0253 /* README.org */; };
-		8B2F89682F69DEB900FC0253 /* SECURITY.txt in Resources */ = {isa = PBXBuildFile; fileRef = 8B2F89652F69DEB900FC0253 /* SECURITY.txt */; };
+		8B2F89682F69DEB900FC0253 /* SECURITY.md in Resources */ = {isa = PBXBuildFile; fileRef = 8B2F89652F69DEB900FC0253 /* SECURITY.md */; };
 		8B2FA9CD2F7E211800E609E2 /* meta.json in Resources */ = {isa = PBXBuildFile; fileRef = 8B2FA9C82F7E211800E609E2 /* meta.json */; };
 		8B2FA9CE2F7E211800E609E2 /* hg.json in Resources */ = {isa = PBXBuildFile; fileRef = 8B2FA9C62F7E211800E609E2 /* hg.json */; };
 		8B2FA9CF2F7E211800E609E2 /* builds.json in Resources */ = {isa = PBXBuildFile; fileRef = 8B2FA9C42F7E211800E609E2 /* builds.json */; };
@@ -79,7 +79,7 @@
 		8B01C8012F955ACC00FCFB9A /* SyncedProducts.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = SyncedProducts.storekit; sourceTree = "<group>"; };
 		8B2F89632F69DEB900FC0253 /* LICENSE */ = {isa = PBXFileReference; lastKnownFileType = text; path = LICENSE; sourceTree = "<group>"; };
 		8B2F89642F69DEB900FC0253 /* README.org */ = {isa = PBXFileReference; lastKnownFileType = text; path = README.org; sourceTree = "<group>"; };
-		8B2F89652F69DEB900FC0253 /* SECURITY.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = SECURITY.txt; sourceTree = "<group>"; };
+		8B2F89652F69DEB900FC0253 /* SECURITY.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = SECURITY.md; sourceTree = "<group>"; };
 		8B2FA9C42F7E211800E609E2 /* builds.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = builds.json; sourceTree = "<group>"; };
 		8B2FA9C52F7E211800E609E2 /* git.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = git.json; sourceTree = "<group>"; };
 		8B2FA9C62F7E211800E609E2 /* hg.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = hg.json; sourceTree = "<group>"; };
@@ -252,7 +252,7 @@
 				8B8182C22F6B742B000AE049 /* HutchTests */,
 				8B2F89632F69DEB900FC0253 /* LICENSE */,
 				8B2F89642F69DEB900FC0253 /* README.org */,
-				8B2F89652F69DEB900FC0253 /* SECURITY.txt */,
+				8B2F89652F69DEB900FC0253 /* SECURITY.md */,
 				8B4B28D32F6704280045FA19 /* Hutch */,
 				8BE081F42F80000100000001 /* Shared */,
 				8BE081F52F80000100000001 /* HutchWidgetExtension */,
@@ -462,7 +462,7 @@
 			files = (
 				8B2F89662F69DEB900FC0253 /* LICENSE in Resources */,
 				8B2F89672F69DEB900FC0253 /* README.org in Resources */,
-				8B2F89682F69DEB900FC0253 /* SECURITY.txt in Resources */,
+				8B2F89682F69DEB900FC0253 /* SECURITY.md in Resources */,
 				8B2FA9CD2F7E211800E609E2 /* meta.json in Resources */,
 				8B2FA9CE2F7E211800E609E2 /* hg.json in Resources */,
 				8B2FA9CF2F7E211800E609E2 /* builds.json in Resources */,

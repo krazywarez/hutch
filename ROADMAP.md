@@ -4,7 +4,7 @@ Planned work for Hutch, ordered by dependency. Feature gaps below were
 identified by diffing the GraphQL schema dumps in `Docs/API` against actual
 call sites in the Swift source.
 
-See [SCOPE.txt](SCOPE.txt) for features that are intentionally out of scope.
+See [SCOPE.md](SCOPE.md) for features that are intentionally out of scope.
 
 ## SourceHut API traps
 
@@ -166,7 +166,7 @@ and deploy keys — once slated for 3.9.0 — move to 3.10.0, and the hub.sr.ht
 writes that were provisionally 3.10.0 landed early, because the SDL, once
 actually read, turned out to have the mutations (it was not the empty bucket the
 sequencing had guarded against). The ingest still leads 3.10.0: its real output
-is a `SCOPE.txt` that is true.
+is a `SCOPE.md` that is true.
 
 `KeychainHelper` is deliberately unbucketed; see the SonarCloud hotspots below.
 
@@ -183,9 +183,9 @@ Three of the six planned. The other three did not survive contact:
 - The `events` feed was built, then removed: todo.sr.ht's root `events` resolver
   joins `event.participant_id` against `participant.user_id`, which are
   different id spaces, so it returns an empty list for everyone. See
-  [SCOPE.txt](SCOPE.txt).
+  [SCOPE.md](SCOPE.md).
 - Webhook management, `shareSecret`, and build groups are reachable but declined
-  on judgement — see [SCOPE.txt](SCOPE.txt) for the reasoning, so they do not get
+  on judgement — see [SCOPE.md](SCOPE.md) for the reasoning, so they do not get
   re-proposed.
 
 ### Localization — v4.0.0, and only with translations
@@ -334,9 +334,9 @@ not just a green suite.
 sr.ht posts a quarterly update to `~sircmpwn/sr.ht-announce`, mirrored at
 <https://sourcehut.org/blog/>. Nothing in Hutch tracks it, so the API grows and
 this repo's assumptions quietly rot. Read each quarter's post, diff it against
-`Docs/API`, `SCOPE.txt`, and the call sites, and file what changed.
+`Docs/API`, `SCOPE.md`, and the call sites, and file what changed.
 
-That this is worth doing is already proven: **`SCOPE.txt` claims pronouns are
+That this is worth doing is already proven: **`SCOPE.md` claims pronouns are
 "not in GraphQL schema", while `AppState` queries `pronouns` and
 `UserProfileView` displays them.** sr.ht shipped it, the doc never caught up,
 and it has been discouraging work that is in fact already done.
@@ -347,7 +347,7 @@ flags two openings:
 - **hub.sr.ht gained a writable GraphQL API** for managing projects and project
   resources. ~~Rechecked and shipped~~: project create/edit, resource
   link/unlink, and public discovery landed (#12–#15) — see "hub.sr.ht writes"
-  below. `SCOPE.txt`'s "hub has no public API / no discovery" claim has since
+  below. `SCOPE.md`'s "hub has no public API / no discovery" claim has since
   been corrected.
 - ~~git.sr.ht deploy keys are complete~~ — **shipped** (v3.10.0).
   `createDeployKey` / `deleteDeployKey` (and `Repository.deployKeys`) are wired
@@ -403,7 +403,7 @@ Verify on a signed-in device.
 
 `mailingListSubscribe` is now buildable: the ingest found `MailingList` gained a
 `subscription` field, so per-list state is readable and the subscribe/unsubscribe
-toggle can reflect it — see the "mailing list subscribe" bucket below. `SCOPE.txt`
+toggle can reflect it — see the "mailing list subscribe" bucket below. `SCOPE.md`
 has since had its "hub has no public API / no discovery" claim corrected.
 
 ### App Intent gaps — unscheduled

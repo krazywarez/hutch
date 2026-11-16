@@ -7,12 +7,12 @@
 - ~~Explore / search (hub.sr.ht) (no public discovery API)~~ — **stale**.
   hub.sr.ht added a public `projects` query ("List all public projects"), and
   Hutch ships it as project discovery (#12, `DiscoverProjectsView`). Left struck
-  through as more evidence for the ingestion task in ROADMAP.txt: this entry ruled
+  through as more evidence for the ingestion task in ROADMAP.md: this entry ruled
   out a feature the API had come to support.
 - ~~Pronouns on profile (not in GraphQL schema)~~ — **stale**. sr.ht added
   pronouns (see the Q1 2026 "What's cooking"), and Hutch already queries them in
   `AppState` and shows them in `UserProfileView`. Left here struck through as
-  evidence for the ingestion task in ROADMAP.txt: this entry spent months telling
+  evidence for the ingestion task in ROADMAP.md: this entry spent months telling
   people not to build something that was already built.
 - Revoke personal access tokens (`@internal` in schema, inaccessible)
 - Archive a message to a list (`archiveMessage` is `@internal`, inaccessible)
@@ -34,7 +34,7 @@
 - ~~Subscribe to a mailing list~~ — **shipped** (v3.11.0). A subscribe/unsubscribe
   toggle on the mailing-list detail view. State comes from the `subscriptions`
   query (`MailingList.subscription` is a trap — it never reports your state; see
-  ROADMAP.txt API traps), and a list is reachable to subscribe to via Lookup or a
+  ROADMAP.md API traps), and a list is reachable to subscribe to via Lookup or a
   project's lists — no discovery API needed.
 - Submitting patches (a `git send-email` flow, not a GraphQL mutation; Hutch
   reviews patchsets but cannot send them)

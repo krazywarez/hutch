@@ -3,62 +3,104 @@
 support hutch with a tip in the app (more → about) or through [[https://github.com/sponsors/ccleberg][github sponsors]].
 
 * what
-ios client for sourcehut. native swiftui, iphone and ipad. uses
-sourcehut's graphql apis. stores your personal access token in the
-ios keychain.
+ios client for sourcehut. native swiftui, iphone and ipad, built on
+sourcehut's graphql apis.
+
+several accounts can be signed in at once. each keeps its own personal
+access token in the ios keychain and its own caches and preferences.
+read-only api responses are cached on disk per account, so most screens
+open without a round trip.
 
 * does
-- home dashboard: assigned tickets, recent builds, projects
+** repos
 - git and mercurial repo browsing
 - repo details: readme, refs, commits, diffs, files, artifacts,
-  settings
+  settings, acls, deploy keys
 - artifact upload and deletion on release tags
+
+** tickets and builds
 - trackers and tickets: browse, create, edit, delete, subscribe
-- builds: browse, detail, submit
-- inbox and mailing list reading
+- tracker management: settings, acls, labels
+- builds: browse, detail, logs, submit, retry, cancel, resubmit
+
+** mail
+- inbox and mailing list reading, with read and unread state
 - patchset review: cover letters, per-patch diffs, checks, version
   chains, status changes
-- mailing list create, settings, delete
+- mailing lists: create, subscribe, settings, delete
+
+** the rest
+- home dashboard and work queue: what is assigned, unread or failing,
+  plus pinned projects and repos
+- projects: public discovery, create, edit, link and unlink resources
+- lookup: any user's profile, repos, trackers, contribution graph
 - pastes: browse, create, detail
-- profile and account settings: ssh keys, pgp keys, token
+- man.sr.ht browser over a bundled catalog, synced weekly by ci
+- status.sr.ht summary
+- profile and account settings: ssh keys, pgp keys, avatar, token
   management, audit log
 - email preferences for todo.sr.ht and lists.sr.ht
-- deep links for repos, tickets, build jobs
 
-some sr.ht services are still browser-only and open in safari.
+** system integration
+- widgets: contribution graph, needs attention, system status
+- app intents for shortcuts and spotlight: work queue, recent
+  activity, failed builds, assigned tickets, system status, pinned
+  resources, search
+- =hutch://= deep links for repos, tickets, builds, lists, profiles,
+  projects, status and search
+- safari web extension that offers to open a supported sr.ht page in
+  the app
+- themes including amoled, compact density, optional swipe actions
+
+some sr.ht services are still browser-only and open in safari. see
+SCOPE.md for what is deliberately left out and why, and ROADMAP.md for
+what is planned.
 
 * requires
-xcode with a current ios sdk, a simulator or device, a sourcehut
-account, and a personal access token.
+xcode with a current ios sdk, a simulator or device on ios 17.6 or
+later, a sourcehut account, and a personal access token.
 
 * build
 #+begin_src sh
-git clone https://github.com/krazywarez/hutch
+git clone https://gitbay.org/krz/hutch
 #+end_src
 
-open in xcode, build and run. on first launch paste a token. create
-one at https://meta.sr.ht/oauth2/personal-token.
+open =Hutch.xcodeproj= in xcode, build and run. on first launch paste a
+token. create one at https://meta.sr.ht/oauth2/personal-token.
 
-the token is validated against meta.sr.ht before saving and stored
-in the keychain. Reset App Data clears the token, caches, cookies,
-and local web data.
+the token is validated against meta.sr.ht before saving and stored in
+the keychain. Reset App Data clears the token, caches, cookies, and
+local web data.
 
 * develop
-xcode app with tests under HutchTests. run the test plan in
-HutchTests.xctestplan.
+tests live under =HutchTests=. =HutchTests.xctestplan= is the default
+plan for the =Hutch= scheme, so =xcodebuild test -scheme Hutch= runs
+it.
+
+notes on the internals are in =Docs=: =API_CACHE.md= for the caching
+layer, =StoreKit.md= for the tip products, =Hutch/API_REFERENCE.md= for
+sourcehut's endpoints and token scopes, and =Docs/API= for schema dumps
+(partial — see the api traps in ROADMAP.md before trusting them).
+
+ci runs on the gitbay instance from =.gitbay/ci.yml=: an accessibility
+check over the view files and the weekly man-page sync. the xcodebuild
+test plan is not in ci; there is no macos runner.
 
 * mirrors
 #+begin_example
-github:    https://github.com/krazywarez/hutch
-krz.sh:    https://gitbay.org/krz/hutch
-kept in sync. issues or patches on either.
+krz.sh:  https://gitbay.org/krz/hutch   canonical
+github:  https://github.com/krazywarez/hutch   push mirror
 #+end_example
 
+issues and merge requests go to gitbay. pushes to github are
+overwritten by the mirror.
+
 * security
-see SECURITY.txt.
+see SECURITY.md.
 
 * license
 0bsd. see LICENSE.
 
 * contact
 - root@krz.sh
+- https://krz.sh/apps/hutch/
