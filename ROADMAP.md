@@ -46,8 +46,15 @@ Nothing downstream is trustworthy until the build badge means something.
   the check had failed since then.
 - ~~Add a macOS CI job that runs `xcodebuild test`~~. builds.sr.ht has no macOS
   image and its maintainer has ruled them out, so `xcodebuild` cannot run there.
-  The test plan now runs on the GitHub mirror via `.github/workflows/test.yml`;
-  builds.sr.ht keeps secret scanning and structure checks.
+  The test plan ran on the GitHub mirror via `.github/workflows/test.yml`, with
+  builds.sr.ht keeping secret scanning and structure checks — **stale**.
+  `f9aa552` (2026-08-25) deleted that workflow when the accessibility check moved
+  to `.gitbay/ci.yml`, so the test plan now runs nowhere in CI: only in Xcode or
+  `xcodebuild test -scheme Hutch` locally. gitbay CI runs the accessibility check
+  and the weekly man-page sync, and the instance's own `gitbay-security` job
+  covers secret scanning. `builds/swift-ci.yml` is still in the tree, but the
+  repo has no sr.ht remote for builds.sr.ht to trigger from. Phase 0's gate is
+  open again, and closing it still needs a macOS runner.
 
 Turning the gate on first required making the suite green. All 214 tests had
 been running only on demand in Xcode, and ten had rotted:
